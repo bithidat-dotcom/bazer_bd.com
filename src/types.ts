@@ -31,6 +31,7 @@ export interface Order {
 export interface Banner {
   id: string;
   image: string;
+  video_url?: string;
   title?: string;
   created_at: string;
 }
