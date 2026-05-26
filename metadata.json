@@ -1,0 +1,6 @@
+{
+  "name": "Bazer_bd.com",
+  "description": "A modern, high-performance eCommerce platform with real-time inventory management and streamlined checkout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
