@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
+import ProductModal from './components/ProductModal';
 import CheckoutModal from './components/CheckoutModal';
 import WhatsappSupport from './components/WhatsappSupport';
 import { supabase } from './lib/supabase';
@@ -18,6 +19,7 @@ export default function Storefront() {
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -138,31 +140,31 @@ export default function Storefront() {
     }
   }
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: Product, quantity: number = 1) => {
     setCart(prevCart => {
       const existing = prevCart.find(item => item.product.id === product.id);
       if (existing) {
         return prevCart.map(item => 
           item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prevCart, { product, quantity: 1 }];
+      return [...prevCart, { product, quantity }];
     });
   };
 
-  const handleBuyNow = (product: Product) => {
+  const handleBuyNow = (product: Product, quantity: number = 1) => {
     setCart(prevCart => {
       const existing = prevCart.find(item => item.product.id === product.id);
       if (existing) {
         return prevCart.map(item => 
           item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prevCart, { product, quantity: 1 }];
+      return [...prevCart, { product, quantity }];
     });
     setIsModalOpen(true);
   };
@@ -239,6 +241,7 @@ export default function Storefront() {
                     product={product} 
                     onBuy={handleBuyNow} 
                     onAddToCart={handleAddToCart}
+                    onClick={setSelectedProduct}
                   />
                 </div>
               ))}
@@ -292,6 +295,16 @@ export default function Storefront() {
         onSubmit={submitOrder}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+      />
+
+      <ProductModal
+        product={selectedProduct}
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={handleAddToCart}
+        onBuyNow={handleBuyNow}
+        allProducts={products}
+        onProductSelect={setSelectedProduct}
       />
 
       <AnimatePresence>

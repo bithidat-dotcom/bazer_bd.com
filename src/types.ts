@@ -6,6 +6,8 @@ export interface Product {
   image: string;
   images: string[];
   discount?: number;
+  rating?: number;
+  reviewCount?: number;
   created_at: string;
 }
 
