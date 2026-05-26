@@ -39,11 +39,10 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
 
     if (error) {
       if (error.code === '42P01') {
-        // Table doesn't exist yet, mock & fallback to localStorage
+        // Table doesn't exist yet, fallback to localStorage
         console.warn('product_likes table does not exist in Supabase yet. Run the SQL script in Supabase dashboard to enable it.');
-        const serverMockCount = Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
         return {
-          totalLikes: serverMockCount + (locallyLiked ? 1 : 0),
+          totalLikes: locallyLiked ? 1 : 0,
           userLiked: locallyLiked
         };
       }
@@ -59,9 +58,8 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
     // Simple fallback to localStorage if anything goes wrong
     const localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
     const locallyLiked = localFavs.includes(productId);
-    const fallbackCount = Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
     return {
-      totalLikes: fallbackCount + (locallyLiked ? 1 : 0),
+      totalLikes: locallyLiked ? 1 : 0,
       userLiked: locallyLiked
     };
   }
@@ -116,9 +114,8 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
   } catch (err) {
     console.error('Error syncing like with server:', err);
     // Fallback to local count calculation
-    const fallbackCount = Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
     return {
-      totalLikes: fallbackCount + (nextLikedState ? 1 : 0),
+      totalLikes: nextLikedState ? 1 : 0,
       userLiked: nextLikedState
     };
   }

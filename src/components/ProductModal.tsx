@@ -63,28 +63,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
       const fetchReviews = async () => {
         const dbReviews = await getProductReviews(product.id);
         if (active) {
-          if (dbReviews.length > 0) {
-            setReviews(dbReviews);
-          } else {
-            // fallback
-            const fallbackReviews: Review[] = [
-              {
-                id: 'mock-1',
-                userName: 'Tanvir Rahman',
-                rating: 5,
-                comment: 'Highly recommended! The quality is premium and delivery was exceptionally fast in Dhaka.',
-                createdAt: '2 days ago'
-              },
-              {
-                id: 'mock-2',
-                userName: 'Sultana Begum',
-                rating: 4,
-                comment: 'Very good product, exactly as described. Worth the price!',
-                createdAt: '1 week ago'
-              }
-            ];
-            setReviews(fallbackReviews);
-          }
+          setReviews(dbReviews);
         }
       };
       fetchReviews();
@@ -201,14 +180,12 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
     }, 4000);
   };
 
-  // Calculate dynamic average rating based on original default and user-added ones
+  // Calculate dynamic average rating based purely on real reviews
   const dynamicAvgRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length)
-    : (product.rating || 4.8);
+    : 0;
     
-  const dynamicReviewCount = reviews.length > 0 
-    ? ((product.reviewCount || 12) + reviews.filter(r => !r.id.startsWith('mock-')).length)
-    : (product.reviewCount || 12);
+  const dynamicReviewCount = reviews.length;
 
   return (
     <AnimatePresence>
