@@ -1,16 +1,18 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
-import { X, MessageCircle, MapPin, User, Send } from 'lucide-react';
+import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2 } from 'lucide-react';
 
 interface CheckoutModalProps {
   cartItems: CartItem[];
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (customerName: string, whatsapp: string, location: string) => Promise<void>;
+  onUpdateQuantity: (productId: string, delta: number) => void;
+  onRemoveItem: (productId: string) => void;
 }
 
-export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit }: CheckoutModalProps) {
+export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, onUpdateQuantity, onRemoveItem }: CheckoutModalProps) {
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [location, setLocation] = useState('');
@@ -89,15 +91,50 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit }: 
                     onSubmit={handleSubmit}
                     className="p-6 space-y-4"
                   >
-                    <div className="space-y-3 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100 max-h-40 overflow-y-auto no-scrollbar">
+                    <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 max-h-64 overflow-y-auto no-scrollbar">
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cart Summary</p>
-                      {cartItems.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm">
-                          <span className="text-slate-700">
-                            <span className="font-bold">{item.quantity}x</span> {item.product.name}
-                          </span>
-                        </div>
-                      ))}
+                      {cartItems.map((item, idx) => {
+                        const hasDiscount = item.product.discount && item.product.discount > 0;
+                        const price = hasDiscount 
+                          ? item.product.price * (1 - (item.product.discount || 0) / 100) 
+                          : item.product.price;
+                          
+                        return (
+                          <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                            <div className="flex-1 min-w-0 pr-4">
+                              <p className="text-sm font-bold text-slate-800 truncate">{item.product.name}</p>
+                              <p className="text-xs font-bold text-orange-500 mt-0.5">{price.toFixed(0)} BDT</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-1 border border-slate-100">
+                                <button 
+                                  type="button"
+                                  onClick={() => onUpdateQuantity(item.product.id, -1)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600 transition-all"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                                <button 
+                                  type="button"
+                                  onClick={() => onUpdateQuantity(item.product.id, 1)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600 transition-all"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              </div>
+                              <button 
+                                type="button"
+                                onClick={() => onRemoveItem(item.product.id)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="space-y-4">

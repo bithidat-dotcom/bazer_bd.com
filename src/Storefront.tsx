@@ -1,5 +1,5 @@
-import { Filter, LayoutGrid, AlertCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
 import Navbar from './components/Navbar';
@@ -21,12 +21,22 @@ export default function Storefront() {
   const [searchQuery, setSearchQuery] = useState('');
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const categories = ["Electronic", "Fashion", "Bazer", "Cloth", "Festive", "Laptop", "Mobile", "Gadget", "Robotic"];
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   useEffect(() => {
     const filtered = products.filter(p => {
@@ -115,7 +125,7 @@ export default function Storefront() {
         throw error;
       } else {
         console.log("Order Successful:", data);
-        window.alert("✅ Order Placed Successfully!");
+        setSuccessMessage("Order Placed Successfully!");
         setCart([]); // Clear cart after successful order
         fetchData();
       }
@@ -155,6 +165,26 @@ export default function Storefront() {
       return [...prevCart, { product, quantity: 1 }];
     });
     setIsModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (cart.length === 0 && isModalOpen) {
+      setIsModalOpen(false);
+    }
+  }, [cart.length, isModalOpen]);
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart(prevCart => prevCart.map(item => {
+      if (item.product.id === productId) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : item;
+      }
+      return item;
+    }));
+  };
+
+  const removeItem = (productId: string) => {
+    setCart(prevCart => prevCart.filter(item => item.product.id !== productId));
   };
 
   const handleOpenCart = () => {
@@ -228,7 +258,7 @@ export default function Storefront() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-6">
           <div className="flex flex-wrap items-center justify-between text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 mb-6 gap-6">
             <div className="flex flex-col gap-2">
-              <span className="text-slate-800 text-xs text-opacity-100">© 2024 Bazer_bd.com — Trusted Online Shop in Bangladesh</span>
+              <span className="text-slate-800 text-xs text-opacity-100">© 2024 Bazar_bds.com — Trusted Online Shop in Bangladesh</span>
               <span className="text-slate-400 normal-case tracking-normal">Company Info: Premium Quality Goods & Fast Delivery.</span>
             </div>
           </div>
@@ -260,7 +290,28 @@ export default function Storefront() {
         onClose={() => setIsModalOpen(false)} 
         cartItems={cart}
         onSubmit={submitOrder}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={removeItem}
       />
+
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white px-6 py-4 rounded-2xl shadow-2xl shadow-green-500/20 border border-green-100"
+          >
+            <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-800">{successMessage}</p>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">We will contact you via WhatsApp shortly.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <WhatsappSupport />
     </div>

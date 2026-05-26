@@ -82,8 +82,8 @@ export default function Navbar({
     <nav className="sticky top-0 z-50 glass px-4 py-3 sm:px-8 shadow-sm relative">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 relative">
         <Link to="/" className="text-xl sm:text-2xl font-bold font-display tracking-tight flex items-center gap-2">
-          <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazer_bd.com Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
-          <span className="text-slate-900">Bazer<span className="text-orange-500">_bd.com</span></span>
+          <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazar_bds.com Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
+          <span className="text-slate-900">Bazar<span className="text-orange-500">_bds.com</span></span>
         </Link>
         
         <div className="hidden md:flex flex-1 max-w-lg relative gap-2">
