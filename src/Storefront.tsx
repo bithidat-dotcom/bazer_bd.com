@@ -32,6 +32,7 @@ export default function Storefront() {
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const categories = ["Electronic", "Fashion", "Bazer", "Cloth", "Festive", "Laptop", "Mobile", "Gadget", "Robotic"];
 
@@ -94,6 +95,15 @@ export default function Storefront() {
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  useEffect(() => {
+    if (alertMessage) {
+      const timer = setTimeout(() => {
+        setAlertMessage(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [alertMessage]);
 
   useEffect(() => {
     const filtered = products.filter(p => {
@@ -205,11 +215,7 @@ export default function Storefront() {
     setIsModalOpen(true);
   };
 
-  useEffect(() => {
-    if (cart.length === 0 && isModalOpen) {
-      setIsModalOpen(false);
-    }
-  }, [cart.length, isModalOpen]);
+
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart(prevCart => prevCart.map(item => {
@@ -250,14 +256,10 @@ export default function Storefront() {
         onCategoryFilter={setCategoryFilter}
         discountFilter={discountFilter}
         onDiscountFilter={setDiscountFilter}
+        products={products}
       />
       
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24">
-        <CategoryScroller 
-          categories={categories} 
-          selectedCategory={categoryFilter} 
-          onSelect={setCategoryFilter} 
-        />
         <HeroBanner banners={banners} />
         
         <section>
@@ -302,7 +304,7 @@ export default function Storefront() {
         </section>
       </main>
 
-      <footer className="glass border-t border-slate-200 mt-12 mb-0 relative z-40 bg-white/80 backdrop-blur-xl">
+      <footer className="hidden md:block glass border-t border-slate-200 mt-12 mb-0 relative z-40 bg-white/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-6">
           <div className="flex flex-wrap items-center justify-between text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 mb-6 gap-6">
             <div className="flex flex-col gap-2">
@@ -320,7 +322,6 @@ export default function Storefront() {
               <a href="#" className="hover:text-black transition-colors">Instagram: @quats.co</a>
               <a href="#" className="hover:text-black transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-black transition-colors">Terms & Conditions</a>
-              <a href="/admin" className="hover:text-black transition-colors text-slate-800 bg-slate-200 px-2 py-1 rounded">Admin</a>
             </div>
           </div>
         </div>
@@ -370,6 +371,44 @@ export default function Storefront() {
       <WhatsappSupport />
 
       <AnimatePresence>
+        {alertMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -100, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -100, x: '-50%', scale: 0.8 }}
+            className="fixed top-0 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm text-left font-sans animate-in fade-in"
+          >
+            <div className="bg-slate-900 text-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-800 flex items-center gap-4 overflow-hidden relative">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', damping: 12, delay: 0.1 }}
+                className="w-12 h-12 bg-white/10 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
+              >
+                <AlertCircle className="w-6 h-6 text-orange-400" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold tracking-tight">{alertMessage}</p>
+                <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-tight">Explore our products and find great deals!</p>
+              </div>
+              <button 
+                onClick={() => setAlertMessage(null)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors self-start cursor-pointer"
+              >
+                <X size={16} className="text-slate-500" />
+              </button>
+
+              {/* Progress bar */}
+              <motion.div 
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 4, ease: "linear" }}
+                className="absolute bottom-0 left-0 h-1 bg-orange-400"
+              />
+            </div>
+          </motion.div>
+        )}
+
         {successMessage && (
           <motion.div
             initial={{ opacity: 0, y: -100, x: '-50%' }}

@@ -2,6 +2,7 @@ import { Search, ShoppingBag, Filter as FilterIcon, X, Package, User } from 'luc
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { UserProfile } from './AuthModal';
+import { Product } from '../types';
 
 export default function Navbar({ 
   onSearch, 
@@ -16,7 +17,8 @@ export default function Navbar({
   categoryFilter = null,
   onCategoryFilter = () => {},
   discountFilter = null,
-  onDiscountFilter = () => {}
+  onDiscountFilter = () => {},
+  products = []
 }: { 
   onSearch: (query: string) => void, 
   cartCount?: number, 
@@ -30,10 +32,13 @@ export default function Navbar({
   categoryFilter?: string | null,
   onCategoryFilter?: (cat: string | null) => void,
   discountFilter?: number | null,
-  onDiscountFilter?: (pct: number | null) => void
+  onDiscountFilter?: (pct: number | null) => void,
+  products?: Product[]
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const FilterDropdown = () => (
     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-5 z-50">
@@ -45,31 +50,6 @@ export default function Navbar({
       </div>
 
       <div className="space-y-4 relative z-40">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Category</label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onCategoryFilter(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                categoryFilter === null ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => onCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  categoryFilter === cat ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div>
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Discount</label>
           <div className="flex flex-wrap gap-2">
@@ -104,9 +84,50 @@ export default function Navbar({
             <input 
               type="text" 
               placeholder="Search Bazar_bds.com..." 
-              onChange={(e) => onSearch(e.target.value)}
+              value={searchValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchValue(val);
+                onSearch(val);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                // Delay blur so click handler inside suggestion dropdown can register
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
               className="w-full pl-11 pr-4 py-3 bg-slate-100 md:bg-white/20 rounded-2xl md:rounded-full border border-transparent md:border-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm font-medium"
             />
+            {showSuggestions && searchValue.trim().length > 0 && products.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-2 z-[200] max-h-64 overflow-y-auto flex flex-col gap-0.5 text-left">
+                {Array.from(new Set(products
+                  .map(p => p.name || '')
+                  .filter(name => name.toLowerCase().includes(searchValue.toLowerCase()))
+                ))
+                  .slice(0, 6)
+                  .map(name => (
+                    <button
+                      key={name}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSearchValue(name);
+                        onSearch(name);
+                        setShowSuggestions(false);
+                      }}
+                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl transition-all text-left group w-full cursor-pointer hover:pl-4"
+                    >
+                      <Search className="w-4 h-4 text-slate-400 group-hover:text-orange-500 transition-colors shrink-0" />
+                      <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 transition-colors truncate">
+                        {name}
+                      </span>
+                    </button>
+                  ))}
+                {products.filter(p => p.name?.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && (
+                  <div className="text-center py-4 text-xs font-bold text-slate-400">No suggestions found</div>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="relative">
@@ -156,6 +177,13 @@ export default function Navbar({
                   >
                     Edit Profile
                   </button>
+                  <a 
+                    href="/admin"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                    className="block text-left px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-lg transition-colors mt-0.5"
+                  >
+                    Admin Panel
+                  </a>
                   <button 
                     onClick={() => {
                         setIsProfileMenuOpen(false);

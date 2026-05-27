@@ -36,16 +36,17 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
     return (
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
             <div 
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm md:block hidden"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={onClose}
             />
             <motion.div
-              initial={{ opacity: 0, y: 100 }}
+              initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              className="w-full h-full md:h-auto md:max-w-md overflow-hidden bg-white md:rounded-3xl shadow-2xl flex flex-col pt-12 md:pt-0"
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="w-full h-[85vh] md:h-auto md:max-w-md overflow-hidden bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col relative z-10 pt-4 md:pt-0"
             >
               {/* Header */}
               <div className="bg-slate-900 p-6 relative shrink-0">
@@ -118,16 +119,17 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
           <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm md:block hidden"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, y: 100 }}
+            initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="w-full h-full md:h-auto md:max-w-md overflow-hidden bg-white md:rounded-3xl shadow-2xl flex flex-col pt-12 md:pt-0"
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 220 }}
+            className="w-full h-[85vh] md:h-auto md:max-w-md overflow-hidden bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col relative z-10 pt-4 md:pt-0"
           >
             {/* Header */}
             <div className="bg-slate-900 p-6 relative shrink-0">
