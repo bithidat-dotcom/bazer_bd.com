@@ -238,9 +238,9 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
             </button>
 
             {/* Image Gallery Column with support for gesture slide */}
-            <div className="w-full md:w-1/2 bg-slate-50 relative flex flex-col min-h-[55vh] md:h-full shrink-0">
+            <div className="w-full md:w-1/2 bg-slate-50 relative flex flex-col shrink-0 md:h-full min-h-[55vh] md:min-h-0">
               <div 
-                className="relative flex-1 flex items-center justify-center p-8 group cursor-grab active:cursor-grabbing select-none"
+                className="relative flex-1 flex items-center justify-center p-8 md:p-12 group cursor-grab active:cursor-grabbing select-none"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
               >
@@ -313,7 +313,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
               
               {/* Thumbnail strip */}
               {allImages.length > 1 && (
-                <div className="h-24 bg-white border-t border-slate-100 p-2 flex gap-2 overflow-x-auto no-scrollbar">
+                <div className="hidden md:flex h-24 bg-white border-t border-slate-100 p-2 gap-2 overflow-x-auto no-scrollbar">
                     {allImages.map((img, idx) => (
                         <button 
                             key={idx}
@@ -328,7 +328,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
             </div>
 
             {/* Content Column */}
-            <div className="w-full md:w-1/2 p-6 md:p-12 lg:p-16 flex flex-col pt-10 md:pt-16 overflow-y-auto md:h-full md:scroll-smooth">
+            <div className="w-full md:w-1/2 p-6 md:p-12 lg:p-16 flex flex-col pt-6 md:pt-16 md:overflow-y-auto md:h-full md:scroll-smooth">
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
                     Product Details

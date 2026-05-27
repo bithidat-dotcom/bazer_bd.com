@@ -83,7 +83,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
         className="cursor-pointer"
         onClick={() => onClick && onClick(product)}
       >
-        <div className="relative h-32 sm:h-40 rounded-lg bg-slate-50 overflow-hidden mb-2 p-2">
+        <div className="relative w-full aspect-[4/3] rounded-lg bg-slate-50 overflow-hidden mb-2">
           {/* Like/Favorite floating button */}
           <button
             onClick={toggleLike}
@@ -97,7 +97,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
           <img 
             src={product.image} 
             alt={product.name}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           {hasDiscount && (
             <div className="absolute top-2 left-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-sm z-10">

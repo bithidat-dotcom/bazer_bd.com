@@ -1,11 +1,17 @@
-import { Search, ShoppingBag, Filter as FilterIcon, X } from 'lucide-react';
+import { Search, ShoppingBag, Filter as FilterIcon, X, Package, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { UserProfile } from './AuthModal';
 
 export default function Navbar({ 
   onSearch, 
   cartCount = 0, 
   onCartClick,
+  onTrackOrderClick,
+  onLoginClick,
+  onLogoutClick,
+  onEditProfileClick,
+  user,
   categories = [],
   categoryFilter = null,
   onCategoryFilter = () => {},
@@ -15,6 +21,11 @@ export default function Navbar({
   onSearch: (query: string) => void, 
   cartCount?: number, 
   onCartClick?: () => void,
+  onTrackOrderClick?: () => void,
+  onLoginClick?: () => void,
+  onLogoutClick?: () => void,
+  onEditProfileClick?: () => void,
+  user?: UserProfile | null,
   categories?: string[],
   categoryFilter?: string | null,
   onCategoryFilter?: (cat: string | null) => void,
@@ -22,6 +33,7 @@ export default function Navbar({
   onDiscountFilter?: (pct: number | null) => void
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const FilterDropdown = () => (
     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-5 z-50">
@@ -116,7 +128,58 @@ export default function Navbar({
           </div>
         </div>
         
-        <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-1 sm:gap-4 relative z-[100]">
+          {user ? (
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2 mr-2 cursor-pointer hover:bg-slate-50 p-1 pr-3 rounded-full transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                  {user.profileImage ? (
+                    <img src={user.profileImage} alt={user.username} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4 text-slate-400" />
+                  )}
+                </div>
+                <span className="hidden sm:inline text-sm font-bold text-slate-700 capitalize w-20 truncate text-left">{user.username}</span>
+              </button>
+
+              {isProfileMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-2 z-50">
+                  <button 
+                    onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        if (onEditProfileClick) onEditProfileClick();
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                  <button 
+                    onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        if (onLogoutClick) onLogoutClick();
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-1"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button onClick={onLoginClick} className="px-3 sm:px-4 py-2 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-2 group text-slate-700 font-medium text-sm mr-2">
+              <User className="w-5 h-5 group-hover:text-slate-900 transition-colors" />
+              <span className="hidden sm:inline group-hover:text-slate-900 transition-colors">Login</span>
+            </button>
+          )}
+
+          <button onClick={onTrackOrderClick} className="px-3 sm:px-4 py-2 hover:bg-orange-50 rounded-full transition-colors flex items-center gap-2 group text-slate-700 font-medium text-sm">
+            <Package className="w-5 h-5 group-hover:text-orange-600 transition-colors" />
+            <span className="hidden sm:inline group-hover:text-orange-600 transition-colors">My Products</span>
+          </button>
+          
           <button onClick={onCartClick} className="p-2 hover:bg-orange-50 rounded-full transition-colors relative group">
             <ShoppingBag className="w-5 h-5 text-slate-700 group-hover:text-orange-600" />
             {cartCount > 0 && (

@@ -6,7 +6,9 @@ import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
 import CheckoutModal from './components/CheckoutModal';
+import TrackingModal from './components/TrackingModal';
 import WhatsappSupport from './components/WhatsappSupport';
+import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem } from './types';
@@ -20,6 +22,9 @@ export default function Storefront() {
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
@@ -27,6 +32,15 @@ export default function Storefront() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const categories = ["Electronic", "Fashion", "Bazer", "Cloth", "Festive", "Laptop", "Mobile", "Gadget", "Robotic"];
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch(e) {}
+    }
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -112,12 +126,19 @@ export default function Storefront() {
       return sum + price * item.quantity;
     }, 0);
 
+    let formattedWhatsapp = whatsapp.trim().replace(/\s+/g, '');
+    if (formattedWhatsapp.startsWith('01')) {
+      formattedWhatsapp = '+88' + formattedWhatsapp;
+    } else if (formattedWhatsapp.startsWith('8801')) {
+      formattedWhatsapp = '+' + formattedWhatsapp;
+    }
+
     console.log("Submitting Order Data:", {
       product_id: combinedProductIds,
       product_name: combinedProductNames,
       price: totalPrice,
       customer_name,
-      whatsapp,
+      whatsapp: formattedWhatsapp,
       location,
       status: 'pending'
     });
@@ -128,7 +149,9 @@ export default function Storefront() {
         product_name: combinedProductNames,
         price: totalPrice,
         customer_name,
-        whatsapp,
+        customer_username: user ? user.username : null,
+        customer_image: user ? user.profileImage : null,
+        whatsapp: formattedWhatsapp,
         location,
         status: 'pending',
         created_at: new Date().toISOString()
@@ -211,6 +234,14 @@ export default function Storefront() {
         onSearch={setSearchQuery} 
         cartCount={cartItemCount} 
         onCartClick={handleOpenCart} 
+        onTrackOrderClick={() => setIsTrackingOpen(true)}
+        onLoginClick={() => setIsAuthOpen(true)}
+        onLogoutClick={() => {
+          localStorage.removeItem('user');
+          setUser(null);
+        }}
+        onEditProfileClick={() => setIsAuthOpen(true)}
+        user={user}
         categories={categories}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
@@ -294,6 +325,19 @@ export default function Storefront() {
         .blink { animation: blink 2s infinite; }
       `}</style>
       
+      <AuthModal 
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onLogin={setUser}
+        initialUser={user}
+      />
+
+      <TrackingModal 
+        isOpen={isTrackingOpen} 
+        onClose={() => setIsTrackingOpen(false)} 
+        user={user}
+      />
+
       <CheckoutModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -301,6 +345,7 @@ export default function Storefront() {
         onSubmit={submitOrder}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        user={user}
       />
 
       <ProductModal

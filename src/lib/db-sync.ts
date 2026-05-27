@@ -159,10 +159,19 @@ export async function saveProductReview(productId: string, userName: string, rat
   try {
     const docRef = await addDoc(collection(db, 'reviews'), {
         product_id: productId,
+        productId: productId,
         user_name: userName,
+        userName: userName, // For admin app compatibility
+        name: userName,
+        customerName: userName,
+        author: userName,
         rating: rating,
         comment: comment,
-        created_at: new Date().toISOString()
+        text: comment,
+        message: comment,
+        review: comment,
+        created_at: new Date().toISOString(),
+        createdAt: new Date().toISOString() // For admin app compatibility
     });
 
     return { id: docRef.id, userName, rating, comment, createdAt: 'Just now' };

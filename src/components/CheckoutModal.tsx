@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
 import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2 } from 'lucide-react';
 
+import { UserProfile } from './AuthModal';
+
 interface CheckoutModalProps {
   cartItems: CartItem[];
   isOpen: boolean;
@@ -10,14 +12,25 @@ interface CheckoutModalProps {
   onSubmit: (customerName: string, whatsapp: string, location: string) => Promise<void>;
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
+  user?: UserProfile | null;
 }
 
-export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, onUpdateQuantity, onRemoveItem }: CheckoutModalProps) {
+export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, onUpdateQuantity, onRemoveItem, user }: CheckoutModalProps) {
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [location, setLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (user) {
+        if (!customerName) setCustomerName(user.username || '');
+        if (!whatsapp) setWhatsapp(user.whatsapp || '');
+        if (!location) setLocation(user.location || '');
+      }
+    }
+  }, [isOpen, user]);
 
   if (cartItems.length === 0) return null;
 

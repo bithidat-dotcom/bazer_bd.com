@@ -9,7 +9,7 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
     if (banners.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % banners.length);
-    }, 6000);
+    }, 10000);
     return () => clearInterval(timer);
   }, [banners.length]);
 
@@ -40,29 +40,7 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute inset-0 z-20 flex flex-col justify-end sm:justify-center p-4 sm:p-12 pointer-events-none">
-        <AnimatePresence mode="wait">
-          {banners[currentIndex].title && (
-            <motion.div 
-              key={currentIndex}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="bg-white/80 backdrop-blur-md rounded-2xl p-5 sm:p-8 max-w-sm sm:max-w-md shadow-xl border border-white/50 pointer-events-auto"
-            >
-              <h1 className="text-xl sm:text-4xl font-display font-bold leading-tight mb-2 sm:mb-4 text-slate-900">
-                {banners[currentIndex].title}
-              </h1>
-              <button
-                className="w-max px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all text-sm shadow-md"
-              >
-                Explore Now
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      {/* Text overlay removed as requested */}
 
       {banners.length > 1 && (
         <div className="absolute bottom-4 left-0 right-0 z-30 flex gap-2 justify-center pointer-events-none">
