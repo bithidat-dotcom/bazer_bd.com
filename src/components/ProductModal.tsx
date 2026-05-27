@@ -284,7 +284,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                         <button
                           key={idx}
                           onClick={() => setCurrentImageIndex(idx)}
-                          className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === idx ? 'bg-orange-600 w-4' : 'bg-slate-400/60'}`}
+                          className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === idx ? 'bg-slate-900 w-4' : 'bg-slate-400/60'}`}
                           title={`Go to image ${idx + 1}`}
                         />
                       ))}
@@ -318,7 +318,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                         <button 
                             key={idx}
                             onClick={() => setCurrentImageIndex(idx)}
-                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-orange-500 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-slate-900 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}
                         >
                             <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover bg-slate-50" />
                         </button>
@@ -333,12 +333,12 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
                     Product Details
                 </span>
-                <div className="flex items-center gap-1 bg-orange-50 px-3 py-1.5 rounded-full">
-                  <Star size={14} className="fill-orange-500 text-orange-500" />
-                  <span className="text-xs font-bold text-orange-700">
+                <div className="flex items-center gap-1 bg-slate-50 px-3 py-1.5 rounded-full">
+                  <Star size={14} className="fill-slate-900 text-slate-900" />
+                  <span className="text-xs font-bold text-slate-800">
                     {dynamicAvgRating.toFixed(1)}
                   </span>
-                  <span className="text-xs text-orange-600/70 ml-1">
+                  <span className="text-xs text-slate-600/70 ml-1">
                     ({dynamicReviewCount} reviews)
                   </span>
                 </div>
@@ -355,7 +355,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
               </h2>
               
               <div className="flex items-end gap-3 mb-8">
-                <span className="text-4xl font-bold text-orange-600 tracking-tight">
+                <span className="text-4xl font-bold text-slate-900 tracking-tight">
                     {formatPrice(discountedPrice)}
                 </span>
                 {hasDiscount && (
@@ -397,7 +397,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                                 onAddToCart(product, quantity);
                                 onClose();
                             }}
-                            className="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-600 border-2 border-orange-200 font-bold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center gap-3 text-lg"
+                            className="flex-1 bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 font-bold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center gap-3 text-lg"
                           >
                             <ShoppingCart size={22} />
                             Add to Cart
@@ -407,7 +407,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                                 onBuyNow(product, quantity);
                                 onClose();
                             }}
-                            className="flex-1 bg-slate-900 hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center shadow-xl shadow-orange-500/0 hover:shadow-orange-500/20 active:scale-[0.98] text-lg"
+                            className="flex-1 bg-slate-900 hover:bg-black text-white font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center shadow-xl shadow-black/0 hover:shadow-black/20 active:scale-[0.98] text-lg"
                           >
                             Buy Now
                           </button>
@@ -445,13 +445,13 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                         value={newUserName}
                         onChange={(e) => setNewUserName(e.target.value)}
                         placeholder="e.g. Arif Hossain" 
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all font-medium"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Rating</label>
-                      <div className="flex items-center gap-1 bg-white p-2 rounded-xl border border-slate-200 inline-flex">
+                      <div className="flex items-center gap-1 bg-white p-2 rounded-xl border border-slate-200 inline-flex shadow-sm">
                         {[1, 2, 3, 4, 5].map((starValue) => (
                           <button
                             key={starValue}
@@ -462,7 +462,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                           >
                             <Star 
                               size={22} 
-                              className={`transition-colors ${starValue <= newRating ? 'fill-orange-500 text-orange-500' : 'text-slate-200'}`} 
+                              className={`transition-colors ${starValue <= newRating ? 'fill-slate-900 text-slate-900' : 'text-slate-200'}`} 
                             />
                           </button>
                         ))}
@@ -478,14 +478,14 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Tell us what you think..."
-                        className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                        className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all resize-none font-medium"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-slate-900 text-white rounded-xl py-3 text-sm font-bold hover:bg-orange-600 transition-colors shadow-md disabled:bg-slate-400"
+                      className="w-full bg-slate-900 text-white rounded-xl py-4 text-sm font-bold hover:bg-black transition-colors shadow-md disabled:bg-slate-400"
                     >
                       {isSubmitting ? 'Saving Review...' : 'Submit Real Review'}
                     </button>
@@ -503,7 +503,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       <div key={r.id} className="border-b border-slate-100 pb-4 last:border-0">
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center border border-orange-100 text-orange-600 shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-600 shrink-0">
                               <User2 size={16} />
                             </div>
                             <div>
@@ -513,7 +513,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                                   <Star 
                                     key={i} 
                                     size={12} 
-                                    className={i < r.rating ? 'fill-orange-500 text-orange-500' : 'text-slate-200'} 
+                                    className={i < r.rating ? 'fill-slate-900 text-slate-900' : 'text-slate-200'} 
                                   />
                                 ))}
                               </div>

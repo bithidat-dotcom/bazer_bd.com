@@ -111,7 +111,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
             {product.name}
           </h3>
           <div className="flex items-center gap-1 mb-1">
-            <Star size={10} className="fill-orange-500 text-orange-500" />
+            <Star size={10} className="fill-slate-900 text-slate-900" />
             <span className="text-[10px] font-bold text-slate-700">
               {avgRating.toFixed(1)}
             </span>
@@ -132,7 +132,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
                   {formatPrice(product.price)}
                 </span>
               )}
-              <span className="text-xs sm:text-sm font-bold text-orange-600 font-display">
+              <span className="text-xs sm:text-sm font-bold text-slate-900 font-display">
                 {formatPrice(discountedPrice)}
               </span>
             </div>
@@ -147,7 +147,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
             </button>
             <button 
               onClick={() => onBuy(product)}
-              className="flex items-center justify-center bg-slate-900 text-white hover:bg-orange-600 px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm"
+              className="flex items-center justify-center bg-slate-900 text-white hover:bg-black px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm"
             >
               Buy Now
             </button>

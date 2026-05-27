@@ -1,6 +1,6 @@
 import { X, UserPlus, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
 
@@ -102,17 +102,17 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm md:block hidden"
         onClick={onClose}
       />
       
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 md:p-8"
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 100 }}
+        className="relative bg-white w-full h-full md:h-auto md:rounded-3xl md:max-w-md overflow-hidden shadow-2xl p-6 md:p-8 flex flex-col pt-12 md:pt-8"
       >
         <button 
           onClick={onClose}
@@ -121,101 +121,101 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
           <X size={20} />
         </button>
 
-        <div className="text-center mb-8 mt-2">
-          <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center mb-8 mt-2 scroll-container overflow-y-auto flex-1">
+          <div className="w-16 h-16 bg-slate-100 text-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
             <UserPlus size={32} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800">{initialUser ? 'Edit Profile' : 'Welcome'}</h2>
           <p className="text-sm font-medium text-slate-500 mt-2">{initialUser ? 'Update your information' : 'Login or Create Account'}</p>
-        </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-bold text-center border border-red-100">
-              {error}
-            </div>
-          )}
-          
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Username
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. john_doe"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all font-medium text-slate-700"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              WhatsApp Number (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. 0171XXXXXXX"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all font-medium text-slate-700"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Delivery Address (Optional)
-            </label>
-            <textarea
-              placeholder="Full delivery address"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all font-medium text-slate-700 resize-none h-20"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Profile Photo (Optional)
-            </label>
-            <div className="flex items-center gap-4">
-              <div 
-                className="w-16 h-16 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-slate-200 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon className="w-6 h-6 text-slate-400" />
-                )}
+          <form onSubmit={handleLogin} className="space-y-5 text-left mt-8">
+            {error && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-bold text-center border border-red-100">
+                {error}
               </div>
-              <div className="flex-1">
-                <button
-                  type="button"
+            )}
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Username
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. john_doe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:outline-none transition-all font-medium text-slate-700"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                WhatsApp Number (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 0171XXXXXXX"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:outline-none transition-all font-medium text-slate-700"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Delivery Address (Optional)
+              </label>
+              <textarea
+                placeholder="Full delivery address"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:outline-none transition-all font-medium text-slate-700 resize-none h-20"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Profile Photo (Optional)
+              </label>
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-16 h-16 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-slate-200 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition-colors w-full"
                 >
-                  Upload Image
-                </button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleImageChange} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition-colors w-full"
+                  >
+                    Upload Image
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleImageChange} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 mt-4"
-          >
-            {loading ? 'Saving...' : (initialUser ? 'Save Changes' : 'Continue')}
-          </button>
-        </form>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all disabled:opacity-50 mt-4 active:scale-95"
+            >
+              {loading ? 'Saving...' : (initialUser ? 'Save Changes' : 'Continue')}
+            </button>
+          </form>
+        </div>
       </motion.div>
     </div>
   );

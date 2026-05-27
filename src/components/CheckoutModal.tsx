@@ -73,12 +73,16 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm md:block hidden"
+            onClick={onClose}
+          />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-md overflow-hidden bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh]"
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="w-full h-full md:h-auto md:max-w-md overflow-hidden bg-white md:rounded-3xl shadow-2xl flex flex-col pt-12 md:pt-0"
           >
             {/* Header */}
             <div className="bg-slate-900 p-6 relative shrink-0">
@@ -89,11 +93,11 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                 <X size={20} />
               </button>
               <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Checkout ({cartItems.length} items)</h2>
-              <p className="text-orange-400 font-bold mt-1">Total: {totalPrice.toFixed(0)} BDT</p>
+              <p className="text-white font-bold mt-1 opacity-90">Total: ৳{totalPrice.toFixed(0)}</p>
             </div>
 
             {/* Content Swapper */}
-            <div className="overflow-y-auto overflow-x-hidden flex-1 no-scrollbar">
+            <div className="overflow-y-auto overflow-x-hidden flex-1 scroll-container">
               <AnimatePresence mode="wait">
                 {!isConfirming ? (
                   <motion.form
@@ -116,7 +120,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                           <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                             <div className="flex-1 min-w-0 pr-4">
                               <p className="text-sm font-bold text-slate-800 truncate">{item.product.name}</p>
-                              <p className="text-xs font-bold text-orange-500 mt-0.5">{price.toFixed(0)} BDT</p>
+                              <p className="text-xs font-bold text-slate-900 mt-0.5">৳{price.toFixed(0)}</p>
                             </div>
                             
                             <div className="flex items-center gap-3">
@@ -161,7 +165,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
                             placeholder="Enter your full name"
-                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all"
                           />
                         </div>
                       </div>
@@ -176,7 +180,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                             value={whatsapp}
                             onChange={(e) => setWhatsapp(e.target.value)}
                             placeholder="e.g. 01700000000"
-                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all"
                           />
                         </div>
                       </div>
@@ -191,7 +195,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                             onChange={(e) => setLocation(e.target.value)}
                             placeholder="Enter your address"
                             rows={2}
-                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all resize-none"
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all resize-none"
                           />
                         </div>
                       </div>
@@ -199,12 +203,12 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
 
                     <button
                       type="submit"
-                      className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors group mt-4!"
+                      className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-colors group mt-4 active:scale-95"
                     >
                       <span>Proceed to Order</span>
                       <Send size={18} className="translate-y-0 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
                     </button>
-                    <p className="text-center text-[10px] text-slate-400 font-medium">
+                    <p className="text-center text-[10px] text-slate-400 font-medium pb-8 md:pb-0">
                       Payment on delivery available.
                     </p>
                   </motion.form>
@@ -230,13 +234,13 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                            </div>
                         ))}
                       </div>
-                      <div className="flex justify-between"><span className="text-slate-400">Total:</span> <span className="font-bold text-orange-600">{totalPrice.toFixed(0)} BDT</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Total:</span> <span className="font-bold text-slate-900">৳{totalPrice.toFixed(0)}</span></div>
                       <hr className="border-slate-200 border-dashed my-2" />
                       <div className="flex justify-between"><span className="text-slate-400">Deliver to:</span> <span className="font-bold text-slate-900 truncate ml-2">{customerName}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">WhatsApp:</span> <span className="font-bold text-slate-900">{whatsapp}</span></div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0">
                       <button
                         onClick={() => setIsConfirming(false)}
                         className="py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
@@ -246,7 +250,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                       <button
                         onClick={handleFinalConfirm}
                         disabled={isSubmitting}
-                        className="py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-50"
+                        className="py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-colors disabled:opacity-50"
                       >
                         {isSubmitting ? (
                           <motion.div 

@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
@@ -7,7 +7,9 @@ import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
 import CheckoutModal from './components/CheckoutModal';
 import TrackingModal from './components/TrackingModal';
-import WhatsappSupport from './components/WhatsappSupport';
+import ChatModal from './components/ChatModal';
+import BottomNav from './components/BottomNav';
+import CategoryScroller from './components/CategoryScroller';
 import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc } from 'firebase/firestore';
@@ -24,6 +26,7 @@ export default function Storefront() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,12 +98,14 @@ export default function Storefront() {
 
   useEffect(() => {
     const filtered = products.filter(p => {
-      const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const pName = p.name || '';
+      const pDesc = p.description || '';
+      const matchSearch = pName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        pDesc.toLowerCase().includes(searchQuery.toLowerCase());
       const matchDiscount = discountFilter ? p.discount === discountFilter : true;
       const matchCategory = categoryFilter ? (
-        p.name.toLowerCase().includes(categoryFilter.toLowerCase()) || 
-        (p.description && p.description.toLowerCase().includes(categoryFilter.toLowerCase()))
+        pName.toLowerCase().includes(categoryFilter.toLowerCase()) || 
+        pDesc.toLowerCase().includes(categoryFilter.toLowerCase())
       ) : true;
       return matchSearch && matchDiscount && matchCategory;
     });
@@ -160,6 +165,9 @@ export default function Storefront() {
       console.log("Order Successful");
       setSuccessMessage("Order Placed Successfully!");
       setCart([]); // Clear cart after successful order
+      
+      // Auto-hide success message
+      setTimeout(() => setSuccessMessage(""), 6000);
     } catch (err: any) {
       console.error("INSERT FAILED:", err);
       if (!err.message?.includes('alert')) {
@@ -250,6 +258,11 @@ export default function Storefront() {
       />
       
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24">
+        <CategoryScroller 
+          categories={categories} 
+          selectedCategory={categoryFilter} 
+          onSelect={setCategoryFilter} 
+        />
         <HeroBanner banners={banners} />
         
         <section>
@@ -305,13 +318,14 @@ export default function Storefront() {
 
           <div className="flex flex-wrap gap-8 items-center justify-between border-t border-slate-200 pt-4 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
             <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full shadow-lg shadow-green-500/50 blink"></div> 
+              <div className="w-2 h-2 bg-slate-900 rounded-full shadow-lg shadow-black/50 blink"></div> 
               Orders Live (32 New)
             </span>
             <div className="flex gap-6 items-center">
-              <a href="#" className="hover:text-orange-500 transition-colors">Instagram: @quats.co</a>
-              <a href="#" className="hover:text-orange-500 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-orange-500 transition-colors">Terms & Conditions</a>
+              <a href="#" className="hover:text-black transition-colors">Instagram: @quats.co</a>
+              <a href="#" className="hover:text-black transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-black transition-colors">Terms & Conditions</a>
+              <a href="/admin" className="hover:text-black transition-colors text-slate-800 bg-slate-200 px-2 py-1 rounded">Admin</a>
             </div>
           </div>
         </div>
@@ -358,26 +372,61 @@ export default function Storefront() {
         onProductSelect={setSelectedProduct}
       />
 
+      <ChatModal 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        user={user}
+      />
+
       <AnimatePresence>
         {successMessage && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white px-6 py-4 rounded-2xl shadow-2xl shadow-green-500/20 border border-green-100"
+            initial={{ opacity: 0, y: -100, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -100, x: '-50%', scale: 0.8 }}
+            className="fixed top-0 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm"
           >
-            <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800">{successMessage}</p>
-              <p className="text-xs font-medium text-slate-500 mt-0.5">We will contact you via WhatsApp shortly.</p>
+            <div className="bg-slate-900 text-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-800 flex items-center gap-4 overflow-hidden relative text-left">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', damping: 12, delay: 0.1 }}
+                className="w-12 h-12 bg-white text-slate-900 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+              >
+                <CheckCircle2 className="w-6 h-6" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold tracking-tight">Order Placed Successfully!</p>
+                <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-tight">We will contact you via Chat shortly.</p>
+              </div>
+              <button 
+                onClick={() => setSuccessMessage("")}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors self-start"
+              >
+                <X size={16} className="text-slate-500" />
+              </button>
+
+              {/* Progress bar for auto-hide */}
+              <motion.div 
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 6, ease: "linear" }}
+                className="absolute bottom-0 left-0 h-1 bg-white/30"
+              />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <WhatsappSupport />
+      
+      <BottomNav 
+        onHomeClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onProfileClick={() => setIsAuthOpen(true)}
+        onOrdersClick={() => setIsTrackingOpen(true)}
+        onCartClick={handleOpenCart}
+        onSupportClick={() => setIsChatOpen(true)}
+        cartCount={cartItemCount}
+        user={user}
+      />
     </div>
   );
 }

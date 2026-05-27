@@ -46,6 +46,31 @@
         "created_at": { "type": "string" }
       },
       "required": ["id", "product_id", "product_name", "price", "customer_name", "whatsapp", "location", "status", "created_at"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Conversation between customer and admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customer_username": { "type": "string" },
+        "last_message": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "unread_count": { "type": "number" }
+      },
+      "required": ["id", "customer_username", "updated_at"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "sender": { "type": "string", "enum": ["customer", "admin"] },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "text", "sender", "created_at"]
     }
   },
   "firestore": {
@@ -60,6 +85,14 @@
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
       "description": "Customer orders, created by anyone, read/writable by admins."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Chat sessions for customer support."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Messages within a chat session."
     }
   }
 }

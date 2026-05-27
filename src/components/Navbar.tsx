@@ -93,19 +93,19 @@ export default function Navbar({
   return (
     <nav className="sticky top-0 z-50 glass px-4 py-3 sm:px-8 shadow-sm relative">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 relative">
-        <Link to="/" className="text-xl sm:text-2xl font-bold font-display tracking-tight flex items-center gap-2">
+        <Link to="/" className="hidden md:flex text-xl sm:text-2xl font-bold font-display tracking-tight items-center gap-2">
           <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazar_bds.com Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
           <span className="text-slate-900">Bazar<span className="text-orange-500">_bds.com</span></span>
         </Link>
         
-        <div className="hidden md:flex flex-1 max-w-lg relative gap-2">
+        <div className="flex flex-1 md:max-w-lg relative gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search products..." 
+              placeholder="Search Bazar_bds.com..." 
               onChange={(e) => onSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 glass bg-white/20 rounded-full border border-slate-200 focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm"
+              className="w-full pl-11 pr-4 py-3 bg-slate-100 md:bg-white/20 rounded-2xl md:rounded-full border border-transparent md:border-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm font-medium"
             />
           </div>
           
@@ -128,7 +128,7 @@ export default function Navbar({
           </div>
         </div>
         
-        <div className="flex items-center gap-1 sm:gap-4 relative z-[100]">
+        <div className="hidden md:flex items-center gap-1 sm:gap-4 relative z-[100]">
           {user ? (
             <div className="relative">
               <button 
@@ -189,87 +189,7 @@ export default function Navbar({
         </div>
       </div>
       
-      {/* Mobile Search & Filter */}
-      <div className="md:hidden mt-3 relative flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Search products..." 
-            onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-100/50 rounded-full border-none focus:ring-2 focus:ring-black/5 transition-all text-sm"
-          />
-        </div>
-        <div className="relative">
-          <button 
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`h-full px-4 flex items-center justify-center rounded-full transition-colors ${
-              isFilterOpen || categoryFilter || discountFilter 
-                ? 'bg-orange-100 text-orange-600' 
-                : 'bg-gray-100/50 text-slate-700'
-            }`}
-          >
-            <FilterIcon className="w-4 h-4 relative z-10" />
-            {(categoryFilter || discountFilter) && (
-              <span className="absolute top-1 right-1 lg:top-0 lg:right-0 w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_0_2px_white] z-20"></span>
-            )}
-          </button>
-          {isFilterOpen && (
-            <div className="fixed inset-x-4 top-[140px] bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-100 p-5 z-50 md:hidden">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-slate-900">Filters</h3>
-                <button onClick={() => setIsFilterOpen(false)} className="p-1 hover:bg-slate-100 rounded-full transition-colors relative z-50 cursor-pointer">
-                  <X className="w-4 h-4 text-slate-500" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Category</label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => onCategoryFilter(null)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        categoryFilter === null ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      All
-                    </button>
-                    {categories.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => onCategoryFilter(cat)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          categoryFilter === cat ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Discount</label>
-                  <div className="flex flex-wrap gap-2">
-                    {[5, 25, 30, 50, 90].map(pct => (
-                      <button
-                        key={pct}
-                        onClick={() => onDiscountFilter(discountFilter === pct ? null : pct)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          discountFilter === pct ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {pct}% OFF
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Mobile Search & Filter Removed as search is now in main header */}
     </nav>
   );
 }
