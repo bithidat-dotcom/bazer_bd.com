@@ -176,8 +176,8 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                             required
                             value={location}
                             onChange={(e) => setLocation(e.target.value)}
-                            placeholder="Enter your full address"
-                            rows={3}
+                            placeholder="Enter your address"
+                            rows={2}
                             className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all resize-none"
                           />
                         </div>

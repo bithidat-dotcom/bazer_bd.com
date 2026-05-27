@@ -18,8 +18,8 @@ export default function WhatsappSupport() {
       title="Chat with Support"
     >
       <MessageCircle size={32} fill="white" className="group-hover:rotate-12 transition-transform" />
-      <span className="absolute right-full mr-3 px-3 py-1 bg-white text-slate-900 text-xs font-bold rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-100">
-        Chat with Support
+      <span className="absolute right-full mr-3 px-2 py-1 bg-white text-slate-900 text-[10px] font-bold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-100">
+        Support
       </span>
       <span className="absolute -top-1 -right-1 flex h-4 w-4">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>

@@ -79,7 +79,7 @@ export default function Navbar({
   );
 
   return (
-    <nav className="sticky top-0 z-50 glass px-4 py-3 sm:px-8 shadow-sm relative" style={{ fontSize: '40px' }}>
+    <nav className="sticky top-0 z-50 glass px-4 py-3 sm:px-8 shadow-sm relative">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 relative">
         <Link to="/" className="text-xl sm:text-2xl font-bold font-display tracking-tight flex items-center gap-2">
           <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazar_bds.com Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
@@ -94,7 +94,6 @@ export default function Navbar({
               placeholder="Search products..." 
               onChange={(e) => onSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 glass bg-white/20 rounded-full border border-slate-200 focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm"
-              style={{ fontSize: '20px', lineHeight: '49px', textAlign: 'left', paddingLeft: '40px', paddingRight: '19px', marginLeft: '-5px' }}
             />
           </div>
           
@@ -106,7 +105,6 @@ export default function Navbar({
                   ? 'bg-orange-50 border-orange-200 text-orange-600' 
                   : 'glass bg-white/20 border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
-              style={{ lineHeight: '10px', fontSize: '19px' }}
             >
               <FilterIcon className="w-4 h-4" />
               Filter

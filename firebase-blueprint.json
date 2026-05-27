@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Storefront product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "discount": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "image", "created_at"]
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Storefront promotional banner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "image": { "type": "string" },
+        "title": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "image", "created_at"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "product_id": { "type": "string" },
+        "product_name": { "type": "string" },
+        "price": { "type": "number" },
+        "customer_name": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed"] },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "product_id", "product_name", "price", "customer_name", "whatsapp", "location", "status", "created_at"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Publicly readable products, writable by admins."
+    },
+    "/banners/{bannerId}": {
+      "schema": { "$ref": "#/entities/Banner" },
+      "description": "Publicly readable banners, writable by admins."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders, created by anyone, read/writable by admins."
+    }
+  }
+}

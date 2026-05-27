@@ -1,12 +1,12 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" />
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
 </div>
 
-# Bazar_bds.com is all for 
+# Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio:http://bazar-bds.vercel.app
+View your app in AI Studio: https://ai.studio/apps/478d8860-d347-4002-b696-209c0bb25c2e
 
 ## Run Locally
 
