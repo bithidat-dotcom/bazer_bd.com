@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
-import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2 } from 'lucide-react';
+import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 
 import { UserProfile } from './AuthModal';
 
@@ -32,7 +32,52 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
     }
   }, [isOpen, user]);
 
-  if (cartItems.length === 0) return null;
+  if (cartItems.length === 0) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
+            <div 
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm md:block hidden"
+              onClick={onClose}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="w-full h-full md:h-auto md:max-w-md overflow-hidden bg-white md:rounded-3xl shadow-2xl flex flex-col pt-12 md:pt-0"
+            >
+              {/* Header */}
+              <div className="bg-slate-900 p-6 relative shrink-0">
+                <button 
+                  onClick={onClose}
+                  className="absolute p-2 transition-colors rounded-full top-4 right-4 bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Your Cart</h2>
+              </div>
+
+              {/* Empty state content */}
+              <div className="p-8 text-center flex flex-col items-center justify-center min-h-[300px] space-y-4">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400">
+                  <ShoppingBag size={28} />
+                </div>
+                <h3 className="font-bold text-slate-800 text-lg">Your cart is empty!</h3>
+                <p className="text-slate-500 text-xs px-6">Explore our catalog and add items to your cart to check out.</p>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-black transition-all cursor-pointer mt-2 active:scale-95"
+                >
+                  Start Shopping
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   const totalPrice = cartItems.reduce((sum, item) => {
     const hasDiscount = item.product.discount && item.product.discount > 0;

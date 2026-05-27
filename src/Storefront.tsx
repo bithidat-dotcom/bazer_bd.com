@@ -7,7 +7,7 @@ import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
 import CheckoutModal from './components/CheckoutModal';
 import TrackingModal from './components/TrackingModal';
-import ChatModal from './components/ChatModal';
+import WhatsappSupport from './components/WhatsappSupport';
 import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
 import AuthModal, { UserProfile } from './components/AuthModal';
@@ -26,7 +26,6 @@ export default function Storefront() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -227,11 +226,7 @@ export default function Storefront() {
   };
 
   const handleOpenCart = () => {
-    if (cart.length > 0) {
-      setIsModalOpen(true);
-    } else {
-      window.alert("Your cart is empty!");
-    }
+    setIsModalOpen(true);
   };
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -372,11 +367,7 @@ export default function Storefront() {
         onProductSelect={setSelectedProduct}
       />
 
-      <ChatModal 
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        user={user}
-      />
+      <WhatsappSupport />
 
       <AnimatePresence>
         {successMessage && (
@@ -397,7 +388,7 @@ export default function Storefront() {
               </motion.div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold tracking-tight">Order Placed Successfully!</p>
-                <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-tight">We will contact you via Chat shortly.</p>
+                <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-tight">We will contact you via WhatsApp shortly.</p>
               </div>
               <button 
                 onClick={() => setSuccessMessage("")}
@@ -423,7 +414,7 @@ export default function Storefront() {
         onProfileClick={() => setIsAuthOpen(true)}
         onOrdersClick={() => setIsTrackingOpen(true)}
         onCartClick={handleOpenCart}
-        onSupportClick={() => setIsChatOpen(true)}
+        onSupportClick={() => window.open('https://wa.me/8801716807465', '_blank', 'noopener,noreferrer')}
         cartCount={cartItemCount}
         user={user}
       />

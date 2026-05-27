@@ -1,29 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, getDocs, updateDoc, doc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, MessageSquare, TrendingUp } from 'lucide-react';
+import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import ChatManager from './ChatManager';
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'messages' | 'analytics'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'analytics'>('orders');
 
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [renderChart, setRenderChart] = useState(false);
 
   useEffect(() => {
     fetchData();
-    
-    // Listen to chats for count
-    const unsub = onSnapshot(collection(db, 'chats'), (snapshot) => {
-      setChatCount(snapshot.size);
-    });
-    return () => unsub();
   }, []);
 
-  const [chatCount, setChatCount] = useState(0);
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      const timer = setTimeout(() => {
+        setRenderChart(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      setRenderChart(false);
+    }
+  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -105,15 +108,6 @@ export default function AdminDashboard() {
           >
             <Users size={18} />
             Users
-          </button>
-          <button 
-            onClick={() => setActiveTab('messages')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-              activeTab === 'messages' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            <MessageSquare size={18} />
-            Messages
           </button>
           <button 
             onClick={() => setActiveTab('analytics')}
@@ -267,13 +261,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {activeTab === 'messages' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-2xl font-bold tracking-tight mb-4">Customer Support ({chatCount})</h2>
-          <ChatManager />
-        </div>
-      )}
-
       {activeTab === 'analytics' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <h2 className="text-2xl font-bold tracking-tight mb-6">Business Insights</h2>
@@ -294,41 +281,45 @@ export default function AdminDashboard() {
 
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 mb-6">Sales Trend (Recent)</h3>
-            <div className="w-full h-[300px]">
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={salesData}>
-                  <defs>
-                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#0f172a" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
-                    tickFormatter={(val) => `৳${Number(val) >= 1000 ? (Number(val)/1000).toFixed(1) + 'k' : val}`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="total" 
-                    stroke="#0f172a" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorTotal)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="w-full h-[300px] flex items-center justify-center">
+              {renderChart ? (
+                <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
+                  <AreaChart data={salesData}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#0f172a" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
+                      tickFormatter={(val) => `৳${Number(val) >= 1000 ? (Number(val)/1000).toFixed(1) + 'k' : val}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="total" 
+                      stroke="#0f172a" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorTotal)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-slate-400 font-mono text-xs animate-pulse">Analyzing sales data...</div>
+              )}
             </div>
           </div>
         </div>
