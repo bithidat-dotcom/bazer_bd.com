@@ -73,17 +73,17 @@ export default function Navbar({
   return (
     <nav className="sticky top-0 z-50 bg-orange-500 px-4 py-3 sm:px-8 shadow-sm relative border-b-2 border-orange-600">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 relative">
-        <Link to="/" className="hidden md:flex text-xl sm:text-2xl font-bold font-display tracking-tight items-center gap-2">
-          <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazar_bds.com Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
+        <Link to="/" className="flex text-sm sm:text-lg md:text-2xl font-bold font-display tracking-tight items-center gap-1 md:gap-2 shrink-0">
+          <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazar_bds.com Logo" className="w-6 h-6 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
           <span className="text-white">pbazar<span className="text-white">_bd</span></span>
         </Link>
         
-        <div className="flex flex-1 md:max-w-lg relative gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="flex flex-1 md:max-w-lg relative gap-1 md:gap-2 min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
             <input 
               type="text" 
-              placeholder="Search Bazar_bds.com..." 
+              placeholder="Search..." 
               value={searchValue}
               onChange={(e) => {
                 const val = e.target.value;
@@ -96,7 +96,7 @@ export default function Navbar({
                 // Delay blur so click handler inside suggestion dropdown can register
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
-              className="w-full pl-11 pr-4 py-3 bg-slate-100 md:bg-white/10 rounded-2xl md:rounded-full border border-slate-950 focus:bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm font-medium"
+              className="w-full pl-9 md:pl-11 pr-3 md:pr-4 py-2 md:py-3 bg-white/10 rounded-xl md:rounded-full border border-white/20 focus:bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-xs md:text-sm font-medium text-white placeholder:text-white/60 focus:text-slate-900"
             />
             {showSuggestions && searchValue.trim().length > 0 && products.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-2 z-[200] max-h-64 overflow-y-auto flex flex-col gap-0.5 text-left">
@@ -130,19 +130,19 @@ export default function Navbar({
             )}
           </div>
           
-          <div className="relative">
+          <div className="relative shrink-0">
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)} 
-              className={`h-full px-4 flex items-center gap-2 rounded-full border transition-colors text-sm font-medium ${
+              className={`h-full px-2 md:px-4 flex items-center gap-1 md:gap-2 rounded-xl md:rounded-full border transition-colors text-xs md:text-sm font-medium ${
                 isFilterOpen || categoryFilter || discountFilter 
                   ? 'bg-orange-50 border-orange-200 text-orange-600' 
-                  : 'glass bg-white/20 border-slate-200 text-slate-700 hover:bg-slate-50'
+                  : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
               }`}
             >
               <FilterIcon className="w-4 h-4" />
-              Filter
+              <span className="hidden md:inline">Filter</span>
               {(categoryFilter || discountFilter) && (
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_0_2px_white] -mt-1 -mr-1"></span>
+                <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-white shadow-[0_0_0_1px_orange] -mt-0.5 -mr-0.5"></span>
               )}
             </button>
             {isFilterOpen && <FilterDropdown />}
