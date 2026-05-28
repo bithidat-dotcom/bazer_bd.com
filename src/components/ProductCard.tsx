@@ -93,17 +93,14 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
   const sellerLogo = product.seller_logo || sellerData?.logo;
 
   return (
-    <motion.div 
+      <motion.div 
       layout
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group glass-card rounded-2xl flex flex-col p-2 sm:p-4 relative overflow-hidden h-full shadow-sm hover:shadow-xl transition-all duration-500"
+      className="group glass-card rounded-2xl flex flex-col p-2 sm:p-4 relative overflow-hidden h-full shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer"
+      onClick={() => onClick && onClick(product)}
     >
-      <div 
-        className="cursor-pointer"
-        onClick={() => onClick && onClick(product)}
-      >
         <div className="relative w-full aspect-square rounded-xl bg-slate-50 overflow-hidden mb-3">
           {/* Like/Favorite floating button */}
           <button
@@ -156,7 +153,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
             {product.description}
           </p>
         </div>
-      </div>
+
       <div className="px-1 flex flex-col mt-auto gap-3 sm:gap-4">
         <div className="flex items-center justify-between border-t border-slate-100 pt-3 sm:pt-4">
           <div className="flex flex-col">
@@ -214,13 +211,19 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:gap-3 pb-1">
               <button 
-                onClick={() => onAddToCart && onAddToCart(product)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToCart && onAddToCart(product);
+                }}
                 className="flex items-center justify-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
               >
                 Cart
               </button>
               <button 
-                onClick={() => onBuy(product)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBuy(product);
+                }}
                 className="flex items-center justify-center bg-orange-600 text-white hover:bg-orange-700 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-black shadow-lg cursor-pointer uppercase tracking-wider"
               >
                 Buy

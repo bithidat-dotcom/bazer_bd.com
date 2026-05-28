@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
@@ -10,16 +10,19 @@ import TrackingModal from './components/TrackingModal';
 import WhatsappSupport from './components/WhatsappSupport';
 import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
+import SellerModal from './components/SellerModal';
 import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
-import { Banner, Product, CartItem } from './types';
+import { Banner, Product, CartItem, Seller } from './types';
+import { getSellers } from './lib/db-sync';
 import { formatWhatsappNumber } from './lib/utils';
 
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -27,6 +30,7 @@ export default function Storefront() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,6 +114,13 @@ export default function Storefront() {
       }, (error) => {
         console.error('Firebase banner error', error);
       });
+
+      // Fetch sellers
+      const fetchSellers = async () => {
+        const data = await getSellers();
+        setSellers(data);
+      };
+      fetchSellers();
     } catch (err: any) {
       console.error('Fetch error:', err);
       setError(err.message || 'Failed to load store data');
@@ -462,6 +473,71 @@ export default function Storefront() {
             </button>
           ))}
         </div>
+
+        {/* Top Sellers Section */}
+        {sellers.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-5">
+               <div className="flex items-center gap-2">
+                 <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
+                    <User2 className="text-orange-600" size={18} />
+                 </div>
+                 <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Top Sellers</h2>
+               </div>
+            </div>
+             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden -mx-4 px-4 sm:-mx-8 sm:px-8">
+               {sellers.filter(s => s.is_top !== false).map(seller => (
+                 <button
+                   key={seller.id}
+                   onClick={() => setSelectedSeller(seller)}
+                   className="flex flex-col items-center gap-2 group shrink-0 relative"
+                 >
+                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] bg-white border border-slate-200 shadow-sm overflow-hidden p-2 group-hover:border-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/10 transition-all active:scale-95 relative flex items-center justify-center">
+                      {seller.logo ? (
+                        <img src={seller.logo} alt={seller.name} className="w-full h-full object-contain rounded-[1.75rem]" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300">
+                           <User2 size={36} />
+                        </div>
+                      )}
+                      
+                      {/* Floating Indicator Icons for Social Presence */}
+                      <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
+                        {seller.tiktok && seller.tiktok.trim() !== '' && seller.tiktok.toLowerCase().includes('tiktok.com') && (
+                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-md p-0.5" title="TikTok Present">
+                             <img 
+                               src="https://sf-static.tiktokcdn.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png" 
+                               alt="" 
+                               className="w-full h-full object-contain rounded-full"
+                             />
+                          </div>
+                        )}
+                        {seller.facebook && seller.facebook.trim() !== '' && (seller.facebook.toLowerCase().includes('facebook.com') || seller.facebook.toLowerCase().includes('fb.com') || seller.facebook.toLowerCase().includes('fb.me')) && (
+                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-md p-0.5" title="Facebook Present">
+                             <img 
+                               src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm0F2xlq4BO9-4boQ1D9oGwXTiYfW5KcUvew&s" 
+                               alt="" 
+                               className="w-full h-full object-contain rounded-full"
+                             />
+                          </div>
+                        )}
+                        {seller.instagram && seller.instagram.trim() !== '' && seller.instagram.toLowerCase().includes('instagram.com') && (
+                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-md p-0.5" title="Instagram Present">
+                             <img 
+                               src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/250px-Instagram_logo_2016.svg.png" 
+                               alt="" 
+                               className="w-full h-full object-contain rounded-full"
+                             />
+                          </div>
+                        )}
+                      </div>
+                   </div>
+                   <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest max-w-[80px] truncate">{seller.name}</span>
+                 </button>
+               ))}
+            </div>
+          </section>
+        )}
         
         <section>
           {loading ? (
@@ -567,6 +643,17 @@ export default function Storefront() {
         onBuyNow={handleBuyNow}
         allProducts={products}
         onProductSelect={setSelectedProduct}
+        sellers={sellers}
+        onSellerSelect={setSelectedSeller}
+      />
+
+      <SellerModal
+        seller={selectedSeller}
+        isOpen={!!selectedSeller}
+        onClose={() => setSelectedSeller(null)}
+        onAddToCart={handleAddToCart}
+        onBuyNow={handleBuyNow}
+        onProductClick={setSelectedProduct}
       />
 
       <WhatsappSupport />

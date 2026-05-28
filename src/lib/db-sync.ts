@@ -158,6 +158,35 @@ export async function getSellerInfoByName(sellerName: string): Promise<any | nul
     return null;
   }
 }
+
+/**
+ * Fetch all sellers from 'sellers' collection
+ */
+export async function getSellers(): Promise<any[]> {
+  try {
+    const q = query(collection(db, 'sellers'), orderBy('created_at', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    console.error('Error fetching sellers:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch products by seller name
+ */
+export async function getProductsBySeller(sellerName: string): Promise<any[]> {
+  try {
+    const q = query(collection(db, 'products'), where('seller', '==', sellerName));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    console.error('Error fetching seller products:', err);
+    return [];
+  }
+}
+
 export async function saveProductReview(productId: string, userName: string, rating: number, comment: string): Promise<any> {
   const localNewReview = {
     id: 'usr-review-' + Date.now(),

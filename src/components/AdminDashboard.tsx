@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock } from 'lucide-react';
+import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [sellers, setSellers] = useState<any[]>([]);
   const [selectedAdminCategory, setSelectedAdminCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics' | 'sellers'>('orders');
 
   // Product Creation & Edit state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editingSeller, setEditingSeller] = useState<any | null>(null);
   const [productSearch, setProductSearch] = useState('');
   
   const [productForm, setProductForm] = useState({
@@ -36,6 +39,16 @@ export default function AdminDashboard() {
     seller: '',
     seller_whatsapp: '',
     seller_logo: '',
+  });
+
+  const [sellerForm, setSellerForm] = useState({
+    name: '',
+    whatsapp: '',
+    logo: '',
+    facebook: '',
+    tiktok: '',
+    instagram: '',
+    is_top: true
   });
 
   const categories = [
@@ -130,10 +143,18 @@ export default function AdminDashboard() {
       setLoading(false);
     });
 
+    // Listener for sellers
+    const unsubscribeSellers = onSnapshot(collection(db, 'sellers'), (snapshot) => {
+      const sellersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setSellers(sellersData);
+      setLoading(false);
+    });
+
     return () => {
       unsubscribeOrders();
       unsubscribeUsers();
       unsubscribeProducts();
+      unsubscribeSellers();
     };
   }, []);
 
@@ -270,6 +291,93 @@ export default function AdminDashboard() {
       }
     }
   };
+  
+  const openAddSellerModal = () => {
+    setEditingSeller(null);
+    setSellerForm({
+      name: '',
+      whatsapp: '',
+      logo: '',
+      facebook: '',
+      tiktok: '',
+      instagram: '',
+      is_top: true
+    });
+    setIsSellerModalOpen(true);
+  };
+
+  const openEditSellerModal = (sel: any) => {
+    setEditingSeller(sel);
+    setSellerForm({
+      name: sel.name || '',
+      whatsapp: sel.whatsapp || '',
+      logo: sel.logo || '',
+      facebook: sel.facebook || '',
+      tiktok: sel.tiktok || '',
+      instagram: sel.instagram || '',
+      is_top: sel.is_top !== undefined ? sel.is_top : true
+    });
+    setIsSellerModalOpen(true);
+  };
+
+  const handleSaveSeller = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellerForm.name) {
+      alert("Seller Name is required.");
+      return;
+    }
+
+    const trimmedFB = sellerForm.facebook.trim();
+    const trimmedTT = sellerForm.tiktok.trim();
+    const trimmedIG = sellerForm.instagram.trim();
+
+    if (trimmedFB && !trimmedFB.toLowerCase().includes('facebook.com') && !trimmedFB.toLowerCase().includes('fb.com') && !trimmedFB.toLowerCase().includes('fb.me')) {
+      alert("Error: The Facebook URL field must contain a valid Facebook/fb.com link. Leave blank if the seller has no Facebook page.");
+      return;
+    }
+
+    if (trimmedTT && !trimmedTT.toLowerCase().includes('tiktok.com')) {
+      alert("Error: The TikTok URL field must contain a valid tiktok.com link. Leave blank if the seller has no TikTok.");
+      return;
+    }
+
+    if (trimmedIG && !trimmedIG.toLowerCase().includes('instagram.com')) {
+      alert("Error: The Instagram URL field must contain a valid instagram.com link. Leave blank if the seller has no Instagram.");
+      return;
+    }
+
+    const payload = {
+      ...sellerForm,
+      facebook: trimmedFB,
+      tiktok: trimmedTT,
+      instagram: trimmedIG,
+      created_at: editingSeller?.created_at || new Date().toISOString(),
+    };
+
+    try {
+      if (editingSeller) {
+        await updateDoc(doc(db, 'sellers', editingSeller.id), payload);
+      } else {
+        await addDoc(collection(db, 'sellers'), payload);
+      }
+      setIsSellerModalOpen(false);
+      setEditingSeller(null);
+    } catch (err) {
+      console.error("Error saving seller: ", err);
+      alert("Failed to save seller.");
+    }
+  };
+
+  const handleDeleteSeller = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete the seller "${name}"?`)) {
+      try {
+        await deleteDoc(doc(db, 'sellers', id));
+      } catch (err) {
+        console.error("Error deleting seller: ", err);
+        alert("Failed to delete seller.");
+      }
+    }
+  };
 
   if (loading) return (
     <div className="p-8 text-center bg-slate-50 min-h-screen flex items-center justify-center">
@@ -353,6 +461,15 @@ export default function AdminDashboard() {
           >
             <TrendingUp size={18} />
             Analytics
+          </button>
+          <button 
+            onClick={() => setActiveTab('sellers')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'sellers' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <User2 size={18} />
+            Sellers
           </button>
         </div>
       </div>
@@ -769,6 +886,228 @@ export default function AdminDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'sellers' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Sellers Directory ({sellers.length})</h2>
+              <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mt-0.5">Manage partner profiles and social links</p>
+            </div>
+            
+            <button 
+              onClick={openAddSellerModal}
+              className="px-5 py-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-2xl text-sm font-bold flex items-center gap-2 shadow-md transition-all cursor-pointer w-fit"
+            >
+              <Plus size={18} />
+              Add Seller
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-x-auto overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] tracking-widest uppercase text-slate-400 font-bold">
+                  <th className="p-5">Seller</th>
+                  <th className="p-5">Status</th>
+                  <th className="p-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {sellers.map(sel => (
+                  <tr key={sel.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
+                          {sel.logo ? (
+                            <img src={sel.logo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                               <User2 size={24} />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">{sel.name}</p>
+                          <div className="flex gap-2 mt-1">
+                            {sel.whatsapp && <Phone size={12} className="text-emerald-500" />}
+                            {sel.facebook && <Facebook size={12} className="text-blue-600" />}
+                            {sel.tiktok && sel.tiktok.trim() !== '' && (
+                              <div className="w-3 h-3 shrink-0 flex items-center justify-center">
+                                <img 
+                                  src="https://sf-static.tiktokcdn.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png" 
+                                  className="w-full h-full object-contain"
+                                  alt="TikTok" 
+                                />
+                              </div>
+                            )}
+                            {sel.instagram && <Instagram size={12} className="text-pink-600" />}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-5">
+                       {sel.is_top ? (
+                         <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 uppercase tracking-widest">Top Seller</span>
+                       ) : (
+                         <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 uppercase tracking-widest">Normal</span>
+                       )}
+                    </td>
+                    <td className="p-5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button 
+                          onClick={() => openEditSellerModal(sel)}
+                          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteSeller(sel.id, sel.name)}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {sellers.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="p-12 text-center text-slate-400 font-medium">No sellers registered yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Seller Creator/Editor Form Dialog */}
+      {isSellerModalOpen && (
+        <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in scale-in duration-200 text-left">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-[10]">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {editingSeller ? 'Edit Seller Profile' : 'Add New Seller'}
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">Manage partner info & social handles</p>
+              </div>
+              <button 
+                onClick={() => setIsSellerModalOpen(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-400 transition-all cursor-pointer"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSeller} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Seller Name *</label>
+                <input 
+                  type="text" 
+                  value={sellerForm.name}
+                  onChange={(e) => setSellerForm({...sellerForm, name: e.target.value})}
+                  placeholder="e.g. Dream Tech BD"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">WhatsApp Number</label>
+                <input 
+                  type="text" 
+                  value={sellerForm.whatsapp}
+                  onChange={(e) => setSellerForm({...sellerForm, whatsapp: e.target.value})}
+                  placeholder="01712345678"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Logo URL</label>
+                <input 
+                  type="text" 
+                  value={sellerForm.logo}
+                  onChange={(e) => setSellerForm({...sellerForm, logo: e.target.value})}
+                  placeholder="https://..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                />
+              </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">
+                      <img 
+                        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm0F2xlq4BO9-4boQ1D9oGwXTiYfW5KcUvew&s" 
+                        className="w-3.5 h-3.5 rounded-full object-cover"
+                      />
+                      Facebook URL
+                    </label>
+                    <input 
+                      type="text" 
+                      value={sellerForm.facebook}
+                      onChange={(e) => setSellerForm({...sellerForm, facebook: e.target.value})}
+                      placeholder="https://facebook.com/..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">
+                      <img 
+                        src="https://sf-static.tiktokcdn.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png" 
+                        className="w-3.5 h-3.5 rounded-full object-cover"
+                      />
+                      TikTok URL
+                    </label>
+                    <input 
+                      type="text" 
+                      value={sellerForm.tiktok}
+                      onChange={(e) => setSellerForm({...sellerForm, tiktok: e.target.value})}
+                      placeholder="https://tiktok.com/@..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/250px-Instagram_logo_2016.svg.png" 
+                        className="w-3.5 h-3.5 rounded-full object-cover"
+                      />
+                      Instagram URL
+                    </label>
+                    <input 
+                      type="text" 
+                      value={sellerForm.instagram}
+                      onChange={(e) => setSellerForm({...sellerForm, instagram: e.target.value})}
+                      placeholder="https://instagram.com/..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                    />
+                  </div>
+                </div>
+
+              <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                <input 
+                  type="checkbox"
+                  id="is_top"
+                  checked={sellerForm.is_top}
+                  onChange={(e) => setSellerForm({...sellerForm, is_top: e.target.checked})}
+                  className="w-5 h-5 rounded accent-orange-500 cursor-pointer"
+                />
+                <label htmlFor="is_top" className="text-sm font-bold text-orange-900 cursor-pointer">Badge as Top Seller</label>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-900/10"
+              >
+                {editingSeller ? 'Save Profile Changes' : 'Create Seller Profile'}
+              </button>
+            </form>
           </div>
         </div>
       )}

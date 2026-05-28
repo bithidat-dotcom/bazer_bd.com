@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone } from 'lucide-react';
+import { Seller } from '../types';
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram } from 'lucide-react';
 import { formatPrice } from '../lib/utils';
 import ProductCard from './ProductCard';
 import { getProductLikesState, toggleProductLike, getProductReviews, saveProductReview } from '../lib/db-sync';
@@ -22,9 +23,11 @@ interface ProductModalProps {
   onBuyNow: (product: Product, quantity: number) => void;
   allProducts?: Product[];
   onProductSelect?: (product: Product) => void;
+  sellers?: Seller[];
+  onSellerSelect?: (seller: Seller) => void;
 }
 
-export default function ProductModal({ product, isOpen, onClose, onAddToCart, onBuyNow, allProducts = [], onProductSelect }: ProductModalProps) {
+export default function ProductModal({ product, isOpen, onClose, onAddToCart, onBuyNow, allProducts = [], onProductSelect, sellers = [], onSellerSelect }: ProductModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
@@ -837,7 +840,15 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
               {/* Seller Information */}
               {(product.seller || product.seller_whatsapp || sellerData?.whatsapp) && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={() => {
+                        const sellerObj = sellers.find(s => s.name === product.seller);
+                        if (sellerObj && onSellerSelect) {
+                            onSellerSelect(sellerObj);
+                        }
+                    }}
+                  >
                     <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 overflow-hidden">
                       {(product.seller_logo || sellerData?.logo) ? (
                         <img src={product.seller_logo || sellerData?.logo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -846,23 +857,51 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       )}
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Product Seller</p>
-                      <p className="text-sm font-black text-slate-900">{product.seller || 'Verified Seller'}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-orange-500 transition-colors">Product Seller</p>
+                      <p className="text-sm font-black text-slate-900 group-hover:text-orange-500 transition-colors">{product.seller || 'Verified Seller'}</p>
                     </div>
                   </div>
-                  {(product.seller_whatsapp || sellerData?.whatsapp) && (
-                    <button 
-                      onClick={() => {
-                        const whatsapp = product.seller_whatsapp || sellerData?.whatsapp || '';
-                        const message = encodeURIComponent(`Hi, I want to buy "${product.name}" for ${formatPrice(discountedPrice)}. Is it available?`);
-                        window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${message}`, '_blank');
-                      }}
-                      className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-center"
-                    >
-                      <Phone size={14} />
-                      Contact Seller
-                    </button>
-                  )}
+                  
+                  {/* Social Icons for Seller */}
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                        const sellerObj = sellers.find(s => s.name === product.seller);
+                        if (!sellerObj) return null;
+                        
+                        return (
+                            <>
+                                {sellerObj.tiktok && sellerObj.tiktok.trim() !== '' && sellerObj.tiktok.toLowerCase().includes('tiktok.com') && (
+                                    <a href={sellerObj.tiktok} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-black">
+                                       <img src="https://sf-static.tiktokcdn.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png" className="w-4 h-4 object-contain" alt="TikTok" />
+                                    </a>
+                                )}
+                                {sellerObj.facebook && sellerObj.facebook.trim() !== '' && (sellerObj.facebook.toLowerCase().includes('facebook.com') || sellerObj.facebook.toLowerCase().includes('fb.com') || sellerObj.facebook.toLowerCase().includes('fb.me')) && (
+                                    <a href={sellerObj.facebook} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-black">
+                                       <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm0F2xlq4BO9-4boQ1D9oGwXTiYfW5KcUvew&s" className="w-4 h-4 object-contain" alt="Facebook" />
+                                    </a>
+                                )}
+                                {sellerObj.instagram && sellerObj.instagram.trim() !== '' && sellerObj.instagram.toLowerCase().includes('instagram.com') && (
+                                    <a href={sellerObj.instagram} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-black">
+                                       <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/250px-Instagram_logo_2016.svg.png" className="w-4 h-4 object-contain" alt="Instagram" />
+                                    </a>
+                                )}
+                            </>
+                        )
+                    })()}
+                    {(product.seller_whatsapp || sellerData?.whatsapp) && (
+                        <button 
+                          onClick={() => {
+                            const whatsapp = product.seller_whatsapp || sellerData?.whatsapp || '';
+                            const message = encodeURIComponent(`Hi, I want to buy "${product.name}" for ${formatPrice(discountedPrice)}. Is it available?`);
+                            window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${message}`, '_blank');
+                          }}
+                          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-center"
+                        >
+                          <Phone size={14} />
+                          Contact
+                        </button>
+                    )}
+                  </div>
                 </div>
               )}
 

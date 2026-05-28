@@ -1,3 +1,15 @@
+export interface Seller {
+  id: string;
+  name: string;
+  whatsapp?: string;
+  logo?: string;
+  facebook?: string;
+  tiktok?: string;
+  instagram?: string;
+  is_top?: boolean;
+  created_at: string;
+}
+
 export interface Product {
   id: string;
   name: string;
