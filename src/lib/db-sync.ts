@@ -141,8 +141,23 @@ export async function getProductReviews(productId: string): Promise<any[]> {
 }
 
 /**
- * Inserts a verified customer review to Supabase and browser cache.
+ * Fetch seller info by name from 'sellers' collection
  */
+export async function getSellerInfoByName(sellerName: string): Promise<any | null> {
+  if (!sellerName) return null;
+  try {
+    const q = query(collection(db, 'sellers'), where('name', '==', sellerName));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      return { id: snapshot.docs[0].id, ...data };
+    }
+    return null;
+  } catch (err) {
+    console.error('Error fetching seller info:', err);
+    return null;
+  }
+}
 export async function saveProductReview(productId: string, userName: string, rating: number, comment: string): Promise<any> {
   const localNewReview = {
     id: 'usr-review-' + Date.now(),

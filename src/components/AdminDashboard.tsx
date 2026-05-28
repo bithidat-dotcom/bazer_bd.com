@@ -33,6 +33,9 @@ export default function AdminDashboard() {
     watt_amp: '',
     discountTimelineHours: '24',
     flashSaleEnd: '',
+    seller: '',
+    seller_whatsapp: '',
+    seller_logo: '',
   });
 
   const categories = [
@@ -117,7 +120,10 @@ export default function AdminDashboard() {
           rating: Number(data.rating || 4.5),
           category: data.category || 'PC',
           created_at: data.created_at || new Date().toISOString(),
-          flashSaleEnd: data.flashSaleEnd || ''
+          flashSaleEnd: data.flashSaleEnd || '',
+          seller: data.seller || '',
+          seller_whatsapp: data.seller_whatsapp || '',
+          seller_logo: data.seller_logo || '',
         };
       });
       setProducts(productsData);
@@ -178,6 +184,9 @@ export default function AdminDashboard() {
       watt_amp: '',
       discountTimelineHours: '24',
       flashSaleEnd: '',
+      seller: '',
+      seller_whatsapp: '',
+      seller_logo: '',
     });
     setIsProductModalOpen(true);
   };
@@ -200,6 +209,9 @@ export default function AdminDashboard() {
       watt_amp: prod.watt_amp || '',
       discountTimelineHours: String(prod.discountTimelineHours || 24),
       flashSaleEnd: prod.flashSaleEnd || '',
+      seller: prod.seller || '',
+      seller_whatsapp: prod.seller_whatsapp || '',
+      seller_logo: prod.seller_logo || '',
     });
     setIsProductModalOpen(true);
   };
@@ -229,6 +241,9 @@ export default function AdminDashboard() {
       watt_amp: productForm.watt_amp || '',
       discountTimelineHours: Number(productForm.discountTimelineHours) || 24,
       flashSaleEnd: productForm.flashSaleEnd || '',
+      seller: productForm.seller || '',
+      seller_whatsapp: productForm.seller_whatsapp || '',
+      seller_logo: productForm.seller_logo || '',
     };
 
     try {
@@ -893,6 +908,40 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Seller Name</label>
+                  <input 
+                    type="text" 
+                    value={productForm.seller}
+                    onChange={(e) => setProductForm({...productForm, seller: e.target.value})}
+                    placeholder="e.g. BD Tech Store"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Seller WhatsApp</label>
+                  <input 
+                    type="text" 
+                    value={productForm.seller_whatsapp}
+                    onChange={(e) => setProductForm({...productForm, seller_whatsapp: e.target.value})}
+                    placeholder="e.g. 01700000000"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Seller Icon URL</label>
+                <input 
+                  type="text" 
+                  value={productForm.seller_logo}
+                  onChange={(e) => setProductForm({...productForm, seller_logo: e.target.value})}
+                  placeholder="e.g. https://example.com/logo.png"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
+                />
+              </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Assigned Category *</label>

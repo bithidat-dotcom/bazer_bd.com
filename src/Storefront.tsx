@@ -80,7 +80,10 @@ export default function Storefront() {
             total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
             created_at: data.created_at || new Date().toISOString(),
             images: data.images || [],
-            flashSaleEnd: data.flashSaleEnd || null
+            flashSaleEnd: data.flashSaleEnd || null,
+            seller: data.seller || '',
+            seller_whatsapp: data.seller_whatsapp || '',
+            seller_logo: data.seller_logo || ''
           } as Product;
         });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -462,9 +465,9 @@ export default function Storefront() {
         
         <section>
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
-              {[...Array(16)].map((_, i) => (
-                <div key={i} className="aspect-[3/4] glass animate-pulse rounded-lg" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="aspect-[3/4] glass animate-pulse rounded-[2rem]" />
               ))}
             </div>
           ) : error ? (
@@ -479,7 +482,7 @@ export default function Storefront() {
               </button>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
               {filteredProducts.map((product) => (
                 <div key={product.id}>
                   <ProductCard 

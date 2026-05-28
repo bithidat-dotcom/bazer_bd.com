@@ -23,6 +23,9 @@ export interface Product {
   // Discount Timer Option
   discountTimelineHours?: number;
   flashSaleEnd?: string;
+  seller?: string;
+  seller_whatsapp?: string;
+  seller_logo?: string;
 }
 
 export interface CartItem {

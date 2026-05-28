@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
-import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle } from 'lucide-react';
 import { formatWhatsappNumber } from '../lib/utils';
 
 import { UserProfile } from './AuthModal';
@@ -22,9 +22,11 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   const [location, setLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
+      setShowSuccess(false);
       if (user) {
         if (!customerName) setCustomerName(user.username || '');
         if (!whatsapp) setWhatsapp(user.whatsapp || '');
@@ -32,6 +34,55 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
       }
     }
   }, [isOpen, user]);
+
+  if (showSuccess) {
+     const firstItem = cartItems[0];
+     const sellerW = firstItem?.product.seller_whatsapp;
+     const productList = cartItems.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
+     const waLink = sellerW ? `https://wa.me/${sellerW.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I just placed an order for: ${productList}. My name is ${customerName}. Please confirm my order.`)}` : null;
+
+     return (
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="w-full h-[60vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 text-center relative z-10"
+            >
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+                <CheckCircle size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Order Confirmed!</h3>
+              <p className="text-slate-500 text-sm mb-8">Your order has been recorded in our system successfully.</p>
+              
+              {waLink && (
+                <div className="w-full space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Next Step:</p>
+                  <button 
+                    onClick={() => window.open(waLink, '_blank')}
+                    className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
+                  >
+                    <MessageCircle size={20} />
+                    Confirm with Seller
+                  </button>
+                  <p className="text-[9px] text-slate-400 font-bold">Connecting to Admin: {firstItem?.product.seller || 'Verified Seller'}</p>
+                </div>
+              )}
+
+              <button 
+                onClick={onClose}
+                className="mt-6 text-slate-400 font-bold text-xs hover:text-slate-600"
+              >
+                Close and Keep Looking
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+     );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -107,11 +158,20 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
     try {
       console.log('Starting order submission...');
       await onSubmit(customerName, whatsapp, location);
-      onClose();
-      setIsConfirming(false);
-      setCustomerName('');
-      setWhatsapp('');
-      setLocation('');
+      
+      // Show success screen which has the WhatsApp redirect
+      setShowSuccess(true);
+      
+      // Attempt auto-redirect
+      if (cartItems.length > 0) {
+        const firstItem = cartItems[0];
+        const sellerW = firstItem.product.seller_whatsapp;
+        if (sellerW) {
+          const productList = cartItems.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
+          const message = encodeURIComponent(`Hi, I just placed an order for: ${productList}. My name is ${customerName}. Please confirm my order.`);
+          window.open(`https://wa.me/${sellerW.replace(/\D/g, '')}?text=${message}`, '_blank');
+        }
+      }
     } catch (error) {
       console.error('Final confirm error:', error);
     } finally {
