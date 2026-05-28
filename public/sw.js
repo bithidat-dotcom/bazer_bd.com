@@ -16,7 +16,7 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const title = data.title || 'pbazar_bd Alert';
+  const title = data.title || 'pbazar Alert';
   const options = {
     body: data.body || 'Your order status has changed!',
     icon: 'https://i.postimg.cc/KvqR53hq/download-(1).png',

@@ -12,7 +12,7 @@ import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
 import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
-import { collection, onSnapshot, query, addDoc, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, where, doc, updateDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem } from './types';
 import { formatWhatsappNumber } from './lib/utils';
 
@@ -243,8 +243,7 @@ export default function Storefront() {
         pDesc.toLowerCase().includes(searchQuery.toLowerCase());
       const matchDiscount = discountFilter ? p.discount === discountFilter : true;
       const matchCategory = categoryFilter ? (
-        pName.toLowerCase().includes(categoryFilter.toLowerCase()) || 
-        pDesc.toLowerCase().includes(categoryFilter.toLowerCase())
+        String(p.category || '').toLowerCase() === categoryFilter.toLowerCase()
       ) : true;
       return matchSearch && matchDiscount && matchCategory;
     });
@@ -302,6 +301,23 @@ export default function Storefront() {
       if (!savedIds.includes(docRef.id)) {
         savedIds.push(docRef.id);
         localStorage.setItem('tracked_order_ids', JSON.stringify(savedIds));
+      }
+
+      // Decrement real stock by ordered quantity inside Firestore for inventory tracking
+      for (const item of cart) {
+        if (item.product.id) {
+          try {
+            const productRef = doc(db, "products", item.product.id);
+            const currentStock = item.product.stock !== undefined ? item.product.stock : 20;
+            const newStock = Math.max(0, currentStock - item.quantity);
+            await updateDoc(productRef, {
+              stock: newStock
+            });
+            console.log(`Updated stock for ${item.product.name} to ${newStock}`);
+          } catch (stockErr) {
+            console.error("Failed to update product stock", stockErr);
+          }
+        }
       }
 
       console.log("Order Successful");
@@ -469,7 +485,7 @@ export default function Storefront() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-6">
           <div className="flex flex-wrap items-center justify-between text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 mb-6 gap-6">
             <div className="flex flex-col gap-2">
-              <span className="text-slate-800 text-xs text-opacity-100">© 2024 Bazar_bds.com — Trusted Online Shop in Bangladesh</span>
+              <span className="text-slate-800 text-xs text-opacity-100">© 2026 pbazar — Trusted Online Shop in Bangladesh</span>
               <span className="text-slate-400 normal-case tracking-normal">Company Info: Premium Quality Goods & Fast Delivery.</span>
             </div>
           </div>

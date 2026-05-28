@@ -38,20 +38,32 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
-      alert('Your browser does not support local mobile notification triggers.');
+      alert('Your browser or device does not support standard push notifications.');
       return;
     }
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
-    if (permission === 'granted') {
-      try {
+    
+    // Check if we are currently embedded inside an iframe (like the AI Studio development panel)
+    const isFrame = window.self !== window.top;
+    if (isFrame) {
+      alert("⚠️ IFrame Security Active!\n\nModern mobile browsers block standard Notification prompts inside nested preview windows (iframes).\n\nPlease click the 'Open in a new tab' button at the top-right of your screen to run the app standalone and successfully trigger mobile alerts!");
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
         audio.play().catch(() => {});
         new Notification('Alerts Armed! 🔔', {
           body: 'Notifications are now configured for Order Confirmation, Packing, and Shipping!',
           icon: 'https://i.postimg.cc/KvqR53hq/download-(1).png',
         });
-      } catch (e) {}
+      } else if (permission === 'denied') {
+        alert("Notification permission was denied or blocked. Please go to your browser's site settings to unlock notifications for this shop.");
+      }
+    } catch (err: any) {
+      console.warn("Permission request failed, likely due to security scope or frame constraints:", err);
+      alert("⚠️ Permissions Blocked inside Preview Panel!\n\nPlease open this app in a Standalone Tab (click the outbound arrow on top right) and retry to successfully arm mobile status notifications.");
     }
   };
 
@@ -179,6 +191,11 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-slate-800">Enable Mobile Order Alerts</h4>
                   <p className="text-[10px] sm:text-xs text-slate-500 font-medium">Receive immediate notifications on your android or mobile screen when order is packing, shipping, or confirmed!</p>
+                  {window.self !== window.top && (
+                    <span className="inline-block mt-1 text-[9.5px] text-orange-600 font-bold bg-orange-100/60 px-1.5 py-0.5 rounded border border-orange-200">
+                      ⚠️ Security Notice: Standard browser view blocks prompt. Click "Open in standard tab icon" at page top right to enable!
+                    </span>
+                  )}
                 </div>
               </div>
               <button

@@ -396,69 +396,73 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
               </div>
               
               <div className="mb-12">
-                  <div className="flex flex-col gap-6">
-                      {/* Quantity Selector */}
-                      <div className="flex items-center justify-between border-2 border-slate-200 rounded-2xl p-2 bg-slate-50 lg:w-1/2">
-                          <button 
-                              onClick={() => updateQuantity(-1)}
-                              disabled={product.stock !== undefined && product.stock <= 0}
-                              className={`w-12 h-12 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
-                                product.stock !== undefined && product.stock <= 0
-                                  ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
-                                  : 'hover:bg-white text-slate-600'
-                              }`}
-                              aria-label="Decrease quantity"
-                          >
-                              <Minus size={20} />
-                          </button>
-                          <span className="font-bold text-slate-800 text-xl w-12 text-center">
-                            {product.stock !== undefined && product.stock <= 0 ? 0 : quantity}
-                          </span>
-                          <button 
-                              onClick={() => updateQuantity(1)}
-                              disabled={product.stock !== undefined && product.stock <= 0}
-                              className={`w-12 h-12 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
-                                product.stock !== undefined && product.stock <= 0
-                                  ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
-                                  : 'hover:bg-white text-slate-600'
-                              }`}
-                              aria-label="Increase quantity"
-                          >
-                              <Plus size={20} />
-                          </button>
-                      </div>
+                  <div className="flex flex-col gap-6 max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:bg-white/95 max-md:backdrop-blur-md max-md:p-4 max-md:border-t max-md:border-slate-200 max-md:shadow-[0_-10px_25px_rgba(0,0,0,0.08)] max-md:z-50 max-md:pb-6">
+                      <div className="flex flex-col md:flex-col lg:flex-row gap-4 lg:items-center">
+                          {/* Quantity Selector */}
+                          <div id="quantity-selector-container" className="flex items-center justify-between border-2 border-slate-200 rounded-2xl p-2 bg-slate-50 shrink-0 md:w-1/2 lg:w-2/5 h-14">
+                              <button 
+                                  onClick={() => updateQuantity(-1)}
+                                  disabled={product.stock !== undefined && product.stock <= 0}
+                                  className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
+                                    product.stock !== undefined && product.stock <= 0
+                                      ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
+                                      : 'hover:bg-white text-slate-600'
+                                  }`}
+                                  aria-label="Decrease quantity"
+                              >
+                                  <Minus size={18} />
+                              </button>
+                              <span className="font-bold text-slate-800 text-lg w-10 text-center">
+                                {product.stock !== undefined && product.stock <= 0 ? 0 : quantity}
+                              </span>
+                              <button 
+                                  onClick={() => updateQuantity(1)}
+                                  disabled={product.stock !== undefined && product.stock <= 0}
+                                  className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
+                                    product.stock !== undefined && product.stock <= 0
+                                      ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
+                                      : 'hover:bg-white text-slate-600'
+                                  }`}
+                                  aria-label="Increase quantity"
+                              >
+                                  <Plus size={18} />
+                              </button>
+                          </div>
                       
-                      {/* Action Buttons */}
-                      <div className="flex flex-col sm:flex-row gap-4 relative">
-                          <button 
-                            disabled={product.stock !== undefined && product.stock <= 0}
-                            onClick={() => {
-                                onAddToCart(product, quantity);
-                                onClose();
-                            }}
-                            className={`flex-1 font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg ${
-                              product.stock !== undefined && product.stock <= 0
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                                : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 cursor-pointer'
-                            }`}
-                          >
-                            <ShoppingCart size={22} />
-                            Add to Cart
-                          </button>
-                          <button 
-                            disabled={product.stock !== undefined && product.stock <= 0}
-                            onClick={() => {
-                                onBuyNow(product, quantity);
-                                onClose();
-                            }}
-                            className={`flex-1 font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center text-lg ${
-                              product.stock !== undefined && product.stock <= 0
-                                ? 'bg-slate-100 text-slate-450 cursor-not-allowed border border-slate-100'
-                                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-500/10 active:scale-[0.98] cursor-pointer'
-                            }`}
-                          >
-                            Buy Now
-                          </button>
+                          {/* Action Buttons */}
+                          <div className="flex flex-1 gap-3 w-full">
+                              <button 
+                                id="add-to-cart-action-btn"
+                                disabled={product.stock !== undefined && product.stock <= 0}
+                                onClick={() => {
+                                    onAddToCart(product, quantity);
+                                    onClose();
+                                }}
+                                className={`flex-1 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
+                                  product.stock !== undefined && product.stock <= 0
+                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                    : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 cursor-pointer'
+                                }`}
+                              >
+                                <ShoppingCart size={18} />
+                                <span className="whitespace-nowrap">Add to Cart</span>
+                              </button>
+                              <button 
+                                id="buy-now-action-btn"
+                                disabled={product.stock !== undefined && product.stock <= 0}
+                                onClick={() => {
+                                    onBuyNow(product, quantity);
+                                    onClose();
+                                }}
+                                className={`flex-1 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center text-sm sm:text-base ${
+                                  product.stock !== undefined && product.stock <= 0
+                                    ? 'bg-slate-100 text-slate-450 cursor-not-allowed border border-slate-100'
+                                    : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-500/10 active:scale-[0.98] cursor-pointer'
+                                }`}
+                              >
+                                Buy Now
+                              </button>
+                          </div>
                       </div>
                   </div>
               </div>
@@ -600,6 +604,9 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                   </div>
                 </div>
               )}
+
+              {/* Mobile spacer to prevent sticky bottom buttons covering content */}
+              <div className="h-28 md:hidden shrink-0" />
 
             </div>
           </motion.div>
