@@ -420,7 +420,7 @@ export default function AdminDashboard() {
                         })}
                       </div>
                     </td>
-                    <td className="p-5 font-bold text-slate-900">{order.price?.toLocaleString()} ৳</td>
+                    <td className="p-5 font-black text-slate-900">{order.price?.toLocaleString()} ৳</td>
                     <td className="p-5">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         order.status === 'cancelled' || order.status === 'cancelled_admin' ? 'bg-red-50 text-red-600' :
@@ -588,7 +588,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Revenue</p>
-              <h3 className="text-3xl font-bold text-slate-900">{orders.reduce((sum, o) => sum + (Number(o.price) || 0), 0).toLocaleString()} ৳</h3>
+              <h3 className="text-3xl font-black text-slate-900">{orders.reduce((sum, o) => sum + (Number(o.price) || 0), 0).toLocaleString()} ৳</h3>
             </div>
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Active Customers</p>
@@ -716,10 +716,10 @@ export default function AdminDashboard() {
                           {prod.category || 'PC'}
                         </span>
                       </td>
-                      <td className="p-5 font-bold text-slate-900">{prod.price?.toLocaleString()} ৳</td>
+                      <td className="p-5 font-black text-slate-900">{prod.price?.toLocaleString()} ৳</td>
                       <td className="p-5">
                         {prod.discount ? (
-                          <span className="text-red-500 font-bold text-xs">-{prod.discount}% ({(prod.price * (1 - prod.discount/100)).toFixed(0)} ৳)</span>
+                          <span className="text-red-500 font-black text-xs">-{prod.discount}% ({(prod.price * (1 - prod.discount/100)).toFixed(0)} ৳)</span>
                         ) : (
                           <span className="text-slate-400 text-xs">0%</span>
                         )}

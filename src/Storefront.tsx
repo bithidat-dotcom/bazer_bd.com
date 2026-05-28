@@ -482,7 +482,7 @@ export default function Storefront() {
               </button>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8">
               {filteredProducts.map((product) => (
                 <div key={product.id}>
                   <ProductCard 

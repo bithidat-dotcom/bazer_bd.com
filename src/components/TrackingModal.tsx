@@ -267,7 +267,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                         Order #{order.id.slice(-6).toUpperCase()}
                       </p>
                       <h3 className="font-bold text-slate-800 whitespace-pre-line">{order.product_name}</h3>
-                      <p className="text-sm font-semibold text-slate-500 mt-1">Total: {order.price.toLocaleString()} ৳</p>
+                      <p className="text-sm font-black text-slate-900 mt-1">Total: {order.price.toLocaleString()} ৳</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-medium text-slate-500">Ordered on</p>
