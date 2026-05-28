@@ -21,6 +21,9 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
     );
   }
 
+  const currentBanner = banners[currentIndex] || banners[0];
+  if (!currentBanner) return null;
+
   return (
     <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[3/1] overflow-hidden rounded-2xl group shadow-sm border border-slate-200 bg-slate-50">
       <AnimatePresence mode="wait">
@@ -33,8 +36,8 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
            className="absolute inset-0 flex items-center justify-center bg-slate-100"
         >
           <img 
-            src={banners[currentIndex].image} 
-            alt={banners[currentIndex].title || "Promo Banner"}
+            src={currentBanner.image} 
+            alt={currentBanner.title || "Promo Banner"}
             className="w-full h-full object-contain sm:object-cover"
           />
         </motion.div>

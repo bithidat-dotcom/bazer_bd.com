@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserProfile } from './AuthModal';
+import { formatWhatsappNumber } from '../lib/utils';
 
 interface TrackingModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -66,12 +68,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
     e.preventDefault();
     if (!whatsappNumber.trim()) return;
     
-    let formattedWhatsapp = whatsappNumber.trim().replace(/\s+/g, '');
-    if (formattedWhatsapp.startsWith('01')) {
-      formattedWhatsapp = '+88' + formattedWhatsapp;
-    } else if (formattedWhatsapp.startsWith('8801')) {
-      formattedWhatsapp = '+' + formattedWhatsapp;
-    }
+    const formattedWhatsapp = formatWhatsappNumber(whatsappNumber);
 
     setLoading(true);
     setHasSearched(true);
@@ -95,25 +92,23 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
   };
 
   const handleCancelOrder = async (order: any) => {
-    if (window.confirm("Are you sure you want to cancel this order?")) {
-      setCancelingId(order.id);
-      try {
-        await updateDoc(doc(db, 'orders', order.id), {
-          status: 'cancelled'
-        });
-        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
-        
-        // Notify admin via WhatsApp
-        const adminWhatsapp = '8801716807465';
-        const message = `Hello, I would like to confirm the cancellation of my order.\n\nOrder ID: #${order.id.slice(-6).toUpperCase()}\nProduct: ${order.product_name}\nCustomer: ${order.customer_name || 'N/A'}\nWhatsApp: ${order.whatsapp || 'N/A'}`;
-        const whatsappUrl = `https://wa.me/${adminWhatsapp}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-      } catch (err) {
-        console.error("Error canceling order:", err);
-        alert("Failed to cancel the order. Please try again.");
-      } finally {
-        setCancelingId(null);
-      }
+    setCancelingId(order.id);
+    try {
+      await updateDoc(doc(db, 'orders', order.id), {
+        status: 'cancelled'
+      });
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
+      
+      // Notify admin via WhatsApp
+      const adminWhatsapp = '8801716807465';
+      const message = `Hello, I would like to confirm the cancellation of my order.\n\nOrder ID: #${order.id.slice(-6).toUpperCase()}\nProduct: ${order.product_name}\nCustomer: ${order.customer_name || 'N/A'}\nWhatsApp: ${order.whatsapp || 'N/A'}`;
+      const whatsappUrl = `https://wa.me/${adminWhatsapp}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    } catch (err) {
+      console.error("Error canceling order:", err);
+      alert("Failed to cancel the order. Please try again.");
+    } finally {
+      setCancelingId(null);
     }
   };
 
@@ -213,7 +208,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                         Order #{order.id.slice(-6).toUpperCase()}
                       </p>
                       <h3 className="font-bold text-slate-800 whitespace-pre-line">{order.product_name}</h3>
-                      <p className="text-sm font-semibold text-slate-500 mt-1">Total: ৳{order.price.toLocaleString()}</p>
+                      <p className="text-sm font-semibold text-slate-500 mt-1">Total: {order.price.toLocaleString()} ৳</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-medium text-slate-500">Ordered on</p>
@@ -288,14 +283,44 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                   )}
 
                   {order.status === 'pending' && (
-                    <div className="mt-6 flex justify-end">
-                       <button
-                         onClick={() => handleCancelOrder(order)}
-                         disabled={cancelingId === order.id}
-                         className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-                       >
-                         {cancelingId === order.id ? 'Canceling...' : 'Cancel Order'}
-                       </button>
+                    <div className="mt-6 flex flex-col items-stretch sm:items-end">
+                      {confirmCancelId === order.id ? (
+                        <div className="w-full bg-red-50/70 p-4 rounded-xl border border-red-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left animate-slide-up">
+                          <div>
+                            <p className="text-xs font-bold text-red-800">Are you sure you want to cancel this order?</p>
+                            <p className="text-[11px] font-medium text-slate-500 mt-0.5">This will send a cancel notification to support on WhatsApp.</p>
+                          </div>
+                          <div className="flex gap-2 justify-end sm:justify-start shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setConfirmCancelId(null)}
+                              className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold transition-all"
+                            >
+                              No, Keep Order
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setConfirmCancelId(null);
+                                handleCancelOrder(order);
+                              }}
+                              disabled={cancelingId === order.id}
+                              className="px-3 py-1.5 bg-red-650 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all shadow-sm shadow-red-100 bg-red-600"
+                            >
+                              {cancelingId === order.id ? 'Canceling...' : 'Yes, Cancel'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmCancelId(order.id)}
+                          disabled={cancelingId === order.id}
+                          className="px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg text-sm font-bold transition-all"
+                        >
+                          Cancel Order
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

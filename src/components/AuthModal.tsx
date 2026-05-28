@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState, useRef } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
+import { formatWhatsappNumber } from '../lib/utils';
 
 export interface UserProfile {
   username: string;
@@ -72,12 +73,13 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
     
     try {
       const formattedUsername = username.trim().toLowerCase();
+      const formattedWhatsapp = formatWhatsappNumber(whatsapp);
       
       // Store in users collection to keep track
       await setDoc(doc(db, 'users', formattedUsername), {
         username: formattedUsername,
         profileImage: profileImage || '',
-        whatsapp: whatsapp.trim(),
+        whatsapp: formattedWhatsapp,
         location: location.trim(),
         updatedAt: new Date().toISOString()
       }, { merge: true });
@@ -85,7 +87,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
       const userProfile = { 
         username: formattedUsername, 
         profileImage,
-        whatsapp: whatsapp.trim(),
+        whatsapp: formattedWhatsapp,
         location: location.trim()
       };
       localStorage.setItem('user', JSON.stringify(userProfile));

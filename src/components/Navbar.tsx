@@ -71,11 +71,11 @@ export default function Navbar({
   );
 
   return (
-    <nav className="sticky top-0 z-50 glass px-4 py-3 sm:px-8 shadow-sm relative">
+    <nav className="sticky top-0 z-50 bg-orange-500 px-4 py-3 sm:px-8 shadow-sm relative border-b-2 border-orange-600">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 relative">
         <Link to="/" className="hidden md:flex text-xl sm:text-2xl font-bold font-display tracking-tight items-center gap-2">
           <img src="https://i.pinimg.com/1200x/2e/d3/45/2ed34552d98817c21168d0fbeb67bcc0.jpg" alt="Bazar_bds.com Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white" />
-          <span className="text-slate-900">Bazar<span className="text-orange-500">_bds.com</span></span>
+          <span className="text-white">pbazar<span className="text-white">_bd</span></span>
         </Link>
         
         <div className="flex flex-1 md:max-w-lg relative gap-2">
@@ -96,7 +96,7 @@ export default function Navbar({
                 // Delay blur so click handler inside suggestion dropdown can register
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
-              className="w-full pl-11 pr-4 py-3 bg-slate-100 md:bg-white/20 rounded-2xl md:rounded-full border border-transparent md:border-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm font-medium"
+              className="w-full pl-11 pr-4 py-3 bg-slate-100 md:bg-white/10 rounded-2xl md:rounded-full border border-slate-950 focus:bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all text-sm font-medium"
             />
             {showSuggestions && searchValue.trim().length > 0 && products.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-2 z-[200] max-h-64 overflow-y-auto flex flex-col gap-0.5 text-left">
@@ -115,7 +115,7 @@ export default function Navbar({
                         onSearch(name);
                         setShowSuggestions(false);
                       }}
-                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl transition-all text-left group w-full cursor-pointer hover:pl-4"
+                      className="flex items-center gap-3 px-3 py-2.5 pr-[1px] ml-0 mr-0 hover:bg-slate-50 rounded-xl transition-all text-left group w-full cursor-pointer hover:pl-4"
                     >
                       <Search className="w-4 h-4 text-slate-400 group-hover:text-orange-500 transition-colors shrink-0" />
                       <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 transition-colors truncate">

@@ -140,7 +140,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                 <X size={20} />
               </button>
               <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Checkout ({cartItems.length} items)</h2>
-              <p className="text-white font-bold mt-1 opacity-90">Total: ৳{totalPrice.toFixed(0)}</p>
+              <p className="text-white font-bold mt-1 opacity-90">Total: {totalPrice.toFixed(0)} ৳</p>
             </div>
 
             {/* Content Swapper */}
@@ -167,7 +167,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                           <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                             <div className="flex-1 min-w-0 pr-4">
                               <p className="text-sm font-bold text-slate-800 truncate">{item.product.name}</p>
-                              <p className="text-xs font-bold text-slate-900 mt-0.5">৳{price.toFixed(0)}</p>
+                              <p className="text-xs font-bold text-slate-900 mt-0.5">{price.toFixed(0)} ৳</p>
                             </div>
                             
                             <div className="flex items-center gap-3">
@@ -281,7 +281,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                            </div>
                         ))}
                       </div>
-                      <div className="flex justify-between"><span className="text-slate-400">Total:</span> <span className="font-bold text-slate-900">৳{totalPrice.toFixed(0)}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Total:</span> <span className="font-bold text-slate-900">{totalPrice.toFixed(0)} ৳</span></div>
                       <hr className="border-slate-200 border-dashed my-2" />
                       <div className="flex justify-between"><span className="text-slate-400">Deliver to:</span> <span className="font-bold text-slate-900 truncate ml-2">{customerName}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">WhatsApp:</span> <span className="font-bold text-slate-900">{whatsapp}</span></div>

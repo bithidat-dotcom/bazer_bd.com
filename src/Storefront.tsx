@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
@@ -14,6 +14,7 @@ import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem } from './types';
+import { formatWhatsappNumber } from './lib/utils';
 
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,7 +35,17 @@ export default function Storefront() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
-  const categories = ["Electronic", "Fashion", "Bazer", "Cloth", "Festive", "Laptop", "Mobile", "Gadget", "Robotic"];
+  const categories = [
+    { name: 'All', icon: LayoutGrid },
+    { name: 'Food', icon: Utensils },
+    { name: 'Fashion', icon: Shirt },
+    { name: 'Gadget', icon: Cpu },
+    { name: 'Robotic', icon: Bot },
+    { name: 'PC', icon: Laptop },
+    { name: 'Cloth', icon: Scissors },
+    { name: 'Sports', icon: Dumbbell },
+    { name: 'Grocery', icon: ShoppingCart },
+  ];
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
@@ -54,7 +65,21 @@ export default function Storefront() {
 
     try {
       unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
-        const prodData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        const prodData = snapshot.docs.map(doc => {
+          const data = doc.data() || {};
+          return {
+            id: doc.id,
+            name: data.name || '',
+            description: data.description || '',
+            price: Number(data.price || 0),
+            image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+            rating: Number(data.rating || 4.5),
+            discount: Number(data.discount || 0),
+            category: data.category || '',
+            created_at: data.created_at || new Date().toISOString(),
+            images: data.images || []
+          } as Product;
+        });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setProducts(prodData);
         setLoading(false);
@@ -65,7 +90,15 @@ export default function Storefront() {
       });
 
       unsubBanner = onSnapshot(query(collection(db, 'banners')), (snapshot) => {
-        const bannerData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Banner));
+        const bannerData = snapshot.docs.map(doc => {
+          const data = doc.data() || {};
+          return {
+            id: doc.id,
+            title: data.title || '',
+            image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+            created_at: data.created_at || new Date().toISOString()
+          } as Banner;
+        });
         bannerData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setBanners(bannerData);
       }, (error) => {
@@ -140,12 +173,7 @@ export default function Storefront() {
       return sum + price * item.quantity;
     }, 0);
 
-    let formattedWhatsapp = whatsapp.trim().replace(/\s+/g, '');
-    if (formattedWhatsapp.startsWith('01')) {
-      formattedWhatsapp = '+88' + formattedWhatsapp;
-    } else if (formattedWhatsapp.startsWith('8801')) {
-      formattedWhatsapp = '+' + formattedWhatsapp;
-    }
+    const formattedWhatsapp = formatWhatsappNumber(whatsapp);
 
     console.log("Submitting Order Data:", {
       product_id: combinedProductIds,
@@ -251,7 +279,7 @@ export default function Storefront() {
         }}
         onEditProfileClick={() => setIsAuthOpen(true)}
         user={user}
-        categories={categories}
+        categories={categories.map(c => c.name)}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
         discountFilter={discountFilter}
@@ -261,6 +289,34 @@ export default function Storefront() {
       
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24">
         <HeroBanner banners={banners} />
+        
+        {/* AI Finder */}
+        <div className="mb-6 hidden">
+          <div className="relative">
+            <input 
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🤖 AI Finder: What are you looking for today? (e.g., 'fresh food', 'fashion')"
+              className="w-full pl-4 pr-4 py-4 rounded-full border-2 border-orange-200 focus:border-orange-500 outline-none text-sm font-medium shadow-sm transition-all"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-500 font-bold text-xs bg-orange-100 px-3 py-1 rounded-full">AI Active</div>
+          </div>
+        </div>
+
+        {/* Category Buttons */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-4 scrollbar-hidden">
+          {categories.map((cat) => (
+            <button
+              key={cat.name}
+              onClick={() => setCategoryFilter(cat.name === 'All' ? null : cat.name)}
+              className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 shadow-sm transition-all text-slate-800 min-w-[70px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All') ? 'border-orange-500 bg-orange-50' : 'bg-white border-slate-200 hover:border-orange-300'}`}
+            >
+              <cat.icon size={24} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All') ? 'text-orange-600' : 'text-orange-500'} />
+              <span className="text-[10px] font-bold whitespace-nowrap">{cat.name}</span>
+            </button>
+          ))}
+        </div>
         
         <section>
           {loading ? (
