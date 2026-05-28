@@ -245,17 +245,25 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
 
                         {/* Packing Step */}
                         <div className="flex flex-col items-center flex-1">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-300'}`}>
+                          <motion.div 
+                            animate={order.status === 'packing' ? { rotate: [0, -10, 10, -10, 0] } : {}}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-300'}`}
+                          >
                             <Box size={14} className={order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-900' : 'text-slate-300'} />
-                          </div>
+                          </motion.div>
                           <p className={`text-[10px] sm:text-xs font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Packing</p>
                         </div>
 
                         {/* Shipping Step */}
                         <div className="flex flex-col items-center flex-1">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-300'}`}>
+                          <motion.div 
+                            animate={order.status === 'shipping' ? { x: [-2, 2, -2] } : {}}
+                            transition={{ repeat: Infinity, duration: 0.5 }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-300'}`}
+                          >
                             <Truck size={14} className={order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-900' : 'text-slate-300'} />
-                          </div>
+                          </motion.div>
                           <p className={`text-[10px] sm:text-xs font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Shipping</p>
                         </div>
 
