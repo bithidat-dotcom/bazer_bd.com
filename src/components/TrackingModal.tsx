@@ -136,12 +136,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
         status: 'cancelled'
       });
       setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
-      
-      // Notify admin via WhatsApp
-      const adminWhatsapp = '8801716807465';
-      const message = `Hello, I would like to confirm the cancellation of my order.\n\nOrder ID: #${order.id.slice(-6).toUpperCase()}\nProduct: ${order.product_name}\nCustomer: ${order.customer_name || 'N/A'}\nWhatsApp: ${order.whatsapp || 'N/A'}`;
-      const whatsappUrl = `https://wa.me/${adminWhatsapp}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
+      // User requested no WhatsApp opening on cancel
     } catch (err) {
       console.error("Error canceling order:", err);
       alert("Failed to cancel the order. Please try again.");
@@ -180,7 +175,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
           </button>
         </div>
 
-        <div className="p-6 md:p-8 overflow-y-auto flex-1">
+        <div className="p-6 md:p-8 overflow-y-auto flex-1 scroll-smooth">
           {/* Custom Notification Permission Banner */}
           {('Notification' in window) && notificationPermission !== 'granted' && (
             <div className="mb-6 p-4 bg-orange-50 border border-orange-150 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -289,12 +284,13 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                       
                       {/* Status mapping for completion percentages */}
                       <div 
-                        className={`absolute top-5 left-6 h-1 rounded-full z-0 transition-all bg-slate-900`}
+                        className={`absolute top-5 left-6 h-1 rounded-full z-0 transition-all ${order.status === 'completed' ? 'bg-emerald-500' : 'bg-slate-900'}`}
                         style={{ 
                           width: 
-                            order.status === 'completed' || order.status === 'delivery' ? '100%' :
-                            order.status === 'shipping' ? '66%' :
-                            order.status === 'packing' ? '33%' : '0%' 
+                            order.status === 'completed' ? '100%' :
+                            order.status === 'delivery' ? '75%' :
+                            order.status === 'shipping' ? '50%' :
+                            order.status === 'packing' ? '25%' : '0%' 
                         }}
                       />
 
@@ -302,9 +298,9 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                         {/* Pending Step */}
                         <div className="flex flex-col items-center flex-1">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'pending' || order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-300'}`}>
-                            <div className={`w-3 h-3 rounded-full ${order.status === 'pending' || order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'bg-slate-900' : 'bg-transparent'}`} />
+                            <div className={`w-2 h-2 rounded-full ${order.status === 'pending' || order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'bg-slate-900' : 'bg-transparent'}`} />
                           </div>
-                          <p className={`text-[10px] sm:text-xs font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'pending' || order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Pending</p>
+                          <p className={`text-[9px] sm:text-[10px] font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'pending' || order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Pending</p>
                         </div>
 
                         {/* Packing Step */}
@@ -316,7 +312,7 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                           >
                             <Box size={14} className={order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-900' : 'text-slate-300'} />
                           </motion.div>
-                          <p className={`text-[10px] sm:text-xs font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Packing</p>
+                          <p className={`text-[9px] sm:text-[10px] font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'packing' || order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Packing</p>
                         </div>
 
                         {/* Shipping Step */}
@@ -328,15 +324,28 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
                           >
                             <Truck size={14} className={order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-900' : 'text-slate-300'} />
                           </motion.div>
-                          <p className={`text-[10px] sm:text-xs font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Shipping</p>
+                          <p className={`text-[9px] sm:text-[10px] font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'shipping' || order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Shipping</p>
                         </div>
 
-                        {/* Delivered / Completed Step */}
+                        {/* Delivery Step */}
                         <div className="flex flex-col items-center flex-1">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'completed' || order.status === 'delivery' ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-300'}`}>
-                            <CheckCircle2 size={14} className={order.status === 'completed' || order.status === 'delivery' ? 'text-slate-900' : 'text-slate-300'} />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white ${order.status === 'delivery' || order.status === 'completed' ? 'border-slate-900 text-slate-900 shadow-sm' : 'border-slate-200 text-slate-300'}`}>
+                            <motion.div
+                              animate={order.status === 'delivery' ? { scale: [1, 1.1, 1] } : {}}
+                              transition={{ repeat: Infinity, duration: 1.5 }}
+                            >
+                              <Truck size={14} className={order.status === 'delivery' || order.status === 'completed' ? 'text-slate-900' : 'text-slate-300'} />
+                            </motion.div>
                           </div>
-                          <p className={`text-[10px] sm:text-xs font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'completed' || order.status === 'delivery' ? 'text-slate-800' : 'text-slate-400'}`}>Completed</p>
+                          <p className={`text-[9px] sm:text-[10px] font-bold mt-2 uppercase tracking-tight text-center ${order.status === 'delivery' || order.status === 'completed' ? 'text-slate-800' : 'text-slate-400'}`}>Delivery</p>
+                        </div>
+
+                        {/* Completed Step */}
+                        <div className="flex flex-col items-center flex-1">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white transition-colors duration-500 ${order.status === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-md shadow-emerald-100' : 'border-slate-200 text-slate-300'}`}>
+                            <CheckCircle2 size={16} className={order.status === 'completed' ? 'text-emerald-500' : 'text-slate-300'} />
+                          </div>
+                          <p className={`text-[9px] sm:text-[10px] font-black mt-2 uppercase tracking-tight text-center ${order.status === 'completed' ? 'text-emerald-600' : 'text-slate-400'}`}>Completed</p>
                         </div>
                       </div>
                     </div>

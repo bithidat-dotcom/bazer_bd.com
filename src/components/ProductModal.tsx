@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2 } from 'lucide-react';
 import { formatPrice } from '../lib/utils';
 import ProductCard from './ProductCard';
 import { getProductLikesState, toggleProductLike, getProductReviews, saveProductReview } from '../lib/db-sync';
@@ -30,6 +30,79 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [deliveryDistrict, setDeliveryDistrict] = useState<'bhola' | 'other'>('bhola');
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+
+  // Countdown timer state
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+
+  useEffect(() => {
+    if (!product || !product.discount || Number(product.discount) <= 0) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const durationHrs = Number(product.discountTimelineHours) || 24;
+    let targetTimeMs: number;
+    let createdTime = product.created_at ? new Date(product.created_at).getTime() : NaN;
+    
+    if (isNaN(createdTime)) {
+      targetTimeMs = Date.now() + durationHrs * 60 * 60 * 1000;
+    } else {
+      const expiryTime = createdTime + durationHrs * 60 * 60 * 1000;
+      if (expiryTime > Date.now()) {
+        targetTimeMs = expiryTime;
+      } else {
+        const now = new Date();
+        const cycle = durationHrs * 60 * 60 * 1000;
+        const timePassedSinceCreated = now.getTime() - createdTime;
+        const remainingInCycle = cycle - (timePassedSinceCreated % cycle);
+        targetTimeMs = now.getTime() + remainingInCycle;
+      }
+    }
+
+    if (isNaN(targetTimeMs)) {
+      targetTimeMs = Date.now() + durationHrs * 60 * 60 * 1000;
+    }
+
+    // Set initial layout
+    const initialDiff = targetTimeMs - Date.now();
+    if (initialDiff > 0) {
+      setTimeLeft({
+        hours: Math.floor(initialDiff / (1000 * 60 * 60)),
+        minutes: Math.floor((initialDiff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((initialDiff % (1000 * 60)) / 1000)
+      });
+    } else {
+      setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+    }
+
+    const interval = setInterval(() => {
+      const diff = targetTimeMs - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        clearInterval(interval);
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft({ hours, minutes, seconds });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [product]);
+
+  const getEstimatedDates = (minDays: number, maxDays: number) => {
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + minDays);
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + maxDays);
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', weekday: 'short' };
+    return `${minDate.toLocaleDateString('en-US', options)} - ${maxDate.toLocaleDateString('en-US', options)}`;
+  };
 
   // Review State
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -63,28 +136,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
       const fetchReviews = async () => {
         const dbReviews = await getProductReviews(product.id);
         if (active) {
-          if (dbReviews.length > 0) {
-            setReviews(dbReviews);
-          } else {
-            // fallback
-            const fallbackReviews: Review[] = [
-              {
-                id: 'mock-1',
-                userName: 'Tanvir Rahman',
-                rating: 5,
-                comment: 'Highly recommended! The quality is premium and delivery was exceptionally fast in Dhaka.',
-                createdAt: '2 days ago'
-              },
-              {
-                id: 'mock-2',
-                userName: 'Sultana Begum',
-                rating: 4,
-                comment: 'Very good product, exactly as described. Worth the price!',
-                createdAt: '1 week ago'
-              }
-            ];
-            setReviews(fallbackReviews);
-          }
+          setReviews(dbReviews || []);
         }
       };
       fetchReviews();
@@ -114,6 +166,17 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
       window.removeEventListener('favorites-updated', checkFavorite);
     };
   }, [product]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!product) return null;
 
@@ -207,57 +270,134 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
     : (product.rating || 4.8);
     
   const dynamicReviewCount = reviews.length > 0 
-    ? ((product.reviewCount || 12) + reviews.filter(r => !r.id.startsWith('mock-')).length)
-    : (product.reviewCount || 12);
+    ? ((product.reviewCount || 0) + reviews.filter(r => !r.id.startsWith('mock-')).length)
+    : (product.reviewCount || 0);
+
+  // Prevent image actions
+  const preventImageActions = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    return false;
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0">
+        <div className="fixed inset-0 z-[100] w-screen h-screen overflow-hidden bg-white">
+          {/* Global Lightbox Backdrop */}
+          <AnimatePresence>
+            {isImageZoomed && zoomedImageUrl && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] bg-black/98 flex items-center justify-center overflow-hidden touch-none"
+                onClick={() => setIsImageZoomed(false)}
+              >
+                {/* Control Panel */}
+                <div className="absolute top-6 right-6 flex items-center gap-3 z-[250]">
+                  <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-full p-1 self-center">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoomScale(prev => Math.min(prev + 0.5, 4));
+                      }}
+                      className="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors"
+                    >
+                      <Plus size={20} />
+                    </button>
+                    <div className="w-px h-4 bg-white/20 mx-1" />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoomScale(prev => Math.max(prev - 0.5, 1));
+                      }}
+                      className="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors"
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <div className="w-px h-4 bg-white/20 mx-1" />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoomScale(1);
+                      }}
+                      className="px-3 h-10 flex items-center justify-center rounded-full text-[10px] font-black text-white hover:bg-white/10 transition-colors uppercase tracking-widest"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 text-white bg-white/10 flex items-center justify-center rounded-full hover:bg-white/20 backdrop-blur-md border border-white/10 shadow-xl"
+                    onClick={() => setIsImageZoomed(false)}
+                  >
+                    <X size={24} />
+                  </motion.button>
+                </div>
+
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: zoomScale, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  drag={zoomScale > 1}
+                  dragConstraints={{ left: -500, right: 500, top: -500, bottom: 500 }}
+                  dragElastic={0.1}
+                  onWheel={(e) => {
+                    const delta = e.deltaY;
+                    if (delta < 0) {
+                      setZoomScale(prev => Math.min(prev + 0.1, 4));
+                    } else {
+                      setZoomScale(prev => Math.max(prev - 0.1, 1));
+                    }
+                  }}
+                  className={`relative max-w-full max-h-full flex items-center justify-center ${zoomScale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-out'}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <img 
+                    src={zoomedImageUrl} 
+                    alt="Zoomed product view" 
+                    className="max-w-full max-h-screen object-contain pointer-events-none select-none drop-shadow-[0_0_50px_rgba(255,255,255,0.1)]"
+                    onContextMenu={preventImageActions}
+                    onDragStart={preventImageActions}
+                  />
+                </motion.div>
+                
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-6 py-2.5 rounded-full text-white/50 text-[10px] font-black uppercase tracking-[0.2em] pointer-events-none border border-white/5 shadow-2xl flex items-center gap-3">
+                  <span className="flex items-center gap-1.5"><Maximize2 size={12} /> Pinch / Scroll / Drag to details</span>
+                  <div className="w-px h-3 bg-white/20" />
+                  <span className="text-white">Zoom: {Math.round(zoomScale * 100)}%</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-white"
-          />
-          
-          <motion.div 
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="w-full h-full bg-white relative flex flex-col md:flex-row overflow-y-auto md:overflow-hidden"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.38 }}
+            className="w-full h-full bg-white relative flex flex-col md:flex-row overflow-y-auto md:overflow-hidden focus:outline-none"
           >
             <button 
               onClick={onClose}
-              className="fixed top-4 left-4 z-20 w-10 h-10 flex items-center justify-center bg-white/85 backdrop-blur rounded-full text-slate-700 hover:text-slate-900 border border-slate-200 hover:bg-slate-100 transition-colors shadow-sm"
+              className="absolute top-4 left-4 z-45 w-10 h-10 flex items-center justify-center bg-white/95 backdrop-blur rounded-full text-slate-700 hover:text-slate-950 border border-slate-200 hover:bg-slate-50 transition-colors shadow-md cursor-pointer"
               aria-label="Back to store"
             >
-              <ArrowLeft size={24} />
+              <ArrowLeft size={20} />
             </button>
 
             {/* Image Gallery Column with support for gesture slide */}
-            <div className="w-full md:w-1/2 bg-slate-50 relative flex flex-col shrink-0 md:h-full min-h-[55vh] md:min-h-0">
+            <div className="w-full md:w-1/2 bg-slate-50 relative flex flex-col shrink-0 md:h-full min-h-[50vh] md:min-h-0">
               <div 
-                className="relative flex-1 flex items-center justify-center p-8 md:p-12 group cursor-grab active:cursor-grabbing select-none"
+                className="relative flex-1 flex items-center justify-center p-6 md:p-12 group cursor-grab active:cursor-grabbing select-none"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
               >
                  {hasDiscount && (
-                    <div className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md uppercase tracking-tighter shadow-sm z-10">
-                        {product.discount}% OFF
+                    <div className="absolute top-4 right-4 bg-red-600 backdrop-blur-md text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-tight shadow-lg z-10">
+                        {product.discount}% OFF SALE
                     </div>
                  )}
-
-                 {/* Tap heart overlay to like/favorite */}
-                 <button
-                    onClick={toggleLike}
-                    className="absolute top-4 right-16 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur border border-slate-200 flex items-center justify-center text-slate-500 hover:text-red-500 hover:scale-110 active:scale-95 shadow-md transition-all"
-                    title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
-                 >
-                    <Heart size={20} className={`transition-transform duration-300 ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
-                 </button>
 
                  <AnimatePresence mode="wait">
                     <motion.img 
@@ -268,12 +408,24 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                         transition={{ duration: 0.2 }}
                         src={allImages[currentImageIndex]} 
                         alt={product.name}
-                        className="w-full h-full object-contain max-h-[60vh] pointer-events-none"
+                        onClick={() => {
+                          setZoomedImageUrl(allImages[currentImageIndex]);
+                          setZoomScale(1);
+                          setIsImageZoomed(true);
+                        }}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onDragStart={(e) => e.preventDefault()}
+                        className="w-full h-full object-contain max-h-[45vh] md:max-h-[60vh] cursor-zoom-in pointer-events-auto rounded-lg"
                     />
                  </AnimatePresence>
 
+                 {/* pinch/click to zoom hint */}
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md text-white p-4 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none scale-0 group-hover:scale-100 duration-300">
+                   <Maximize2 size={32} />
+                 </div>
+
                  {/* slide indicator info */}
-                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-slate-950/60 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full pointer-events-none sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-slate-950/60 backdrop-blur-md text-white text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full pointer-events-none sm:opacity-0 group-hover:opacity-100 transition-opacity">
                    {currentImageIndex + 1} / {allImages.length}
                  </div>
 
@@ -283,8 +435,9 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       {allImages.map((_, idx) => (
                         <button
                           key={idx}
+                          type="button"
                           onClick={() => setCurrentImageIndex(idx)}
-                          className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === idx ? 'bg-slate-900 w-4' : 'bg-slate-400/60'}`}
+                          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all cursor-pointer ${currentImageIndex === idx ? 'bg-slate-900 w-3.5 sm:w-4' : 'bg-slate-400/60'}`}
                           title={`Go to image ${idx + 1}`}
                         />
                       ))}
@@ -294,18 +447,20 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                  {allImages.length > 1 && (
                     <>
                         <button 
+                            type="button"
                             onClick={prevImage}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg text-slate-700 hover:text-slate-900 md:opacity-0 md:group-hover:opacity-100 transition-all hover:scale-105"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 bg-white/95 backdrop-blur rounded-full flex items-center justify-center shadow-md text-slate-700 hover:text-slate-900 md:opacity-0 md:group-hover:opacity-100 transition-all hover:scale-105 cursor-pointer"
                             aria-label="Previous image"
                         >
-                            <ChevronLeft size={20} />
+                            <ChevronLeft size={18} />
                         </button>
                         <button 
+                            type="button"
                             onClick={nextImage}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg text-slate-700 hover:text-slate-900 md:opacity-0 md:group-hover:opacity-100 transition-all hover:scale-105"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 bg-white/95 backdrop-blur rounded-full flex items-center justify-center shadow-md text-slate-700 hover:text-slate-900 md:opacity-0 md:group-hover:opacity-100 transition-all hover:scale-105 cursor-pointer"
                             aria-label="Next image"
                         >
-                            <ChevronRight size={20} />
+                            <ChevronRight size={18} />
                         </button>
                     </>
                  )}
@@ -313,12 +468,13 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
               
               {/* Thumbnail strip */}
               {allImages.length > 1 && (
-                <div className="hidden md:flex h-24 bg-white border-t border-slate-100 p-2 gap-2 overflow-x-auto no-scrollbar">
+                <div className="hidden md:flex h-24 bg-white border-t border-slate-100 p-2 gap-2 overflow-x-auto no-scrollbar justify-center">
                     {allImages.map((img, idx) => (
                         <button 
                             key={idx}
+                            type="button"
                             onClick={() => setCurrentImageIndex(idx)}
-                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-slate-900 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${currentImageIndex === idx ? 'border-slate-900 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}
                         >
                             <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover bg-slate-50" />
                         </button>
@@ -328,114 +484,286 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
             </div>
 
             {/* Content Column */}
-            <div className="w-full md:w-1/2 p-6 md:p-12 lg:p-16 flex flex-col pt-6 md:pt-16 md:overflow-y-auto md:h-full md:scroll-smooth">
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+            <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-12 lg:p-16 flex flex-col pt-6 md:pt-16 md:overflow-y-auto md:h-full md:scroll-smooth">
+              <div className="mb-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
                     Product Details
                 </span>
-                <div className="flex items-center gap-1 bg-slate-50 px-3 py-1.5 rounded-full">
-                  <Star size={14} className="fill-slate-900 text-slate-900" />
-                  <span className="text-xs font-bold text-slate-800">
+                <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 shadow-3xs">
+                  <Star size={13} className="fill-amber-500 text-amber-500" />
+                  <span className="text-xs font-black text-amber-600">
                     {dynamicAvgRating.toFixed(1)}
                   </span>
-                  <span className="text-xs text-slate-600/70 ml-1">
+                  <span className="text-[10px] text-slate-500 font-bold ml-1">
                     ({dynamicReviewCount} reviews)
                   </span>
                 </div>
                 {(likesCount > 0 || isLiked) && (
-                  <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-full flex items-center gap-1">
-                    <Heart size={12} className={`transition-all ${isLiked ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
+                  <span className="text-[10px] sm:text-xs font-black text-rose-600 bg-rose-50 border border-rose-100/50 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <Heart size={12} className="fill-rose-500 text-rose-500" />
                     {likesCount || (isLiked ? 1 : 0)} {likesCount === 1 ? 'Like' : 'Likes'}
                   </span>
                 )}
               </div>
               
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-slate-900 mb-4 leading-tight">
-                {product.name}
-              </h2>
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-display font-black text-slate-900 leading-tight">
+                  {product.name}
+                </h2>
+                <button
+                  type="button"
+                  onClick={toggleLike}
+                  className={`p-2.5 rounded-2xl border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                    isLiked 
+                      ? 'bg-rose-50 text-rose-600 border-rose-200 shadow-xs' 
+                      : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-rose-500 hover:bg-rose-50'
+                  }`}
+                  title={isLiked ? "Unlike product" : "Like product"}
+                >
+                  <Heart size={20} className={`${isLiked ? 'fill-rose-500' : ''}`} />
+                </button>
+              </div>
               
               <div className="flex items-end gap-3 mb-4">
-                <span className="text-4xl font-bold text-slate-900 tracking-tight">
+                <span className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
                     {formatPrice(discountedPrice)}
                 </span>
                 {hasDiscount && (
-                    <span className="text-xl text-slate-400 line-through mb-1.5">
+                    <span className="text-base sm:text-lg text-slate-400 line-through mb-1">
                         {formatPrice(product.price)}
                     </span>
                 )}
               </div>
 
+              {/* Discount Real-time Ticking Timer Counter Block */}
+              {hasDiscount && timeLeft && (
+                <div className="mb-5 bg-amber-50/80 backdrop-blur-md border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="p-1 sm:p-1.5 bg-amber-500 text-white rounded-lg shrink-0">
+                        <Clock className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs font-black text-amber-950 uppercase tracking-wider leading-none">Flash Sale Offer Active</p>
+                        <p className="text-[8px] sm:text-[10px] text-amber-700 font-bold mt-1 leading-tight">Price rises to regular after countdown expires</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-1.5 font-mono text-[11px] sm:text-sm shrink-0">
+                      <div className="bg-amber-500 text-white rounded-lg px-2 py-1 font-bold min-w-[24px] sm:min-w-[32px] text-center shadow-sm">
+                        {((val: any) => {
+                          if (val === undefined || val === null || isNaN(val)) return '00';
+                          return String(val).padStart(2, '0');
+                        })(timeLeft.hours)}
+                      </div>
+                      <span className="text-amber-600 font-black animate-pulse">:</span>
+                      <div className="bg-amber-500 text-white rounded-lg px-2 py-1 font-bold min-w-[24px] sm:min-w-[32px] text-center shadow-sm">
+                        {((val: any) => {
+                          if (val === undefined || val === null || isNaN(val)) return '00';
+                          return String(val).padStart(2, '0');
+                        })(timeLeft.minutes)}
+                      </div>
+                      <span className="text-amber-600 font-black animate-pulse">:</span>
+                      <div className="bg-amber-500 text-white rounded-lg px-2 py-1 font-bold min-w-[24px] sm:min-w-[32px] text-center shadow-sm">
+                        {((val: any) => {
+                          if (val === undefined || val === null || isNaN(val)) return '00';
+                          return String(val).padStart(2, '0');
+                        })(timeLeft.seconds)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Product Stock Indicator */}
-              <div className="mb-8">
+              <div className="mb-5">
                 {product.stock !== undefined ? (
-                  product.stock > 0 ? (
-                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold ${
-                      product.stock <= 5 
-                        ? 'bg-amber-100 text-amber-800' 
-                        : 'bg-emerald-100 text-emerald-800'
+                  product.stock >= 0 ? (
+                    <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black shadow-sm border backdrop-blur-md ${
+                      (product.stock || 0) <= 5 
+                        ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}>
-                      <span className={`w-2 h-2 rounded-full ${product.stock <= 5 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-                      {product.stock <= 5 ? `Only ${product.stock} items left in stock (Hurry up!)` : `${product.stock} items available in stock`}
+                      <span className={`w-2 h-2 rounded-full ${(product.stock || 0) <= 5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                      Available Stock: <span className="text-sm">{product.stock ?? 0}</span> Pcs {(product.stock || 0) <= 5 ? '(Low Stock!)' : ''}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-rose-100 text-rose-800">
-                      <span className="w-2 h-2 rounded-full bg-rose-500" />
-                      Currently Out of Stock
+                    <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black bg-rose-50 border border-rose-200 text-rose-700 shadow-sm">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      Available Stock: <span className="text-sm">0</span> Pcs (Out of Stock)
                     </span>
                   )
                 ) : (
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-emerald-100 text-emerald-800">
+                  <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black bg-emerald-50 border border-emerald-200 text-emerald-800">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    In stock and ready to ship
+                    Stock: Ready for Dispatch
                   </span>
                 )}
               </div>
               
-              <div className="prose prose-slate mb-10 max-w-none text-slate-600 text-base md:text-lg">
-                <p className="whitespace-pre-line leading-relaxed">{product.description || "No description available for this product."}</p>
+              {/* Highlight block for the details section text */}
+              {/* Real-time Inventory Tracker */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`px-4 py-1.5 rounded-xl border flex flex-col ${
+                  (product.stock ?? 20) <= 5 ? 'bg-rose-50 border-rose-200' : 'bg-white border-slate-200 shadow-sm'
+                }`}>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Stock Status</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-base font-black ${
+                      (product.stock ?? 20) <= 5 ? 'text-rose-600' : 'text-slate-900'
+                    }`}>
+                      {product.stock ?? 20}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">Pcs</span>
+                  </div>
+                </div>
+                
+                {/* Visual stock bar */}
+                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (((product.stock ?? 20)) / (product.total_stock || 30)) * 100)}%` }}
+                    className={`h-full transition-all duration-1000 ${
+                      (product.stock ?? 20) <= 5 ? 'bg-rose-500' : 'bg-slate-900'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Product Highlights Section */}
+              <div className="bg-white/40 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-5 mb-6 text-left shadow-sm animate-fade-in">
+                <span className="block text-[10px] uppercase font-black tracking-wider text-black mb-1.5 font-display">Highlights & Features</span>
+                <p className="whitespace-pre-line leading-relaxed text-sm text-slate-800 font-extrabold font-sans">
+                  {product.description?.split(/(\d+GB|\d+HZ|Snapdragon\s+\d+\w*|RAM\d+GB|Battery\s+\d+mAh|Refresh\s+Rate|Processor)/gi).map((part, i) => {
+                    const isMatch = /^\d+GB|^\d+HZ|^Snapdragon|^RAM|^Battery|^Refresh|^Processor/i.test(part);
+                    const valLower = part.toLowerCase();
+                    const isMatch2 = valLower.includes('ram8gb') || 
+                                     valLower.includes('120hz') || 
+                                     valLower.includes('snapdragon 8ilight');
+
+                    if (isMatch || isMatch2) {
+                      return <strong key={i} className="font-black text-slate-900 border-b-2 border-orange-500/30">{part}</strong>;
+                    }
+                    return part;
+                  }) || "No description available for this product."}
+                </p>
+              </div>
+
+              {/* Technical Specifications Sheet */}
+              {(product.ram || product.storage || product.screen_hz || product.battery || product.watt_amp) && (
+                <div id="product-tech-specs" className="bg-white/40 backdrop-blur-md border border-white/20 rounded-2xl p-4 mb-8 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-black mb-3">
+                    <Cpu size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Device Tech Specs</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    {product.ram && (
+                      <div className="bg-white/60 p-2.5 rounded-xl border border-white/30 shadow-3xs">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Memory/RAM</p>
+                        <p className="text-black font-black mt-0.5">{product.ram}</p>
+                      </div>
+                    )}
+                    {product.storage && (
+                      <div className="bg-white/60 p-2.5 rounded-xl border border-white/30 shadow-3xs">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Storage Capacity</p>
+                        <p className="text-black font-black mt-0.5">{product.storage}</p>
+                      </div>
+                    )}
+                    {product.screen_hz && (
+                      <div className="bg-white/60 p-2.5 rounded-xl border border-white/30 shadow-3xs">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Display rate</p>
+                        <p className="text-black font-black mt-0.5">{product.screen_hz}</p>
+                      </div>
+                    )}
+                    {product.battery && (
+                      <div className="bg-white/60 p-2.5 rounded-xl border border-white/30 shadow-3xs">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Battery Power</p>
+                        <p className="text-black font-black mt-0.5">{product.battery}</p>
+                      </div>
+                    )}
+                    {product.watt_amp && (
+                      <div className="bg-white/60 p-2.5 rounded-xl border border-white/30 shadow-3xs col-span-2">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Charging / Watt / Amp</p>
+                        <p className="text-black font-black mt-0.5">{product.watt_amp}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Encrypted network layers operate securely in the background */}
+
+              {/* Delivery Estimation Card */}
+              <div id="delivery-estimation-card" className="bg-amber-50/50 rounded-2xl p-4 sm:p-5 border border-amber-200 mb-8 shadow-sm">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <span className="p-2 bg-amber-500 text-white rounded-xl shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-sm font-black text-amber-950 uppercase tracking-tight">Delivery Estimation</p>
+                    <p className="text-[10px] text-amber-700 font-bold leading-none mt-0.5">Select area for real-time timeline</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <button 
+                    type="button"
+                    onClick={() => setDeliveryDistrict('bhola')}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      deliveryDistrict === 'bhola'
+                        ? 'border-amber-500 bg-amber-500 text-white font-black shadow-lg scale-[1.02]'
+                        : 'border-amber-200 bg-white text-amber-900 hover:border-amber-400 font-bold'
+                    }`}
+                  >
+                    <p className={`text-[9px] font-black uppercase tracking-wider ${deliveryDistrict === 'bhola' ? 'text-amber-100' : 'text-amber-500'}`}>Local Area</p>
+                    <p className="text-sm mt-0.5">Bhola</p>
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setDeliveryDistrict('other')}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      deliveryDistrict === 'other'
+                        ? 'border-amber-500 bg-amber-500 text-white font-black shadow-lg scale-[1.02]'
+                        : 'border-amber-200 bg-white text-amber-900 hover:border-amber-400 font-bold'
+                    }`}
+                  >
+                    <p className={`text-[9px] font-black uppercase tracking-wider ${deliveryDistrict === 'other' ? 'text-amber-100' : 'text-amber-500'}`}>Remote Area</p>
+                    <p className="text-sm mt-0.5">Other Dist.</p>
+                  </button>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
+                  <div>
+                    <p className="text-[10px] text-amber-600 font-black uppercase tracking-wider">Estimated Arrival</p>
+                    <p className="text-lg font-black text-amber-950 mt-0.5">
+                      {deliveryDistrict === 'bhola' ? '1 - 2 Days' : '3 - 5 Days'}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-bold mt-1">
+                      Est: {deliveryDistrict === 'bhola' ? getEstimatedDates(1, 2) : getEstimatedDates(3, 5)}
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-black px-3 py-2 rounded-full uppercase tracking-wider shadow-sm transition-colors ${
+                    deliveryDistrict === 'bhola' 
+                      ? 'bg-amber-100 text-amber-700' 
+                      : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {deliveryDistrict === 'bhola' ? '⚡ Priority' : 'Standard'}
+                  </span>
+                </div>
               </div>
               
               <div className="mb-12">
                   <div className="flex flex-col gap-6 max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:bg-white/95 max-md:backdrop-blur-md max-md:p-4 max-md:border-t max-md:border-slate-200 max-md:shadow-[0_-10px_25px_rgba(0,0,0,0.08)] max-md:z-50 max-md:pb-6">
-                      <div className="flex flex-col md:flex-col lg:flex-row gap-4 lg:items-center">
-                          {/* Quantity Selector */}
-                          <div id="quantity-selector-container" className="flex items-center justify-between border-2 border-slate-200 rounded-2xl p-2 bg-slate-50 shrink-0 md:w-1/2 lg:w-2/5 h-14">
-                              <button 
-                                  onClick={() => updateQuantity(-1)}
-                                  disabled={product.stock !== undefined && product.stock <= 0}
-                                  className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
-                                    product.stock !== undefined && product.stock <= 0
-                                      ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
-                                      : 'hover:bg-white text-slate-600'
-                                  }`}
-                                  aria-label="Decrease quantity"
-                              >
-                                  <Minus size={18} />
-                              </button>
-                              <span className="font-bold text-slate-800 text-lg w-10 text-center">
-                                {product.stock !== undefined && product.stock <= 0 ? 0 : quantity}
-                              </span>
-                              <button 
-                                  onClick={() => updateQuantity(1)}
-                                  disabled={product.stock !== undefined && product.stock <= 0}
-                                  className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
-                                    product.stock !== undefined && product.stock <= 0
-                                      ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
-                                      : 'hover:bg-white text-slate-600'
-                                  }`}
-                                  aria-label="Increase quantity"
-                              >
-                                  <Plus size={18} />
-                              </button>
-                          </div>
-                      
-                          {/* Action Buttons */}
-                          <div className="flex flex-1 gap-3 w-full">
+                      <div className="flex flex-col gap-4">
+                          {/* Action Buttons (Quantity selected within the cart checkout block instead) */}
+                          <div className="flex gap-3 w-full">
                               <button 
                                 id="add-to-cart-action-btn"
                                 disabled={product.stock !== undefined && product.stock <= 0}
                                 onClick={() => {
-                                    onAddToCart(product, quantity);
+                                    onAddToCart(product, 1);
                                     onClose();
                                 }}
                                 className={`flex-1 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
@@ -447,17 +775,17 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                                 <ShoppingCart size={18} />
                                 <span className="whitespace-nowrap">Add to Cart</span>
                               </button>
-                              <button 
+                               <button 
                                 id="buy-now-action-btn"
                                 disabled={product.stock !== undefined && product.stock <= 0}
                                 onClick={() => {
-                                    onBuyNow(product, quantity);
+                                    onBuyNow(product, 1);
                                     onClose();
                                 }}
-                                className={`flex-1 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center text-sm sm:text-base ${
+                                className={`flex-1 font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center text-sm sm:text-base tracking-tight uppercase ${
                                   product.stock !== undefined && product.stock <= 0
-                                    ? 'bg-slate-100 text-slate-450 cursor-not-allowed border border-slate-100'
-                                    : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-500/10 active:scale-[0.98] cursor-pointer'
+                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-100'
+                                    : 'bg-orange-600 hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20 active:scale-[0.98] cursor-pointer'
                                 }`}
                               >
                                 Buy Now

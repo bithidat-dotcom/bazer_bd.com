@@ -14,9 +14,41 @@
         "discount": { "type": "number" },
         "rating": { "type": "number" },
         "reviewCount": { "type": "number" },
-        "created_at": { "type": "string" }
+        "created_at": { "type": "string" },
+        "stock": { "type": "number" },
+        "total_stock": { "type": "number" }
       },
       "required": ["id", "name", "price", "image", "created_at"]
+    },
+    "RegisteredUser": {
+      "title": "RegisteredUser",
+      "description": "Information about a registered customer",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "password": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "location": { "type": "string" },
+        "profileImage": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["uid", "username", "email", "created_at"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Product review by customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "product_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "product_id", "user_name", "rating", "comment", "created_at"]
     },
     "Banner": {
       "title": "Banner",
@@ -40,6 +72,7 @@
         "product_name": { "type": "string" },
         "price": { "type": "number" },
         "customer_name": { "type": "string" },
+        "customer_uid": { "type": "string" },
         "whatsapp": { "type": "string" },
         "location": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "confirmed"] },
@@ -93,6 +126,14 @@
     "/chats/{chatId}/messages/{messageId}": {
       "schema": { "$ref": "#/entities/Message" },
       "description": "Messages within a chat session."
+    },
+    "/register_people/{userId}": {
+      "schema": { "$ref": "#/entities/RegisteredUser" },
+      "description": "Publicly readable registrations (for admin), writable by user."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Publicly readable reviews, writable by anyone."
     }
   }
 }

@@ -10,6 +10,18 @@ export interface Product {
   reviewCount?: number;
   created_at: string;
   stock?: number;
+  total_stock?: number;
+  category?: string;
+  
+  // Gadgets Specs
+  ram?: string;
+  storage?: string;
+  screen_hz?: string;
+  battery?: string;
+  watt_amp?: string;
+  
+  // Discount Timer Option
+  discountTimelineHours?: number;
 }
 
 export interface CartItem {

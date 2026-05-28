@@ -128,7 +128,7 @@ export async function getProductReviews(productId: string): Promise<any[]> {
       userName: r.user_name,
       rating: r.rating,
       comment: r.comment,
-      createdAt: new Date(r.created_at).toLocaleDateString() || 'Recently'
+      createdAt: new Date(r.created_at).toLocaleDateString()
     }));
 
     return [...formattedSrv, ...localFiltered];
@@ -149,7 +149,7 @@ export async function saveProductReview(productId: string, userName: string, rat
     userName,
     rating,
     comment,
-    createdAt: 'Just now'
+    createdAt: new Date().toLocaleDateString()
   };
 
   // Add to local storage for instant render before server gets it or as a fallback
@@ -174,7 +174,7 @@ export async function saveProductReview(productId: string, userName: string, rat
         createdAt: new Date().toISOString() // For admin app compatibility
     });
 
-    return { id: docRef.id, userName, rating, comment, createdAt: 'Just now' };
+    return { id: docRef.id, userName, rating, comment, createdAt: new Date().toLocaleDateString() };
   } catch (err) {
     console.error('Failed to insert review in server database:', err);
     return localNewReview;

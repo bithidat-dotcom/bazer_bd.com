@@ -12,7 +12,7 @@ import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
 import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
-import { collection, onSnapshot, query, addDoc, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
 import { Banner, Product, CartItem } from './types';
 import { formatWhatsappNumber } from './lib/utils';
 
@@ -76,6 +76,8 @@ export default function Storefront() {
             rating: Number(data.rating || 4.5),
             discount: Number(data.discount || 0),
             category: data.category || '',
+            stock: data.stock !== undefined ? Number(data.stock) : 20,
+            total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
             created_at: data.created_at || new Date().toISOString(),
             images: data.images || []
           } as Product;
@@ -288,6 +290,7 @@ export default function Storefront() {
         price: totalPrice,
         customer_name,
         customer_username: user ? user.username : null,
+        customer_uid: user ? user.uid : null,
         customer_image: user ? user.profileImage : null,
         whatsapp: formattedWhatsapp,
         location,
@@ -308,12 +311,10 @@ export default function Storefront() {
         if (item.product.id) {
           try {
             const productRef = doc(db, "products", item.product.id);
-            const currentStock = item.product.stock !== undefined ? item.product.stock : 20;
-            const newStock = Math.max(0, currentStock - item.quantity);
             await updateDoc(productRef, {
-              stock: newStock
+              stock: increment(-item.quantity)
             });
-            console.log(`Updated stock for ${item.product.name} to ${newStock}`);
+            console.log(`Decremented stock for ${item.product.name} by ${item.quantity}`);
           } catch (stockErr) {
             console.error("Failed to update product stock", stockErr);
           }
@@ -361,6 +362,12 @@ export default function Storefront() {
       }
       return [...prevCart, { product, quantity }];
     });
+    
+    if (!user) {
+      setAlertMessage("Please create a profile or log in with email and password first!");
+      setIsAuthOpen(true);
+      return;
+    }
     setIsModalOpen(true);
   };
 
@@ -381,6 +388,11 @@ export default function Storefront() {
   };
 
   const handleOpenCart = () => {
+    if (!user) {
+      setAlertMessage("Please create a profile or log in with email and password first!");
+      setIsAuthOpen(true);
+      return;
+    }
     setIsModalOpen(true);
   };
 
@@ -394,8 +406,16 @@ export default function Storefront() {
         onCartClick={handleOpenCart} 
         onTrackOrderClick={() => setIsTrackingOpen(true)}
         onLoginClick={() => setIsAuthOpen(true)}
-        onLogoutClick={() => {
+        onLogoutClick={async () => {
+          try {
+            const { getAuth, signOut } = await import('firebase/auth');
+            const auth = getAuth();
+            await signOut(auth);
+          } catch (e) {
+            console.warn('Firebase sign out error:', e);
+          }
           localStorage.removeItem('user');
+          localStorage.removeItem('customer_whatsapp');
           setUser(null);
         }}
         onEditProfileClick={() => setIsAuthOpen(true)}
@@ -408,7 +428,7 @@ export default function Storefront() {
         products={products}
       />
       
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24">
+      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
         <HeroBanner banners={banners} />
         
         {/* AI Finder */}
@@ -426,7 +446,7 @@ export default function Storefront() {
         </div>
 
         {/* Category Buttons */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-4 scrollbar-hidden">
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-2 mb-8 overflow-x-auto pb-4 scrollbar-hidden">
           {categories.map((cat) => (
             <button
               key={cat.name}
@@ -493,7 +513,7 @@ export default function Storefront() {
           <div className="flex flex-wrap gap-8 items-center justify-between border-t border-slate-200 pt-4 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 bg-slate-900 rounded-full shadow-lg shadow-black/50 blink"></div> 
-              Orders Live (32 New)
+              Orders Live ({products.reduce((acc, p) => acc + (p.stock || 0), 0) > 0 ? products.length * 2 + 5 : products.length} Active)
             </span>
             <div className="flex gap-6 items-center">
               <a href="#" className="hover:text-black transition-colors">Instagram: @quats.co</a>

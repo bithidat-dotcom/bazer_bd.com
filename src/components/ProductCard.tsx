@@ -1,4 +1,4 @@
-import { ShoppingCart, Star, Heart } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { formatPrice } from '../lib/utils';
@@ -97,11 +97,19 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
           <img 
             src={product.image} 
             alt={product.name}
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           {hasDiscount && (
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-sm z-10">
-              {product.discount}% OFF
+            <div className="flex gap-1 absolute top-2 left-2 z-10">
+              <div className="bg-red-600 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded shadow-md uppercase tracking-tight">
+                -{product.discount}%
+              </div>
+              <div className="bg-white/90 backdrop-blur-md border border-slate-150 text-black text-[7px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                <Clock size={8} />
+                <span>SALE</span>
+              </div>
             </div>
           )}
         </div>
@@ -111,8 +119,8 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
             {product.name}
           </h3>
           <div className="flex items-center gap-1 mb-1">
-            <Star size={10} className="fill-slate-900 text-slate-900" />
-            <span className="text-[10px] font-bold text-slate-700">
+            <Star size={10} className="fill-amber-500 text-amber-500" />
+            <span className="text-[10px] font-black text-amber-600">
               {avgRating.toFixed(1)}
             </span>
             <span className="text-[9px] text-slate-400">
@@ -138,19 +146,25 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
             </div>
             
             {/* Stock indicator on card */}
-            <div className="text-[9px] font-bold">
+            <div className="text-[9px] font-black">
               {product.stock !== undefined ? (
-                product.stock > 0 ? (
-                  product.stock <= 5 ? (
-                    <span className="text-amber-550 bg-amber-50 px-1.5 py-0.5 rounded">Only {product.stock} left</span>
-                  ) : (
-                    <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">{product.stock} in stock</span>
-                  )
+                product.stock >= 0 ? (
+                  <span className={`px-2 py-1 rounded-lg border backdrop-blur-md shadow-3xs ${
+                    product.stock <= 5 
+                      ? 'bg-rose-50/50 text-rose-700 border-rose-200' 
+                      : 'bg-white/40 text-slate-900 border-white/20'
+                  }`}>
+                    Stock: {product.stock} Pcs
+                  </span>
                 ) : (
-                  <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Out of Stock</span>
+                  <span className="text-rose-600 bg-rose-50 border border-rose-150 px-2 py-1 rounded-lg">
+                    Stock: 0 Pcs
+                  </span>
                 )
               ) : (
-                <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">In stock</span>
+                <span className="text-slate-900 bg-white/40 backdrop-blur-md px-2 py-1 rounded-lg border border-white/20">
+                  In Warehouse
+                </span>
               )}
             </div>
           </div>
@@ -172,7 +186,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
               </button>
               <button 
                 onClick={() => onBuy(product)}
-                className="flex items-center justify-center bg-orange-500 text-white hover:bg-orange-600 px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm cursor-pointer"
+                className="flex items-center justify-center bg-orange-600 text-white hover:bg-orange-700 px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-black shadow-md cursor-pointer uppercase tracking-tight"
               >
                 Buy Now
               </button>

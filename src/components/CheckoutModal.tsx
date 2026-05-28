@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
 import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { formatWhatsappNumber } from '../lib/utils';
 
 import { UserProfile } from './AuthModal';
 
@@ -96,6 +97,8 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
       return;
     }
 
+    const formattedW = formatWhatsappNumber(whatsapp);
+    setWhatsapp(formattedW);
     setIsConfirming(true);
   };
 
@@ -247,6 +250,8 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                         </div>
                       </div>
                     </div>
+
+
 
                     <button
                       type="submit"

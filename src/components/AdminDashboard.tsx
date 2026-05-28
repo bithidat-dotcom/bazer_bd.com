@@ -26,6 +26,12 @@ export default function AdminDashboard() {
     description: '',
     imagesInput: '',
     stock: '20',
+    ram: '',
+    storage: '',
+    screen_hz: '',
+    battery: '',
+    watt_amp: '',
+    discountTimelineHours: '24',
   });
 
   const categories = [
@@ -88,8 +94,8 @@ export default function AdminDashboard() {
       setLoading(false);
     });
 
-    // Listener for users
-    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+    // Listener for users (register_people collection)
+    const unsubscribeUsers = onSnapshot(collection(db, 'register_people'), (snapshot) => {
       const usersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setUsers(usersData);
       setLoading(false);
@@ -163,6 +169,12 @@ export default function AdminDashboard() {
       description: '',
       imagesInput: '',
       stock: '20',
+      ram: '',
+      storage: '',
+      screen_hz: '',
+      battery: '',
+      watt_amp: '',
+      discountTimelineHours: '24',
     });
     setIsProductModalOpen(true);
   };
@@ -178,6 +190,12 @@ export default function AdminDashboard() {
       description: prod.description || '',
       imagesInput: Array.isArray(prod.images) ? prod.images.join(', ') : '',
       stock: String(prod.stock !== undefined ? prod.stock : 20),
+      ram: prod.ram || '',
+      storage: prod.storage || '',
+      screen_hz: prod.screen_hz || '',
+      battery: prod.battery || '',
+      watt_amp: prod.watt_amp || '',
+      discountTimelineHours: String(prod.discountTimelineHours || 24),
     });
     setIsProductModalOpen(true);
   };
@@ -200,6 +218,12 @@ export default function AdminDashboard() {
       rating: editingProduct?.rating || 4.5,
       created_at: editingProduct?.created_at || new Date().toISOString(),
       stock: Number(productForm.stock ?? 20),
+      ram: productForm.ram || '',
+      storage: productForm.storage || '',
+      screen_hz: productForm.screen_hz || '',
+      battery: productForm.battery || '',
+      watt_amp: productForm.watt_amp || '',
+      discountTimelineHours: Number(productForm.discountTimelineHours) || 24,
     };
 
     try {
@@ -351,9 +375,30 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="p-5">
-                      <p className="text-sm font-medium text-slate-700 whitespace-pre-line line-clamp-2 w-48" title={order.product_name}>
-                        {order.product_name}
-                      </p>
+                      <div className="text-sm font-medium text-slate-750 whitespace-pre-line w-48">
+                        {order.product_name?.split('\n').map((line: string, i: number) => {
+                          const productIds = String(order.product_id || '').split(',').map((id: string) => id.trim());
+                          const pId = productIds[i] || productIds[0];
+                          const matchedProd = products.find(p => String(p.id).trim() === pId);
+                          const currentStock = matchedProd?.stock !== undefined ? matchedProd.stock : null;
+                          return (
+                            <div key={i} className="mb-1.5 last:mb-0">
+                              <span className="font-bold text-slate-800 text-xs sm:text-sm">{line}</span>
+                              {currentStock !== null && (
+                                <div className="mt-0.5">
+                                  <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border select-none ${
+                                    currentStock <= 5 
+                                      ? 'bg-rose-50 border-rose-200 text-rose-600 animate-pulse' 
+                                      : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                  }`}>
+                                    Current Stock Rest: {currentStock} Pcs
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </td>
                     <td className="p-5 font-bold text-slate-900">{order.price?.toLocaleString()} ৳</td>
                     <td className="p-5">
@@ -366,8 +411,21 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="p-5 text-xs">
-                      <p className="font-bold text-slate-600">WA: <span className="text-slate-900">{order.whatsapp}</span></p>
-                      <p className="truncate w-32 mt-0.5 text-slate-500" title={order.location}>{order.location}</p>
+                      <div className="flex flex-col gap-1.5">
+                        <p className="font-bold text-slate-600 flex items-center gap-1.5">
+                          WA: <span className="text-slate-900">{order.whatsapp}</span>
+                          <a 
+                            href={`https://wa.me/${order.whatsapp?.replace(/\D/g, '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-1 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                            title="Chat on WhatsApp"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                          </a>
+                        </p>
+                        <p className="truncate w-32 mt-0.5 text-slate-500" title={order.location}>{order.location}</p>
+                      </div>
                     </td>
                     <td className="p-5 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -406,44 +464,95 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === 'users' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[80vh] overflow-y-auto scroll-smooth pr-2">
           <h2 className="text-2xl font-bold tracking-tight mb-4">Users Directory ({users.length})</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {users.map(user => (
-              <div key={user.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 transition-all hover:shadow-md">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 bg-slate-100 rounded-2xl flex-shrink-0 overflow-hidden border border-slate-100">
-                    {user.profileImage ? (
-                      <img src={user.profileImage} alt={user.username || 'user'} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-xl bg-slate-50">
-                        {(user.username || 'User').charAt(0).toUpperCase()}
-                      </div>
-                    )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users.map(user => {
+              const userOrders = orders.filter(o => o.customer_uid === user.uid || o.customer_username === user.username);
+              const totalSpent = userOrders.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+              
+              return (
+                <div key={user.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 transition-all hover:shadow-md flex flex-col">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 bg-slate-100 rounded-3xl flex-shrink-0 overflow-hidden border border-slate-100 shadow-inner">
+                      {user.profileImage ? (
+                        <img src={user.profileImage} alt={user.username || 'user'} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-2xl bg-slate-50 uppercase">
+                          {(user.username || 'U').charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-black text-slate-900 truncate text-xl leading-tight">@{user.username || 'Anonymous'}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1.5 bg-slate-50 w-fit px-2 py-0.5 rounded-full">
+                        ID: {user.uid?.slice(-6).toUpperCase() || 'EXTERNAL'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-slate-900 truncate text-lg">@{user.username || 'Anonymous'}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                      Joined {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}
+
+                  <div className="space-y-4 flex-1">
+                    <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider">Email Address</span>
+                        <span className="font-black text-slate-900 truncate ml-4">{user.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider">WhatsApp</span>
+                        <span className="font-black text-slate-900">{user.whatsapp || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider">Location</span>
+                        <span className="font-bold text-slate-600 truncate ml-4 max-w-[150px]" title={user.location}>{user.location || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-orange-50/30 p-4 rounded-2xl border border-orange-100/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Order Statistics</span>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white rounded-full border border-orange-100">
+                          <ShoppingBag size={10} className="text-orange-500" />
+                          <span className="text-[10px] font-black text-orange-600">{userOrders.length} Orders</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-500">Total Purchase Value</span>
+                        <span className="text-lg font-black text-slate-900">{totalSpent.toLocaleString()} ৳</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Recent Order Activity</span>
+                      <div className="max-h-32 overflow-y-auto scrollbar-hidden space-y-1.5 pr-1">
+                        {userOrders.length > 0 ? userOrders.slice(0, 5).map(o => (
+                          <div key={o.id} className="flex items-center justify-between p-2.5 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black text-slate-900 truncate leading-tight">{o.product_name?.split('\n')[0]}</p>
+                              <p className="text-[9px] font-bold text-slate-400">{new Date(o.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase ${
+                              o.status === 'completed' ? 'bg-emerald-50 text-emerald-600' :
+                              o.status === 'cancelled' ? 'bg-rose-50 text-rose-600' :
+                              'bg-slate-100 text-slate-500'
+                            }`}>
+                              {o.status}
+                            </span>
+                          </div>
+                        )) : (
+                          <p className="text-[10px] font-bold text-slate-400 italic bg-slate-50 p-3 rounded-xl text-center">No purchases recorded yet</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                      Member Since {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Recently'}
                     </p>
                   </div>
                 </div>
-                <div className="space-y-2 pt-4 border-t border-slate-50">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-6 h-6 bg-slate-50 rounded-lg flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-slate-400">WA</span>
-                    </div>
-                    <span className="font-medium text-slate-700 truncate">{user.whatsapp || 'Not linked'}</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <div className="w-6 h-6 bg-slate-50 rounded-lg flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-bold text-slate-400">LOC</span>
-                    </div>
-                    <span className="text-slate-500 text-xs line-clamp-2 leading-relaxed">{user.location || 'No address set'}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {users.length === 0 && (
               <div className="col-span-full py-20 bg-white border border-dashed border-slate-200 rounded-3xl text-center">
                 <p className="text-slate-400 font-bold">Authenticated users will appear here</p>
@@ -699,7 +808,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Stock</label>
+                  <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1 font-sans">Stock</label>
                   <input 
                     type="number" 
                     value={productForm.stock}
@@ -707,8 +816,62 @@ export default function AdminDashboard() {
                     placeholder="20"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
                   />
+                  <div className="flex gap-1.5 mt-2">
+                    {['20', '30', '100'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setProductForm({...productForm, stock: preset})}
+                        className={`px-3 py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                          productForm.stock === preset 
+                            ? 'bg-orange-500 text-white border-orange-500 shadow-sm font-black' 
+                            : 'bg-white text-slate-600 border-slate-250 hover:bg-slate-100 hover:border-slate-350'
+                        }`}
+                      >
+                        {preset} Pcs
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              {/* Discount Expiry Countdown Configuration */}
+              {Number(productForm.discount) > 0 && (
+                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+                  <div className="flex items-center gap-1.5 text-orange-600 mb-2">
+                    <Tag size={16} />
+                    <span className="text-xs font-bold uppercase tracking-wider">Discount Timer Settings</span>
+                  </div>
+                  
+                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Set Active Duration (Hours)</label>
+                  <div className="flex gap-2 mb-2">
+                    {['2', '6', '12', '24'].map((hrs) => (
+                      <button
+                        key={hrs}
+                        type="button"
+                        onClick={() => setProductForm({...productForm, discountTimelineHours: hrs})}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                          productForm.discountTimelineHours === hrs
+                            ? 'bg-orange-500 text-white border-orange-500 font-extrabold shadow-sm'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {hrs} Hrs
+                      </button>
+                    ))}
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      value={productForm.discountTimelineHours}
+                      onChange={(e) => setProductForm({...productForm, discountTimelineHours: e.target.value})}
+                      placeholder="Custom hours, e.g. 48"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all animate-none"
+                    />
+                    <p className="text-[9px] text-slate-400 mt-1">This sets a dynamic countdown timer for this discount, ending in specified hours.</p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Assigned Category *</label>
@@ -724,6 +887,73 @@ export default function AdminDashboard() {
                 </select>
                 <p className="text-[10px] text-slate-400 mt-1 font-medium">Selected category maps to search indices and filter buttons in user storefront</p>
               </div>
+
+              {/* Dynamic Specs Form for Gadget/PC/Robotic */}
+              {(['gadget', 'pc', 'robotic'].includes(productForm.category?.toLowerCase() || '')) && (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-1.5 text-orange-600 mb-1">
+                    <Cpu size={16} />
+                    <span className="text-xs font-bold uppercase tracking-wider">Technical Specs (Gadget Mode)</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">RAM</label>
+                      <input 
+                        type="text" 
+                        value={productForm.ram}
+                        onChange={(e) => setProductForm({...productForm, ram: e.target.value})}
+                        placeholder="e.g. 8GB / 16GB"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Storage</label>
+                      <input 
+                        type="text" 
+                        value={productForm.storage}
+                        onChange={(e) => setProductForm({...productForm, storage: e.target.value})}
+                        placeholder="e.g. 256GB SSD / 1TB"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Screen Refresh Rate</label>
+                      <input 
+                        type="text" 
+                        value={productForm.screen_hz}
+                        onChange={(e) => setProductForm({...productForm, screen_hz: e.target.value})}
+                        placeholder="e.g. 90Hz / 120Hz / 144Hz"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Battery Backup</label>
+                      <input 
+                        type="text" 
+                        value={productForm.battery}
+                        onChange={(e) => setProductForm({...productForm, battery: e.target.value})}
+                        placeholder="e.g. 5000 mAh / 8 hrs"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Watt / Amp Rating</label>
+                    <input 
+                      type="text" 
+                      value={productForm.watt_amp}
+                      onChange={(e) => setProductForm({...productForm, watt_amp: e.target.value})}
+                      placeholder="e.g. 65W PD / 5V 3A"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Main Image URL</label>
