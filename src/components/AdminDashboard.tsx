@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag } from 'lucide-react';
+import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 export default function AdminDashboard() {
@@ -32,6 +32,7 @@ export default function AdminDashboard() {
     battery: '',
     watt_amp: '',
     discountTimelineHours: '24',
+    flashSaleEnd: '',
   });
 
   const categories = [
@@ -115,7 +116,8 @@ export default function AdminDashboard() {
           discount: Number(data.discount || 0),
           rating: Number(data.rating || 4.5),
           category: data.category || 'PC',
-          created_at: data.created_at || new Date().toISOString()
+          created_at: data.created_at || new Date().toISOString(),
+          flashSaleEnd: data.flashSaleEnd || ''
         };
       });
       setProducts(productsData);
@@ -175,6 +177,7 @@ export default function AdminDashboard() {
       battery: '',
       watt_amp: '',
       discountTimelineHours: '24',
+      flashSaleEnd: '',
     });
     setIsProductModalOpen(true);
   };
@@ -196,6 +199,7 @@ export default function AdminDashboard() {
       battery: prod.battery || '',
       watt_amp: prod.watt_amp || '',
       discountTimelineHours: String(prod.discountTimelineHours || 24),
+      flashSaleEnd: prod.flashSaleEnd || '',
     });
     setIsProductModalOpen(true);
   };
@@ -224,6 +228,7 @@ export default function AdminDashboard() {
       battery: productForm.battery || '',
       watt_amp: productForm.watt_amp || '',
       discountTimelineHours: Number(productForm.discountTimelineHours) || 24,
+      flashSaleEnd: productForm.flashSaleEnd || '',
     };
 
     try {
@@ -869,6 +874,22 @@ export default function AdminDashboard() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs transition-all animate-none"
                     />
                     <p className="text-[9px] text-slate-400 mt-1">This sets a dynamic countdown timer for this discount, ending in specified hours.</p>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-orange-100">
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1.5">
+                      <Clock size={12} className="text-orange-500" />
+                      Set Exact Flash Sale End Date (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={productForm.flashSaleEnd}
+                      onChange={(e) => setProductForm({...productForm, flashSaleEnd: e.target.value})}
+                      placeholder="e.g. 07/01/2026 02:41 PM"
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-orange-500 text-xs sm:text-sm transition-all"
+                    />
+                    <p className="text-[9px] text-slate-500 mt-1 font-bold">Priority: This date/time will override the hours timeline if provided.</p>
+                    <p className="text-[8px] text-slate-400">Format: MM/DD/YYYY HH:MM AM/PM</p>
                   </div>
                 </div>
               )}

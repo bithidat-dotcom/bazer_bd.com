@@ -12,6 +12,7 @@ import { collection, query, where, getDocs, setDoc, doc, getDoc } from 'firebase
 import { formatWhatsappNumber } from '../lib/utils';
 
 export interface UserProfile {
+  uid: string;
   username: string;
   profileImage: string;
   whatsapp?: string;
@@ -150,6 +151,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
         
         if (isSignUp) {
           const newProfile = {
+            uid: authUserId,
             username: formattedUsername,
             email: cleanEmail,
             profileImage: profileImage || '',
@@ -165,6 +167,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
           if (userSnap.exists()) {
             const data = userSnap.data();
             userProfile = {
+              uid: authUserId,
               username: data.username || formattedUsername,
               email: cleanEmail,
               profileImage: data.profileImage || profileImage || '',
@@ -177,6 +180,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
             if (regSnap.exists()) {
               const data = regSnap.data();
               userProfile = {
+                uid: authUserId,
                 username: data.username,
                 email: data.email,
                 profileImage: data.profileImage || '',
@@ -186,6 +190,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
             } else {
               // Generate fallback doc if it's auth-only
               userProfile = {
+                uid: authUserId,
                 username: cleanEmail.split('@')[0],
                 email: cleanEmail,
                 profileImage: profileImage || '',
@@ -200,6 +205,27 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
       } catch (authErr: any) {
         console.warn('Firebase Auth full provider error:', authErr);
         
+        // Handle specific Firebase Auth errors
+        if (authErr.code === 'auth/email-already-in-use') {
+          setError('This email is already registered. Switching to login mode...');
+          setIsSignUp(false); // Automatically switch to sign in mode
+          setLoading(false);
+          return;
+        }
+
+        if (authErr.code === 'auth/invalid-credential' || authErr.code === 'auth/wrong-password') {
+          setError('Incorrect email or password. Please try again or recover your account.');
+          setLoading(false);
+          return;
+        }
+
+        if (authErr.code === 'auth/user-not-found') {
+          setError('No account found with this email. Please register first.');
+          setIsSignUp(true);
+          setLoading(false);
+          return;
+        }
+        
         // Dynamic Hybrid Safe Failover Engine inside Firestore!
         const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
         const fallbackDocRef = doc(db, 'users_secure', docId);
@@ -209,7 +235,8 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
           // Check if email already registered in fallback db
           const existingSnap = await getDoc(fallbackDocRef);
           if (existingSnap.exists()) {
-            setError('This email is already registered on another account!');
+            setError('This email is already registered. Switching to login mode...');
+            setIsSignUp(false);
             setLoading(false);
             return;
           }
@@ -232,6 +259,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
           });
 
           userProfile = {
+            uid: docId,
             username: formattedUsername,
             email: cleanEmail,
             profileImage: profileImage || '',
@@ -242,7 +270,8 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
           // Login validation fallback
           const existingSnap = await getDoc(fallbackDocRef);
           if (!existingSnap.exists()) {
-            setError('No account found matching this email!');
+            setError('Account not found. Please create an account first.');
+            setIsSignUp(true);
             setLoading(false);
             return;
           }
@@ -255,6 +284,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
           }
 
           userProfile = {
+            uid: docId,
             username: data.username,
             email: cleanEmail,
             profileImage: data.profileImage || '',
@@ -342,27 +372,28 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
             {/* Email Field */}
             <div>
               <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                Email Address
+                Email for Safety & Recovery
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
                   type="email"
                   required
-                  placeholder="name@domain.com"
+                  placeholder="e.g. name@email.com"
                   value={email}
                   disabled={!!initialUser}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800 disabled:opacity-60"
                 />
               </div>
+              <p className="text-[8px] text-slate-400 mt-1 font-bold">Use a real email to recover your account if you sign in on another phone.</p>
             </div>
 
             {/* Password Field */}
             {!initialUser && (
               <div>
                 <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                  Secure Password
+                  {isSignUp ? 'Create Account Password' : 'Enter Password'}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -382,6 +413,9 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {isSignUp && (
+                  <p className="text-[8px] text-slate-400 mt-1 font-bold">Remember this password to log in on other devices.</p>
+                )}
               </div>
             )}
 

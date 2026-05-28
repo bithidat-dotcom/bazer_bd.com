@@ -79,7 +79,8 @@ export default function Storefront() {
             stock: data.stock !== undefined ? Number(data.stock) : 20,
             total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
             created_at: data.created_at || new Date().toISOString(),
-            images: data.images || []
+            images: data.images || [],
+            flashSaleEnd: data.flashSaleEnd || null
           } as Product;
         });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -289,9 +290,9 @@ export default function Storefront() {
         product_name: combinedProductNames,
         price: totalPrice,
         customer_name,
-        customer_username: user ? user.username : null,
-        customer_uid: user ? user.uid : null,
-        customer_image: user ? user.profileImage : null,
+        customer_username: user?.username || null,
+        customer_uid: user?.uid || null,
+        customer_image: user?.profileImage || null,
         whatsapp: formattedWhatsapp,
         location,
         status: 'pending',

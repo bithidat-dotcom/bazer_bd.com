@@ -46,24 +46,52 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
 
     const durationHrs = Number(product.discountTimelineHours) || 24;
     let targetTimeMs: number;
-    let createdTime = product.created_at ? new Date(product.created_at).getTime() : NaN;
     
-    if (isNaN(createdTime)) {
-      targetTimeMs = Date.now() + durationHrs * 60 * 60 * 1000;
+    // Priority: Real Flash Sale End Date from Admin
+    if (product.flashSaleEnd) {
+      try {
+        const parsedDate = new Date(product.flashSaleEnd);
+        if (!isNaN(parsedDate.getTime())) {
+          targetTimeMs = parsedDate.getTime();
+        } else {
+          // Fallback manual parser for "MM/DD/YYYY HH:MM AM/PM"
+          const regex = /(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(AM|PM)/i;
+          const match = product.flashSaleEnd.match(regex);
+          if (match) {
+            let [_, month, day, year, hours, minutes, ampm] = match;
+            let hrs = parseInt(hours);
+            if (ampm.toUpperCase() === 'PM' && hrs < 12) hrs += 12;
+            if (ampm.toUpperCase() === 'AM' && hrs === 12) hrs = 0;
+            const manualDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hrs, parseInt(minutes), 0);
+            targetTimeMs = manualDate.getTime();
+          } else {
+             targetTimeMs = 0; // Invalid format
+          }
+        }
+      } catch (e) {
+        targetTimeMs = 0;
+      }
     } else {
-      const expiryTime = createdTime + durationHrs * 60 * 60 * 1000;
-      if (expiryTime > Date.now()) {
-        targetTimeMs = expiryTime;
+      // Dynamic Loop logic
+      let createdTime = product.created_at ? new Date(product.created_at).getTime() : NaN;
+      
+      if (isNaN(createdTime)) {
+        targetTimeMs = Date.now() + durationHrs * 60 * 60 * 1000;
       } else {
-        const now = new Date();
-        const cycle = durationHrs * 60 * 60 * 1000;
-        const timePassedSinceCreated = now.getTime() - createdTime;
-        const remainingInCycle = cycle - (timePassedSinceCreated % cycle);
-        targetTimeMs = now.getTime() + remainingInCycle;
+        const expiryTime = createdTime + durationHrs * 60 * 60 * 1000;
+        if (expiryTime > Date.now()) {
+          targetTimeMs = expiryTime;
+        } else {
+          const now = new Date();
+          const cycle = durationHrs * 60 * 60 * 1000;
+          const timePassedSinceCreated = now.getTime() - createdTime;
+          const remainingInCycle = cycle - (timePassedSinceCreated % cycle);
+          targetTimeMs = now.getTime() + remainingInCycle;
+        }
       }
     }
 
-    if (isNaN(targetTimeMs)) {
+    if (isNaN(targetTimeMs) || targetTimeMs <= 0) {
       targetTimeMs = Date.now() + durationHrs * 60 * 60 * 1000;
     }
 

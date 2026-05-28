@@ -194,14 +194,6 @@ export default function Navbar({
                     <User size={14} className="text-slate-400" />
                     Edit Profile
                   </button>
-                  <a 
-                    href="/admin"
-                    onClick={() => setIsProfileMenuOpen(false)}
-                    className="flex w-full text-left px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-xl transition-all items-center gap-2 mt-0.5"
-                  >
-                    <Package size={14} className="text-slate-400" />
-                    Admin Panel
-                  </a>
                   <div className="h-px bg-slate-50 my-1 mx-2" />
                   <button 
                     onClick={() => {
