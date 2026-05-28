@@ -28,6 +28,32 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
   const [hasSearched, setHasSearched] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Your browser does not support local mobile notification triggers.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission === 'granted') {
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
+        audio.play().catch(() => {});
+        new Notification('Alerts Armed! 🔔', {
+          body: 'Notifications are now configured for Order Confirmation, Packing, and Shipping!',
+          icon: 'https://i.postimg.cc/KvqR53hq/download-(1).png',
+        });
+      } catch (e) {}
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -143,6 +169,27 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
         </div>
 
         <div className="p-6 md:p-8 overflow-y-auto flex-1">
+          {/* Custom Notification Permission Banner */}
+          {('Notification' in window) && notificationPermission !== 'granted' && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-150 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                  <span className="animate-bounce">🔔</span>
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-800">Enable Mobile Order Alerts</h4>
+                  <p className="text-[10px] sm:text-xs text-slate-500 font-medium">Receive immediate notifications on your android or mobile screen when order is packing, shipping, or confirmed!</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={requestNotificationPermission}
+                className="w-full sm:w-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[10px] sm:text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
+              >
+                Enable Alerts
+              </button>
+            </div>
+          )}
           {!user && (
             <form onSubmit={fetchOrders} className="mb-8">
               <label className="block text-sm font-bold text-slate-700 mb-2">

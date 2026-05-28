@@ -9,6 +9,7 @@ export interface Product {
   rating?: number;
   reviewCount?: number;
   created_at: string;
+  stock?: number;
 }
 
 export interface CartItem {

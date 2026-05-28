@@ -25,6 +25,7 @@ export default function AdminDashboard() {
     image: '',
     description: '',
     imagesInput: '',
+    stock: '20',
   });
 
   const categories = [
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
       image: '',
       description: '',
       imagesInput: '',
+      stock: '20',
     });
     setIsProductModalOpen(true);
   };
@@ -175,6 +177,7 @@ export default function AdminDashboard() {
       image: prod.image || '',
       description: prod.description || '',
       imagesInput: Array.isArray(prod.images) ? prod.images.join(', ') : '',
+      stock: String(prod.stock !== undefined ? prod.stock : 20),
     });
     setIsProductModalOpen(true);
   };
@@ -195,7 +198,8 @@ export default function AdminDashboard() {
       description: productForm.description,
       images: productForm.imagesInput ? productForm.imagesInput.split(',').map((sName: string) => sName.trim()).filter(Boolean) : [],
       rating: editingProduct?.rating || 4.5,
-      created_at: editingProduct?.created_at || new Date().toISOString()
+      created_at: editingProduct?.created_at || new Date().toISOString(),
+      stock: Number(productForm.stock ?? 20),
     };
 
     try {
@@ -551,6 +555,7 @@ export default function AdminDashboard() {
                   <th className="p-5">Category</th>
                   <th className="p-5">Base Price</th>
                   <th className="p-5">Discount %</th>
+                  <th className="p-5">Stock</th>
                   <th className="p-5">Created At</th>
                   <th className="p-5 text-right">Actions</th>
                 </tr>
@@ -589,6 +594,17 @@ export default function AdminDashboard() {
                         ) : (
                           <span className="text-slate-400 text-xs">0%</span>
                         )}
+                      </td>
+                      <td className="p-5">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold leading-none ${
+                          (prod.stock !== undefined ? prod.stock : 20) <= 0
+                            ? 'bg-rose-100 text-rose-800'
+                            : (prod.stock !== undefined ? prod.stock : 20) <= 5
+                            ? 'bg-amber-100 text-amber-850'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {prod.stock !== undefined ? prod.stock : '20'}
+                        </span>
                       </td>
                       <td className="p-5 text-slate-500 text-xs font-medium">
                         {prod.created_at ? new Date(prod.created_at).toLocaleDateString() : 'N/A'}
@@ -660,7 +676,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Price (৳) *</label>
                   <input 
@@ -668,7 +684,7 @@ export default function AdminDashboard() {
                     value={productForm.price}
                     onChange={(e) => setProductForm({...productForm, price: e.target.value})}
                     placeholder="e.g. 1200"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
                     required
                   />
                 </div>
@@ -679,7 +695,17 @@ export default function AdminDashboard() {
                     value={productForm.discount}
                     onChange={(e) => setProductForm({...productForm, discount: e.target.value})}
                     placeholder="0"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 tracking-wider mb-1">Stock</label>
+                  <input 
+                    type="number" 
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
+                    placeholder="20"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-xs sm:text-sm transition-all"
                   />
                 </div>
               </div>

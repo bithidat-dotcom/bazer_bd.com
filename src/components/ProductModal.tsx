@@ -354,7 +354,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                 {product.name}
               </h2>
               
-              <div className="flex items-end gap-3 mb-8">
+              <div className="flex items-end gap-3 mb-4">
                 <span className="text-4xl font-bold text-slate-900 tracking-tight">
                     {formatPrice(discountedPrice)}
                 </span>
@@ -362,6 +362,32 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                     <span className="text-xl text-slate-400 line-through mb-1.5">
                         {formatPrice(product.price)}
                     </span>
+                )}
+              </div>
+
+              {/* Product Stock Indicator */}
+              <div className="mb-8">
+                {product.stock !== undefined ? (
+                  product.stock > 0 ? (
+                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold ${
+                      product.stock <= 5 
+                        ? 'bg-amber-100 text-amber-800' 
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${product.stock <= 5 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                      {product.stock <= 5 ? `Only ${product.stock} items left in stock (Hurry up!)` : `${product.stock} items available in stock`}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-rose-100 text-rose-800">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      Currently Out of Stock
+                    </span>
+                  )
+                ) : (
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-emerald-100 text-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    In stock and ready to ship
+                  </span>
                 )}
               </div>
               
@@ -375,15 +401,27 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       <div className="flex items-center justify-between border-2 border-slate-200 rounded-2xl p-2 bg-slate-50 lg:w-1/2">
                           <button 
                               onClick={() => updateQuantity(-1)}
-                              className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-white text-slate-600 transition-colors shadow-sm"
+                              disabled={product.stock !== undefined && product.stock <= 0}
+                              className={`w-12 h-12 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
+                                product.stock !== undefined && product.stock <= 0
+                                  ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
+                                  : 'hover:bg-white text-slate-600'
+                              }`}
                               aria-label="Decrease quantity"
                           >
                               <Minus size={20} />
                           </button>
-                          <span className="font-bold text-slate-800 text-xl w-12 text-center">{quantity}</span>
+                          <span className="font-bold text-slate-800 text-xl w-12 text-center">
+                            {product.stock !== undefined && product.stock <= 0 ? 0 : quantity}
+                          </span>
                           <button 
                               onClick={() => updateQuantity(1)}
-                              className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-white text-slate-600 transition-colors shadow-sm"
+                              disabled={product.stock !== undefined && product.stock <= 0}
+                              className={`w-12 h-12 flex items-center justify-center rounded-xl shadow-sm transition-colors ${
+                                product.stock !== undefined && product.stock <= 0
+                                  ? 'text-slate-300 bg-slate-150 cursor-not-allowed'
+                                  : 'hover:bg-white text-slate-600'
+                              }`}
                               aria-label="Increase quantity"
                           >
                               <Plus size={20} />
@@ -393,21 +431,31 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-4 relative">
                           <button 
+                            disabled={product.stock !== undefined && product.stock <= 0}
                             onClick={() => {
                                 onAddToCart(product, quantity);
                                 onClose();
                             }}
-                            className="flex-1 bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 font-bold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center gap-3 text-lg"
+                            className={`flex-1 font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg ${
+                              product.stock !== undefined && product.stock <= 0
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 cursor-pointer'
+                            }`}
                           >
                             <ShoppingCart size={22} />
                             Add to Cart
                           </button>
                           <button 
+                            disabled={product.stock !== undefined && product.stock <= 0}
                             onClick={() => {
                                 onBuyNow(product, quantity);
                                 onClose();
                             }}
-                            className="flex-1 bg-slate-900 hover:bg-black text-white font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center shadow-xl shadow-black/0 hover:shadow-black/20 active:scale-[0.98] text-lg"
+                            className={`flex-1 font-bold py-4 px-6 rounded-2xl transition-all flex items-center justify-center text-lg ${
+                              product.stock !== undefined && product.stock <= 0
+                                ? 'bg-slate-100 text-slate-450 cursor-not-allowed border border-slate-100'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-500/10 active:scale-[0.98] cursor-pointer'
+                            }`}
                           >
                             Buy Now
                           </button>

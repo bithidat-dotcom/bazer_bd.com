@@ -136,22 +136,48 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
                 {formatPrice(discountedPrice)}
               </span>
             </div>
+            
+            {/* Stock indicator on card */}
+            <div className="text-[9px] font-bold">
+              {product.stock !== undefined ? (
+                product.stock > 0 ? (
+                  product.stock <= 5 ? (
+                    <span className="text-amber-550 bg-amber-50 px-1.5 py-0.5 rounded">Only {product.stock} left</span>
+                  ) : (
+                    <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">{product.stock} in stock</span>
+                  )
+                ) : (
+                  <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Out of Stock</span>
+                )
+              ) : (
+                <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">In stock</span>
+              )}
+            </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-1.5">
+          {product.stock !== undefined && product.stock <= 0 ? (
             <button 
-              onClick={() => onAddToCart && onAddToCart(product)}
-              className="flex items-center justify-center border border-slate-200 text-slate-700 hover:bg-slate-50 px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm"
+              disabled
+              className="w-full bg-slate-100 text-slate-400 py-1.5 rounded-md text-[10px] font-bold cursor-not-allowed border border-slate-200 text-center"
             >
-              Add to Cart
+              Out of Stock
             </button>
-            <button 
-              onClick={() => onBuy(product)}
-              className="flex items-center justify-center bg-slate-900 text-white hover:bg-black px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm"
-            >
-              Buy Now
-            </button>
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5">
+              <button 
+                onClick={() => onAddToCart && onAddToCart(product)}
+                className="flex items-center justify-center border border-slate-200 text-slate-700 hover:bg-slate-50 px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm"
+              >
+                Add to Cart
+              </button>
+              <button 
+                onClick={() => onBuy(product)}
+                className="flex items-center justify-center bg-orange-500 text-white hover:bg-orange-600 px-2 py-1.5 rounded-md transition-all active:scale-95 text-[10px] font-bold shadow-sm cursor-pointer"
+              >
+                Buy Now
+              </button>
+            </div>
+          )}
         </div>
     </motion.div>
   );

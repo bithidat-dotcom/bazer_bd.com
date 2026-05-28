@@ -12,7 +12,7 @@ import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
 import AuthModal, { UserProfile } from './components/AuthModal';
 import { db } from './lib/firebase';
-import { collection, onSnapshot, query, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, where } from 'firebase/firestore';
 import { Banner, Product, CartItem } from './types';
 import { formatWhatsappNumber } from './lib/utils';
 
@@ -138,6 +138,103 @@ export default function Storefront() {
     }
   }, [alertMessage]);
 
+  // Real-time mobile push notifications for status updates
+  useEffect(() => {
+    const savedWhatsapp = localStorage.getItem('customer_whatsapp') || (user && user.whatsapp ? formatWhatsappNumber(user.whatsapp) : null);
+    const usernameKey = user ? user.username : null;
+
+    if (!savedWhatsapp && !usernameKey) return;
+
+    const lastStatuses: Record<string, string> = {};
+
+    const triggerNotification = (title: string, body: string) => {
+      if (!('Notification' in window) || Notification.permission !== 'granted') {
+        console.log('Mobile Alert details locked or ungranted:', title);
+        return;
+      }
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
+        audio.play().catch(e => console.log('Audio playback delayed:', e));
+      } catch (e) {}
+
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.showNotification(title, {
+            body,
+            icon: 'https://i.postimg.cc/KvqR53hq/download-(1).png',
+            badge: 'https://i.postimg.cc/KvqR53hq/download-(1).png',
+            vibrate: [200, 100, 200]
+          } as any);
+        });
+      } else {
+        new Notification(title, {
+          body,
+          icon: 'https://i.postimg.cc/KvqR53hq/download-(1).png'
+        });
+      }
+    };
+
+    const processSnapshot = (docs: any[]) => {
+      docs.forEach(doc => {
+        const orderId = doc.id;
+        const data = doc.data();
+        const status = data.status;
+        const name = data.product_name || 'Your order';
+
+        if (lastStatuses[orderId] !== undefined) {
+          if (lastStatuses[orderId] !== status) {
+            // State transitioned! Broadcast Notification
+            if (status === 'confirmed') {
+              triggerNotification(
+                'Order Confirmed! 🎉',
+                `Thank you! Your order for ${name.split('\n')[0]} has been confirmed.`
+              );
+            } else if (status === 'packing') {
+              triggerNotification(
+                'Order Packing! 📦',
+                `Great news! We are currently packing your products for ${name.split('\n')[0]}.`
+              );
+            } else if (status === 'shipping') {
+              triggerNotification(
+                'Out for Delivery! 🚚',
+                `Your package has been shipped and is out for delivery!`
+              );
+            } else if (status === 'completed') {
+              triggerNotification(
+                'Order Completed! ✅',
+                `We hope you loved your items! Thank you for buying from pbazar.`
+              );
+            }
+          }
+        }
+        // Save state status
+        lastStatuses[orderId] = status;
+      });
+    };
+
+    let unsubWhatsapp = () => {};
+    let unsubUsername = () => {};
+
+    if (savedWhatsapp) {
+      const qW = query(collection(db, 'orders'), where('whatsapp', '==', savedWhatsapp));
+      unsubWhatsapp = onSnapshot(qW, (snapshot) => {
+        processSnapshot(snapshot.docs);
+      });
+    }
+
+    if (usernameKey) {
+      const qU = query(collection(db, 'orders'), where('customer_username', '==', usernameKey));
+      unsubUsername = onSnapshot(qU, (snapshot) => {
+        processSnapshot(snapshot.docs);
+      });
+    }
+
+    return () => {
+      unsubWhatsapp();
+      unsubUsername();
+    };
+  }, [user]);
+
   useEffect(() => {
     const filtered = products.filter(p => {
       const pName = p.name || '';
@@ -186,7 +283,7 @@ export default function Storefront() {
     });
     
     try {
-      await addDoc(collection(db, "orders"), {
+      const docRef = await addDoc(collection(db, "orders"), {
         product_id: combinedProductIds,
         product_name: combinedProductNames,
         price: totalPrice,
@@ -198,6 +295,14 @@ export default function Storefront() {
         status: 'pending',
         created_at: new Date().toISOString()
       });
+
+      // Track coordinates for immediate client status notifications
+      localStorage.setItem('customer_whatsapp', formattedWhatsapp);
+      const savedIds = JSON.parse(localStorage.getItem('tracked_order_ids') || '[]');
+      if (!savedIds.includes(docRef.id)) {
+        savedIds.push(docRef.id);
+        localStorage.setItem('tracked_order_ids', JSON.stringify(savedIds));
+      }
 
       console.log("Order Successful");
       setSuccessMessage("Order Placed Successfully!");
