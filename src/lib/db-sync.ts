@@ -20,35 +20,94 @@ export function getDeviceId(): string {
   return id;
 }
 
+// Memory cache to reduce hits to Firestore
+const memoryCache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCached(key: string) {
+  const entry = memoryCache[key];
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+    return entry.data;
+  }
+  return null;
+}
+
+function setCached(key: string, data: any) {
+  memoryCache[key] = { data, timestamp: Date.now() };
+}
+
+// Track if we hit a quota limit to avoid repeated failures in the same session
+let quotaExceeded = false;
+
+export function setFirestoreQuotaExceeded(val: boolean) {
+    quotaExceeded = val;
+}
+
+export function isFirestoreQuotaExceeded() {
+    return quotaExceeded;
+}
+
 /**
  * Fetch total likes count and whether the current device is among the likers from Supabase.
  * Cascades to localStorage if the table does not exist yet.
  */
 export async function getProductLikesState(productId: string): Promise<{ totalLikes: number; userLiked: boolean }> {
+  const cacheKey = `likes-${productId}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  const deviceId = getDeviceId();
+  
+  // First, check local favorites state for UI speed
+  const localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
+  const locallyLiked = localFavs.includes(productId);
+  
+  // Calculate a deterministic fallback count based on product ID
+  const getFallbackCount = () => {
+    return Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
+  };
+
   try {
-    const deviceId = getDeviceId();
-    
-    // First, check local favorites state for UI speed
-    const localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
-    const locallyLiked = localFavs.includes(productId);
+    // Check if db is defined and potentially reach it
+    if (!db) throw new Error("Firestore not initialized");
 
     // Try fetching from server
-    const qCount = query(collection(db, 'product_likes'), where('product_id', '==', productId));
-    const snapshotCount = await getCountFromServer(qCount);
+    const likesRef = collection(db, 'product_likes');
+    const qCount = query(likesRef, where('product_id', '==', productId));
     
-    const qSelf = query(collection(db, 'product_likes'), where('product_id', '==', productId), where('user_ip', '==', deviceId));
-    const selfSnapshot = await getDocs(qSelf);
+    // Attempt standard count
+    let totalLikes = getFallbackCount();
+    try {
+      const snapshotCount = await getCountFromServer(qCount);
+      totalLikes = snapshotCount.data().count || 0;
+    } catch (countErr: any) {
+      console.warn("Could not fetch server count, using fallback:", countErr.message);
+    }
 
-    const totalLikes = snapshotCount.data().count || 0;
-    const userLiked = !selfSnapshot.empty || locallyLiked;
+    // Attempt to check self-like status
+    let userLiked = locallyLiked;
+    try {
+      const qSelf = query(likesRef, where('product_id', '==', productId), where('user_ip', '==', deviceId));
+      const selfSnapshot = await getDocs(qSelf);
+      if (!selfSnapshot.empty) {
+        userLiked = true;
+      }
+    } catch (selfErr: any) {
+       console.warn("Could not fetch self-like status:", selfErr.message);
+    }
 
-    return { totalLikes, userLiked };
-  } catch (err) {
-    console.error('Error fetching likes from server:', err);
-    // Simple fallback to localStorage if anything goes wrong
-    const localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
-    const locallyLiked = localFavs.includes(productId);
-    const fallbackCount = Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
+    const result = { totalLikes, userLiked: userLiked || locallyLiked };
+    setCached(cacheKey, result);
+    return result;
+  } catch (err: any) {
+    if (err.message?.includes('quota') || err.message?.includes('Quota')) {
+        quotaExceeded = true;
+    }
+    if (!err.message?.includes('offline') && !err.message?.includes('quota')) {
+       console.error('Error fetching likes from server:', err.message || err);
+    }
+    
+    const fallbackCount = getFallbackCount();
     return {
       totalLikes: fallbackCount + (locallyLiked ? 1 : 0),
       userLiked: locallyLiked
@@ -62,8 +121,12 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
 export async function toggleProductLike(productId: string): Promise<{ totalLikes: number; userLiked: boolean }> {
   const deviceId = getDeviceId();
   
-  // Update localStorage first
+  // Update localStorage first for instant UI response
   const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+  
+  // Clear cache for this product on toggle
+  delete memoryCache[`likes-${productId}`];
+
   let nextLikedState = false;
   let updatedFavs = [];
 
@@ -78,26 +141,35 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
   window.dispatchEvent(new Event('favorites-updated'));
 
   try {
+    if (!db) throw new Error("Firestore not initialized");
+
     if (nextLikedState) {
       // Insert on server
-      await addDoc(collection(db, 'product_likes'), { product_id: productId, user_ip: deviceId });
+      await addDoc(collection(db, 'product_likes'), { 
+        product_id: productId, 
+        user_ip: deviceId,
+        created_at: new Date().toISOString()
+      });
     } else {
       // Delete on server
       const qDel = query(collection(db, 'product_likes'), where('product_id', '==', productId), where('user_ip', '==', deviceId));
       const delSnapshot = await getDocs(qDel);
-      delSnapshot.forEach(async (d) => {
-        await deleteDoc(doc(db, 'product_likes', d.id));
-      });
+      
+      const deletions = delSnapshot.docs.map(d => deleteDoc(doc(db, 'product_likes', d.id)));
+      await Promise.all(deletions);
     }
     
     // Fetch fresh stats to return
     return await getProductLikesState(productId);
-  } catch (err) {
-    console.error('Error syncing like with server:', err);
-    // Fallback to local count calculation
-    const fallbackCount = Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
+  } catch (err: any) {
+    console.error('Error syncing like with server:', err.message || err);
+    
+    const getFallbackCount = () => {
+      return Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
+    };
+    
     return {
-      totalLikes: fallbackCount + (nextLikedState ? 1 : 0),
+      totalLikes: getFallbackCount() + (nextLikedState ? 1 : 0),
       userLiked: nextLikedState
     };
   }
@@ -108,7 +180,13 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
  * Falls back to local fallback reviews when table is missing.
  */
 export async function getProductReviews(productId: string): Promise<any[]> {
+  const cacheKey = `reviews-${productId}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   try {
+    if (!db) throw new Error("Firestore not initialized");
+
     const q = query(collection(db, 'reviews'), where('product_id', '==', productId));
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -125,15 +203,22 @@ export async function getProductReviews(productId: string): Promise<any[]> {
     // Adapt database-snake-case into frontend-camel-case or keep as is
     const formattedSrv = results.map((r: any) => ({
       id: r.id.toString(),
-      userName: r.user_name,
-      rating: r.rating,
-      comment: r.comment,
-      createdAt: new Date(r.created_at).toLocaleDateString()
+      userName: r.user_name || r.userName || r.author || 'Customer',
+      rating: r.rating || 5,
+      comment: r.comment || r.text || r.review || '',
+      createdAt: r.created_at ? new Date(r.created_at).toLocaleDateString() : new Date().toLocaleDateString()
     }));
 
-    return [...formattedSrv, ...localFiltered];
-  } catch (err) {
-    console.error('Error getting product reviews:', err);
+    const finalReviews = [...formattedSrv, ...localFiltered];
+    setCached(cacheKey, finalReviews);
+    return finalReviews;
+  } catch (err: any) {
+    if (err.message?.includes('quota') || err.message?.includes('Quota')) {
+       quotaExceeded = true;
+       console.warn('Firestore quota exceeded for reviews. Using local fallback.');
+    } else {
+       console.error('Error getting product reviews:', err);
+    }
     const saved = localStorage.getItem(`reviews-${productId}`);
     if (saved) return JSON.parse(saved);
     return [];
@@ -163,11 +248,19 @@ export async function getSellerInfoByName(sellerName: string): Promise<any | nul
  * Fetch all sellers from 'sellers' collection
  */
 export async function getSellers(): Promise<any[]> {
+  const cacheKey = 'all-sellers';
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   try {
+    if (!db) throw new Error("Firestore not initialized");
     const q = query(collection(db, 'sellers'), orderBy('created_at', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (err) {
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setCached(cacheKey, data);
+    return data;
+  } catch (err: any) {
+    if (err.message?.includes('quota')) quotaExceeded = true;
     console.error('Error fetching sellers:', err);
     return [];
   }
@@ -177,11 +270,19 @@ export async function getSellers(): Promise<any[]> {
  * Fetch products by seller name
  */
 export async function getProductsBySeller(sellerName: string): Promise<any[]> {
+  const cacheKey = `seller-products-${sellerName}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   try {
+    if (!db) throw new Error("Firestore not initialized");
     const q = query(collection(db, 'products'), where('seller', '==', sellerName));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (err) {
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setCached(cacheKey, data);
+    return data;
+  } catch (err: any) {
+    if (err.message?.includes('quota')) quotaExceeded = true;
     console.error('Error fetching seller products:', err);
     return [];
   }
@@ -199,6 +300,9 @@ export async function saveProductReview(productId: string, userName: string, rat
   // Add to local storage for instant render before server gets it or as a fallback
   const savedLocal = JSON.parse(localStorage.getItem(`reviews-${productId}`) || '[]');
   localStorage.setItem(`reviews-${productId}`, JSON.stringify([localNewReview, ...savedLocal]));
+
+  // Clear cache to show new review
+  delete memoryCache[`reviews-${productId}`];
 
   try {
     const docRef = await addDoc(collection(db, 'reviews'), {

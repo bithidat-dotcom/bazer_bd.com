@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { Seller } from '../types';
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram, Share2, Copy, Send } from 'lucide-react';
 import { formatPrice } from '../lib/utils';
 import ProductCard from './ProductCard';
 import { getProductLikesState, toggleProductLike, getProductReviews, saveProductReview } from '../lib/db-sync';
@@ -38,6 +38,8 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
@@ -143,12 +145,14 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   // Reset state when product changes
   useEffect(() => {
     setCurrentImageIndex(0);
     setQuantity(1);
     setReviewSuccess(false);
+    setShowAllReviews(false);
     setNewUserName('');
     setNewComment('');
     setNewRating(5);
@@ -283,6 +287,27 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
     const nextState = await toggleProductLike(product.id);
     setIsLiked(nextState.userLiked);
     setLikesCount(nextState.totalLikes);
+  };
+
+  // Handle Sharing
+  const handleShare = (platform: 'whatsapp' | 'facebook' | 'copy' | 'instagram') => {
+    const shareUrl = `${window.location.origin}?p=${product.id}`;
+    const shareText = `Check out this ${product.name} on pbazar for only ${formatPrice(discountedPrice)}! %0A`;
+    
+    if (platform === 'whatsapp') {
+      window.open(`https://wa.me/?text=${shareText}${shareUrl}`, '_blank');
+    } else if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank');
+    } else if (platform === 'copy') {
+      navigator.clipboard.writeText(shareUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } else if (platform === 'instagram') {
+      // Instagram doesn't have a direct share URL for external content via web
+      // We'll just copy the link for the user
+      navigator.clipboard.writeText(shareUrl);
+      window.alert("Instagram doesn't support direct web sharing. The link has been copied to your clipboard—you can now paste it in your Instagram messages or story!");
+    }
   };
 
   // Handle Review Submission
@@ -558,18 +583,87 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-display font-black text-slate-900 leading-tight">
                   {product.name}
                 </h2>
-                <button
-                  type="button"
-                  onClick={toggleLike}
-                  className={`p-2.5 rounded-2xl border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
-                    isLiked 
-                      ? 'bg-rose-50 text-rose-600 border-rose-200 shadow-xs' 
-                      : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-rose-500 hover:bg-rose-50'
-                  }`}
-                  title={isLiked ? "Unlike product" : "Like product"}
-                >
-                  <Heart size={20} className={`${isLiked ? 'fill-rose-500' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsShareOpen(!isShareOpen)}
+                      className={`p-2.5 rounded-2xl border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                        isShareOpen 
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-lg' 
+                          : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Share2 size={20} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isShareOpen && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                          className="absolute right-0 top-full mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 min-w-[200px]"
+                        >
+                          <div className="p-3 border-b border-slate-50 mb-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Share on pbazar</p>
+                          </div>
+                          <div className="grid grid-cols-1 gap-1">
+                            <button 
+                              onClick={() => handleShare('whatsapp')}
+                              className="flex items-center gap-3 w-full p-3 hover:bg-emerald-50 rounded-2xl transition-colors group cursor-pointer"
+                            >
+                              <div className="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                                <Send size={16} />
+                              </div>
+                              <span className="text-xs font-black text-slate-700">WhatsApp</span>
+                            </button>
+                            <button 
+                              onClick={() => handleShare('facebook')}
+                              className="flex items-center gap-3 w-full p-3 hover:bg-blue-50 rounded-2xl transition-colors group cursor-pointer"
+                            >
+                              <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                <Facebook size={16} />
+                              </div>
+                              <span className="text-xs font-black text-slate-700">Facebook</span>
+                            </button>
+                            <button 
+                              onClick={() => handleShare('instagram')}
+                              className="flex items-center gap-3 w-full p-3 hover:bg-pink-50 rounded-2xl transition-colors group cursor-pointer"
+                            >
+                              <div className="w-8 h-8 bg-pink-100 rounded-xl flex items-center justify-center text-pink-600 group-hover:bg-pink-600 group-hover:text-white transition-all">
+                                <Instagram size={16} />
+                              </div>
+                              <span className="text-xs font-black text-slate-700">Instagram</span>
+                            </button>
+                            <button 
+                              onClick={() => handleShare('copy')}
+                              className="flex items-center gap-3 w-full p-3 hover:bg-slate-50 rounded-2xl transition-colors group cursor-pointer"
+                            >
+                              <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                                {copySuccess ? <CheckCircle size={16} /> : <Copy size={16} />}
+                              </div>
+                              <span className="text-xs font-black text-slate-700">{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={toggleLike}
+                    className={`p-2.5 rounded-2xl border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                      isLiked 
+                        ? 'bg-rose-50 text-rose-600 border-rose-200 shadow-xs' 
+                        : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-rose-500 hover:bg-rose-50'
+                    }`}
+                    title={isLiked ? "Unlike product" : "Like product"}
+                  >
+                    <Heart size={20} className={`${isLiked ? 'fill-rose-500' : ''}`} />
+                  </button>
+                </div>
               </div>
               
               <div className="flex items-center justify-between gap-4 mb-4">
@@ -577,7 +671,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                   <span className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
                       {formatPrice(discountedPrice)}
                   </span>
-                  {hasDiscount && (
+                  {hasDiscount && product.price > 0 && (
                       <span className="text-base sm:text-lg text-slate-400 line-through mb-1">
                           {formatPrice(product.price)}
                       </span>
@@ -1022,7 +1116,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                     </button>
                   </div>
                 </form>
-
+                
                 {/* List of Reviews */}
                 <div className="space-y-4">
                   {reviews.length === 0 ? (
@@ -1030,35 +1124,47 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       Be the first to review this product!
                     </div>
                   ) : (
-                    reviews.map((r) => (
-                      <div key={r.id} className="border-b border-slate-100 pb-4 last:border-0">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-600 shrink-0">
-                              <User2 size={16} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-800">{r.userName}</p>
-                              <div className="flex items-center gap-0.5">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star 
-                                    key={i} 
-                                    size={12} 
-                                    className={i < r.rating ? 'fill-slate-900 text-slate-900' : 'text-slate-200'} 
-                                  />
-                                ))}
+                    <>
+                      {(showAllReviews ? reviews : reviews.slice(0, 2)).map((r) => (
+                        <div key={r.id} className="border-b border-slate-100 pb-4 last:border-0">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-600 shrink-0">
+                                <User2 size={16} />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-slate-800">{r.userName}</p>
+                                <div className="flex items-center gap-0.5">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star 
+                                      key={i} 
+                                      size={12} 
+                                      className={i < r.rating ? 'fill-slate-900 text-slate-900' : 'text-slate-200'} 
+                                    />
+                                  ))}
+                                </div>
                               </div>
                             </div>
+                            <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                              {r.createdAt}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                            {r.createdAt}
-                          </span>
+                          <p className="text-slate-600 text-sm pl-10 whitespace-pre-line leading-relaxed">
+                            {r.comment}
+                          </p>
                         </div>
-                        <p className="text-slate-600 text-sm pl-10 whitespace-pre-line leading-relaxed">
-                          {r.comment}
-                        </p>
-                      </div>
-                    ))
+                      ))}
+
+                      {reviews.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllReviews(!showAllReviews)}
+                          className="w-full py-3 mt-2 border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-widest shadow-sm"
+                        >
+                          {showAllReviews ? 'See Less' : `See All Reviews (${reviews.length})`}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -28,44 +28,6 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
   const [hasSearched, setHasSearched] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-
-  useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
-  }, []);
-
-  const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
-      alert('Your browser or device does not support standard push notifications.');
-      return;
-    }
-    
-    // Check if we are currently embedded inside an iframe (like the AI Studio development panel)
-    const isFrame = window.self !== window.top;
-    if (isFrame) {
-      alert("⚠️ IFrame Security Active!\n\nModern mobile browsers block standard Notification prompts inside nested preview windows (iframes).\n\nPlease click the 'Open in a new tab' button at the top-right of your screen to run the app standalone and successfully trigger mobile alerts!");
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      if (permission === 'granted') {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
-        audio.play().catch(() => {});
-        new Notification('Alerts Armed! 🔔', {
-          body: 'Notifications are now configured for Order Confirmation, Packing, and Shipping!',
-          icon: 'https://i.postimg.cc/KvqR53hq/download-(1).png',
-        });
-      } else if (permission === 'denied') {
-        alert("Notification permission was denied or blocked. Please go to your browser's site settings to unlock notifications for this shop.");
-      }
-    } catch (err: any) {
-      console.warn("Permission request failed, likely due to security scope or frame constraints:", err);
-      alert("⚠️ Permissions Blocked inside Preview Panel!\n\nPlease open this app in a Standalone Tab (click the outbound arrow on top right) and retry to successfully arm mobile status notifications.");
-    }
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -176,32 +138,6 @@ export default function TrackingModal({ isOpen, onClose, user }: TrackingModalPr
         </div>
 
         <div className="p-6 md:p-8 overflow-y-auto flex-1 scroll-smooth">
-          {/* Custom Notification Permission Banner */}
-          {('Notification' in window) && notificationPermission !== 'granted' && (
-            <div className="mb-6 p-4 bg-orange-50 border border-orange-150 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-left">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                  <span className="animate-bounce">🔔</span>
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-800">Enable Mobile Order Alerts</h4>
-                  <p className="text-[10px] sm:text-xs text-slate-500 font-medium">Receive immediate notifications on your android or mobile screen when order is packing, shipping, or confirmed!</p>
-                  {window.self !== window.top && (
-                    <span className="inline-block mt-1 text-[9.5px] text-orange-600 font-bold bg-orange-100/60 px-1.5 py-0.5 rounded border border-orange-200">
-                      ⚠️ Security Notice: Standard browser view blocks prompt. Click "Open in standard tab icon" at page top right to enable!
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={requestNotificationPermission}
-                className="w-full sm:w-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[10px] sm:text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
-              >
-                Enable Alerts
-              </button>
-            </div>
-          )}
           {!user && (
             <form onSubmit={fetchOrders} className="mb-8">
               <label className="block text-sm font-bold text-slate-700 mb-2">

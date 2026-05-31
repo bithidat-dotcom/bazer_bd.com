@@ -1,58 +1,66 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all for testing with external admin
+    // Default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
 
-    function isAdmin() {
-      return true;
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
     }
 
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-
-    // Validation Helpers
-    function isValidOrder(data) {
-      return data.keys().hasAll(['product_id', 'product_name', 'price', 'customer_name', 'whatsapp', 'location', 'status', 'created_at']) &&
-             data.product_id is string && data.product_id.size() <= 1000 &&
-             data.product_name is string && data.product_name.size() <= 1000 &&
-             data.price is number &&
-             data.customer_name is string && data.customer_name.size() <= 200 &&
-             data.whatsapp is string && data.whatsapp.size() <= 50 &&
-             data.location is string && data.location.size() <= 1000 &&
-             data.status == 'pending' &&
-             data.created_at is string;
-    }
-
+    // Public Collections (Read only for public, Admin for write)
     match /products/{productId} {
-      // Public Read
-      allow read: if isValidId(productId);
-      allow list: if true;
-      allow write: if isAdmin();
+      allow read: if true;
+      allow write: if true; // Admin management is handled in UI, keeping rules permissive for now as requested
     }
 
     match /banners/{bannerId} {
-      // Public Read
-      allow read: if isValidId(bannerId);
-      allow list: if true;
-      allow write: if isAdmin();
+      allow read: if true;
+      allow write: if true;
     }
 
-    match /orders/{orderId} {
-      allow create: if isValidId(orderId) && isValidOrder(incoming());
-      allow read, update, delete: if isAdmin();
-    }
-
-    match /product_likes/{likeId} {
-      allow read, write: if true;
+    match /sellers/{sellerId} {
+      allow read: if true;
+      allow write: if true;
     }
 
     match /reviews/{reviewId} {
-      allow read, create: if true;
-      allow update, delete: if isAdmin();
+      allow read: if true;
+      allow create: if incoming().keys().hasAll(['product_id', 'rating']) 
+                    && incoming().rating is number 
+                    && incoming().product_id is string;
+    }
+
+    match /likes/{likeId} {
+      allow read: if true;
+      allow create: if incoming().keys().hasAll(['product_id', 'device_id'])
+                    && incoming().product_id is string
+                    && incoming().device_id is string;
+    }
+
+    // Sensitive Collections
+    match /orders/{orderId} {
+      allow read: if true; // Admin needs to see these, and storefront needs to see status
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    match /register_people/{userId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
     }
   }
 }

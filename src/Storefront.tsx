@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2 } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
@@ -12,10 +12,11 @@ import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
 import SellerModal from './components/SellerModal';
 import AuthModal, { UserProfile } from './components/AuthModal';
+import PolicyModal from './components/PolicyModal';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
-import { getSellers } from './lib/db-sync';
+import { getSellers, isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from './lib/db-sync';
 import { formatWhatsappNumber } from './lib/utils';
 
 export default function Storefront() {
@@ -30,14 +31,35 @@ export default function Storefront() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [priceFilter, setPriceFilter] = useState<{min: number, max: number} | null>(null);
+  const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high'>('newest');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+
+  // Deep Linking: Auto-open product from URL parameter ?p=ID
+  useEffect(() => {
+    if (products.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('p');
+      if (productId) {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+          setSelectedProduct(product);
+          // Remove the parameter from URL without refreshing to keep it clean
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+        }
+      }
+    }
+  }, [products]);
 
   const categories = [
     { name: 'All', icon: LayoutGrid },
@@ -52,6 +74,9 @@ export default function Storefront() {
   ];
 
   useEffect(() => {
+    // Cleanup: Remove old "hide" functionality data to restore all products
+    localStorage.removeItem('hidden_products');
+    
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
@@ -66,6 +91,19 @@ export default function Storefront() {
     
     let unsubProd = () => {};
     let unsubBanner = () => {};
+
+    const loadFallbacks = () => {
+      const savedProducts = localStorage.getItem('cached_products');
+      const savedBanners = localStorage.getItem('cached_banners');
+      if (savedProducts) setProducts(JSON.parse(savedProducts));
+      if (savedBanners) setBanners(JSON.parse(savedBanners));
+      setLoading(false);
+    };
+
+    if (isFirestoreQuotaExceeded()) {
+      loadFallbacks();
+      return;
+    }
 
     try {
       unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
@@ -92,11 +130,17 @@ export default function Storefront() {
         });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setProducts(prodData);
+        localStorage.setItem('cached_products', JSON.stringify(prodData));
         setLoading(false);
-      }, (error) => {
+      }, (error: any) => {
         console.error('Firebase product error', error);
-        setError(error.message);
-        setLoading(false);
+        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+          setFirestoreQuotaExceeded(true);
+          loadFallbacks();
+        } else {
+          setError(error.message);
+          setLoading(false);
+        }
       });
 
       unsubBanner = onSnapshot(query(collection(db, 'banners')), (snapshot) => {
@@ -111,8 +155,12 @@ export default function Storefront() {
         });
         bannerData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setBanners(bannerData);
-      }, (error) => {
+        localStorage.setItem('cached_banners', JSON.stringify(bannerData));
+      }, (error: any) => {
         console.error('Firebase banner error', error);
+        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+          setFirestoreQuotaExceeded(true);
+        }
       });
 
       // Fetch sellers
@@ -236,6 +284,11 @@ export default function Storefront() {
       const qW = query(collection(db, 'orders'), where('whatsapp', '==', savedWhatsapp));
       unsubWhatsapp = onSnapshot(qW, (snapshot) => {
         processSnapshot(snapshot.docs);
+      }, (error: any) => {
+        console.error('Order notification error (Whatsapp):', error.message);
+        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+            setFirestoreQuotaExceeded(true);
+        }
       });
     }
 
@@ -243,6 +296,11 @@ export default function Storefront() {
       const qU = query(collection(db, 'orders'), where('customer_username', '==', usernameKey));
       unsubUsername = onSnapshot(qU, (snapshot) => {
         processSnapshot(snapshot.docs);
+      }, (error: any) => {
+        console.error('Order notification error (Username):', error.message);
+        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+            setFirestoreQuotaExceeded(true);
+        }
       });
     }
 
@@ -262,9 +320,65 @@ export default function Storefront() {
       const matchCategory = categoryFilter ? (
         String(p.category || '').toLowerCase() === categoryFilter.toLowerCase()
       ) : true;
-      return matchSearch && matchDiscount && matchCategory;
+      
+      const price = p.discount ? p.price * (1 - p.discount/100) : p.price;
+      const matchPrice = priceFilter ? (price >= priceFilter.min && price <= priceFilter.max) : true;
+      
+      return matchSearch && matchDiscount && matchCategory && matchPrice;
     });
-    setFilteredProducts(filtered);
+
+    // Sorting
+    const sorted = [...filtered].sort((a, b) => {
+      const priceA = a.discount ? a.price * (1 - a.discount/100) : a.price;
+      const priceB = b.discount ? b.price * (1 - b.discount/100) : b.price;
+      
+      if (sortBy === 'price-low') return priceA - priceB;
+      if (sortBy === 'price-high') return priceB - priceA;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
+    setFilteredProducts(sorted);
+
+    // Calculate Recommendations (For You Section)
+    const calculateRecommendations = () => {
+      const favIds = JSON.parse(localStorage.getItem('favorites') || '[]');
+      
+      const likedProducts = products.filter(p => favIds.includes(p.id));
+      const likedCategories = Array.from(new Set(likedProducts.map(p => p.category)));
+      
+      let recs: Product[] = [];
+      
+      if (likedCategories.length > 0) {
+        // Diversified Algorithm: 
+        // 60% from liked categories, 40% discovery (top rated/new from others)
+        const inCat = products.filter(p => 
+          likedCategories.includes(p.category) && 
+          !favIds.includes(p.id)
+        ).sort(() => 0.5 - Math.random());
+        
+        const outCat = products.filter(p => 
+          !likedCategories.includes(p.category) && 
+          !favIds.includes(p.id)
+        ).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+        recs = [...inCat.slice(0, 6), ...outCat.slice(0, 6)];
+      } else {
+        // If no favorites yet, show top rated categories diversity
+        recs = products
+          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+          .slice(0, 10);
+      }
+      
+      // Final shuffle for fresh feel
+      setRecommendedProducts(recs.sort(() => 0.5 - Math.random()));
+    };
+
+    calculateRecommendations();
+    
+    // Add event listener for favorite updates to refresh recommendations
+    const handleFavUpdate = () => calculateRecommendations();
+    window.addEventListener('favorites-updated', handleFavUpdate);
+    return () => window.removeEventListener('favorites-updated', handleFavUpdate);
   }, [searchQuery, products, discountFilter, categoryFilter]);
 
 
@@ -461,7 +575,7 @@ export default function Storefront() {
         </div>
 
         {/* Category Buttons */}
-        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-2 mb-8 overflow-x-auto pb-4 scrollbar-hidden">
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hidden">
           {categories.map((cat) => (
             <button
               key={cat.name}
@@ -473,6 +587,74 @@ export default function Storefront() {
             </button>
           ))}
         </div>
+
+        {/* Quick Filters Row */}
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3 mb-8 overflow-x-auto pb-4 scrollbar-hidden items-center">
+            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl shrink-0">
+                <button 
+                  onClick={() => setSortBy('newest')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${sortBy === 'newest' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >Newest</button>
+                <button 
+                   onClick={() => setSortBy('price-low')}
+                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${sortBy === 'price-low' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >Price ↓</button>
+                <button 
+                   onClick={() => setSortBy('price-high')}
+                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${sortBy === 'price-high' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >Price ↑</button>
+            </div>
+
+            <div className="flex gap-2 shrink-0">
+                {[
+                    {label: "Under 500", min: 0, max: 500},
+                    {label: "500 - 1000", min: 500, max: 1000},
+                    {label: "1000 - 5000", min: 1000, max: 5000},
+                    {label: "Above 5000", min: 5000, max: 100000}
+                ].map(price => (
+                    <button
+                      key={price.label}
+                      onClick={() => setPriceFilter(priceFilter?.label === price.label ? null : price as any)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap ${priceFilter?.label === price.label ? 'border-orange-500 bg-orange-50 text-orange-600' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                    >
+                        {price.label} ৳
+                    </button>
+                ))}
+            </div>
+            
+            {(priceFilter || sortBy !== 'newest') && (
+                <button 
+                  onClick={() => {setPriceFilter(null); setSortBy('newest');}}
+                  className="px-3 py-1.5 text-xs font-bold text-red-500 hover:text-red-600 shrink-0"
+                >Clear All</button>
+            )}
+        </div>
+
+        {/* Recommended For You Section */}
+        {recommendedProducts.length > 0 && !categoryFilter && !searchQuery && (
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-5">
+               <div className="flex items-center gap-2">
+                 <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
+                    <Sparkles className="text-orange-600" size={18} />
+                 </div>
+                 <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Recommended For You</h2>
+               </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hidden -mx-4 px-4 sm:-mx-8 sm:px-8">
+              {recommendedProducts.map(product => (
+                <div key={product.id} className="w-[180px] sm:w-[220px] lg:w-[260px] shrink-0">
+                  <ProductCard 
+                    product={product} 
+                    onBuy={handleBuyNow} 
+                    onAddToCart={handleAddToCart}
+                    onClick={setSelectedProduct}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Top Sellers Section */}
         {sellers.length > 0 && (
@@ -597,6 +779,7 @@ export default function Storefront() {
             </span>
             <div className="flex gap-6 items-center">
               <a href="#" className="hover:text-black transition-colors">Instagram: @quats.co</a>
+              <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Official Policy</button>
               <a href="#" className="hover:text-black transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-black transition-colors">Terms & Conditions</a>
             </div>
@@ -654,6 +837,11 @@ export default function Storefront() {
         onAddToCart={handleAddToCart}
         onBuyNow={handleBuyNow}
         onProductClick={setSelectedProduct}
+      />
+
+      <PolicyModal 
+        isOpen={isPolicyOpen}
+        onClose={() => setIsPolicyOpen(false)}
       />
 
       <WhatsappSupport />

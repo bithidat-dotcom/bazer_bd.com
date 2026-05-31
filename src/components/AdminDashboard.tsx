@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { setFirestoreQuotaExceeded } from '../lib/db-sync';
 import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -109,6 +110,11 @@ export default function AdminDashboard() {
       const chartData = Object.entries(dailySales).map(([name, total]) => ({ name, total }));
       setSalesData(chartData.slice(-7)); // Last 7 days
       setLoading(false);
+    }, (error: any) => {
+      console.error('Orders snapshot error:', error);
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     // Listener for users (register_people collection)
@@ -116,6 +122,11 @@ export default function AdminDashboard() {
       const usersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setUsers(usersData);
       setLoading(false);
+    }, (error: any) => {
+      console.error('Users snapshot error:', error);
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     // Listener for products
@@ -141,6 +152,11 @@ export default function AdminDashboard() {
       });
       setProducts(productsData);
       setLoading(false);
+    }, (error: any) => {
+      console.error('Products snapshot error:', error);
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     // Listener for sellers
@@ -148,6 +164,11 @@ export default function AdminDashboard() {
       const sellersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setSellers(sellersData);
       setLoading(false);
+    }, (error: any) => {
+      console.error('Sellers snapshot error:', error);
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     return () => {

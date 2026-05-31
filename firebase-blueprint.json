@@ -2,138 +2,125 @@
   "entities": {
     "Product": {
       "title": "Product",
-      "description": "Storefront product",
+      "description": "Store items for sale",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
         "name": { "type": "string" },
         "price": { "type": "number" },
-        "description": { "type": "string" },
+        "discount": { "type": "number" },
+        "category": { "type": "string" },
         "image": { "type": "string" },
         "images": { "type": "array", "items": { "type": "string" } },
-        "discount": { "type": "number" },
-        "rating": { "type": "number" },
-        "reviewCount": { "type": "number" },
-        "created_at": { "type": "string" },
+        "description": { "type": "string" },
         "stock": { "type": "number" },
-        "total_stock": { "type": "number" }
+        "ram": { "type": "string" },
+        "storage": { "type": "string" },
+        "screen_hz": { "type": "string" },
+        "battery": { "type": "string" },
+        "watt_amp": { "type": "string" },
+        "discountTimelineHours": { "type": "number" },
+        "flashSaleEnd": { "type": "string" },
+        "seller": { "type": "string" },
+        "seller_whatsapp": { "type": "string" },
+        "seller_logo": { "type": "string" },
+        "rating": { "type": "number" },
+        "created_at": { "type": "string" }
       },
-      "required": ["id", "name", "price", "image", "created_at"]
+      "required": ["name", "price"]
     },
-    "RegisteredUser": {
-      "title": "RegisteredUser",
-      "description": "Information about a registered customer",
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase records",
       "type": "object",
       "properties": {
-        "uid": { "type": "string" },
-        "username": { "type": "string" },
-        "email": { "type": "string" },
-        "password": { "type": "string" },
+        "product_id": { "type": "string" },
+        "product_name": { "type": "string" },
+        "price": { "type": "number" },
+        "customer_name": { "type": "string" },
+        "customer_username": { "type": "string" },
+        "customer_uid": { "type": "string" },
+        "customer_image": { "type": "string" },
         "whatsapp": { "type": "string" },
         "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "packing", "shipping", "delivery", "completed", "cancelled", "cancelled_admin"] },
+        "created_at": { "type": "string" }
+      },
+      "required": ["product_name", "price", "customer_name", "whatsapp"]
+    },
+    "Seller": {
+      "title": "Seller",
+      "description": "Vendor profiles",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "logo": { "type": "string" },
+        "facebook": { "type": "string" },
+        "tiktok": { "type": "string" },
+        "instagram": { "type": "string" },
+        "is_top": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Registered shoppers",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "location": { "type": "string" },
+        "uid": { "type": "string" },
         "profileImage": { "type": "string" },
         "created_at": { "type": "string" }
       },
-      "required": ["uid", "username", "email", "created_at"]
+      "required": ["uid"]
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Promotional carousel images",
+      "type": "object",
+      "properties": {
+        "image": { "type": "string" },
+        "title": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["image"]
     },
     "Review": {
       "title": "Review",
-      "description": "Product review by customer",
+      "description": "Product ratings and comments",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
         "product_id": { "type": "string" },
         "user_name": { "type": "string" },
         "rating": { "type": "number" },
         "comment": { "type": "string" },
         "created_at": { "type": "string" }
       },
-      "required": ["id", "product_id", "user_name", "rating", "comment", "created_at"]
+      "required": ["product_id", "rating"]
     },
-    "Banner": {
-      "title": "Banner",
-      "description": "Storefront promotional banner",
+    "Like": {
+      "title": "Like",
+      "description": "Product likes tracking",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "image": { "type": "string" },
-        "title": { "type": "string" },
-        "created_at": { "type": "string" }
-      },
-      "required": ["id", "image", "created_at"]
-    },
-    "Order": {
-      "title": "Order",
-      "description": "Customer order",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
         "product_id": { "type": "string" },
-        "product_name": { "type": "string" },
-        "price": { "type": "number" },
-        "customer_name": { "type": "string" },
-        "customer_uid": { "type": "string" },
-        "whatsapp": { "type": "string" },
-        "location": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "confirmed"] },
+        "device_id": { "type": "string" },
         "created_at": { "type": "string" }
       },
-      "required": ["id", "product_id", "product_name", "price", "customer_name", "whatsapp", "location", "status", "created_at"]
-    },
-    "Chat": {
-      "title": "Chat",
-      "description": "Conversation between customer and admin",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "customer_username": { "type": "string" },
-        "last_message": { "type": "string" },
-        "updated_at": { "type": "string" },
-        "unread_count": { "type": "number" }
-      },
-      "required": ["id", "customer_username", "updated_at"]
-    },
-    "Message": {
-      "title": "Message",
-      "description": "Individual chat message",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "text": { "type": "string" },
-        "sender": { "type": "string", "enum": ["customer", "admin"] },
-        "created_at": { "type": "string" }
-      },
-      "required": ["id", "text", "sender", "created_at"]
+      "required": ["product_id", "device_id"]
     }
   },
   "firestore": {
-    "/products/{productId}": {
-      "schema": { "$ref": "#/entities/Product" },
-      "description": "Publicly readable products, writable by admins."
-    },
-    "/banners/{bannerId}": {
-      "schema": { "$ref": "#/entities/Banner" },
-      "description": "Publicly readable banners, writable by admins."
-    },
-    "/orders/{orderId}": {
-      "schema": { "$ref": "#/entities/Order" },
-      "description": "Customer orders, created by anyone, read/writable by admins."
-    },
-    "/chats/{chatId}": {
-      "schema": { "$ref": "#/entities/Chat" },
-      "description": "Chat sessions for customer support."
-    },
-    "/chats/{chatId}/messages/{messageId}": {
-      "schema": { "$ref": "#/entities/Message" },
-      "description": "Messages within a chat session."
-    },
-    "/register_people/{userId}": {
-      "schema": { "$ref": "#/entities/RegisteredUser" },
-      "description": "Publicly readable registrations (for admin), writable by user."
-    },
-    "/reviews/{reviewId}": {
-      "schema": { "$ref": "#/entities/Review" },
-      "description": "Publicly readable reviews, writable by anyone."
-    }
+    "products": { "schema": "Product", "description": "Global catalog" },
+    "orders": { "schema": "Order", "description": "Customer orders" },
+    "sellers": { "schema": "Seller", "description": "Merchant profiles" },
+    "register_people": { "schema": "User", "description": "User profiles" },
+    "banners": { "schema": "Banner", "description": "Store banners" },
+    "reviews": { "schema": "Review", "description": "Product reviews" },
+    "likes": { "schema": "Like", "description": "Product likes" }
   }
 }

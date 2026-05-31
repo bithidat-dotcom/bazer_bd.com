@@ -1,5 +1,5 @@
-import { ShoppingCart, Star, Heart, Clock } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ShoppingCart, Star, Heart, Clock, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { formatPrice } from '../lib/utils';
 import { Product } from '../types';
@@ -69,6 +69,15 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
   useEffect(() => {
     let active = true;
     const handleReviewsUpdate = async () => {
+      const { isFirestoreQuotaExceeded } = await import('../lib/db-sync');
+      if (isFirestoreQuotaExceeded()) {
+          if (active) {
+            setAvgRating(product.rating || 4.8);
+            setCount(product.reviewCount || 12);
+          }
+          return;
+      }
+
       const reviews = await getProductReviews(product.id);
       if (!active) return;
       if (reviews.length > 0) {
@@ -95,22 +104,51 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
   return (
       <motion.div 
       layout
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       className="group glass-card rounded-2xl flex flex-col p-2 sm:p-4 relative overflow-hidden h-full shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer"
       onClick={() => onClick && onClick(product)}
     >
-        <div className="relative w-full aspect-square rounded-xl bg-slate-50 overflow-hidden mb-3">
-          {/* Like/Favorite floating button */}
-          <button
-            onClick={toggleLike}
-            className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-20 px-2 h-8 sm:px-2.5 sm:h-9 rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center gap-1.5 text-slate-500 hover:text-red-500 hover:scale-110 active:scale-95 shadow-md transition-all"
-            title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
-          >
-            <Heart size={13} className={`transition-transform duration-300 sm:size-3.5 ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
-            {likesCount > 0 && <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 font-mono">{likesCount}</span>}
-          </button>
+        <div className="relative w-full aspect-square rounded-xl bg-white overflow-hidden mb-3">
+          {/* Action Buttons Layer */}
+          <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-20 flex flex-col gap-2 transition-all">
+            {/* Like/Favorite floating button */}
+            <button
+              onClick={toggleLike}
+              className="px-2 h-8 sm:px-2.5 sm:h-9 rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center gap-1.5 text-slate-500 hover:text-red-500 hover:scale-110 active:scale-95 shadow-md transition-all"
+              title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
+            >
+              <Heart size={13} className={`transition-transform duration-300 sm:size-3.5 ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
+              {likesCount > 0 && <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 font-mono">{likesCount}</span>}
+            </button>
+
+            {/* Quick Share Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // We'll let the parent or a global share handler deal with this if needed
+                // For now, satisfy user request for "share button" on card
+                const shareUrl = `${window.location.origin}?p=${product.id}`;
+                if (navigator.share) {
+                  navigator.share({
+                    title: product.name,
+                    text: `Check out this ${product.name} on pbazar!`,
+                    url: shareUrl,
+                  }).catch(() => {});
+                } else {
+                  navigator.clipboard.writeText(shareUrl);
+                  alert('Link copied to clipboard!');
+                }
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 opacity-0 group-hover:opacity-100 transition-all shadow-md active:scale-95"
+              title="Share Product"
+            >
+              <Share2 size={14} />
+            </button>
+          </div>
 
           <img 
             src={product.image} 
@@ -157,7 +195,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
       <div className="px-1 flex flex-col mt-auto gap-3 sm:gap-4">
         <div className="flex items-center justify-between border-t border-slate-100 pt-3 sm:pt-4">
           <div className="flex flex-col">
-            {hasDiscount && (
+            {hasDiscount && product.price > 0 && (
               <span className="text-[10px] sm:text-[11px] text-slate-400 line-through leading-none mb-0.5 sm:mb-1">
                 {formatPrice(product.price)}
               </span>

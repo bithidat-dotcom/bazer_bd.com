@@ -25,20 +25,22 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
   if (!currentBanner) return null;
 
   return (
-    <div className="relative w-full aspect-[2/1] sm:aspect-[21/9] lg:aspect-[3/1] overflow-hidden rounded-2xl group shadow-sm border border-slate-200 bg-slate-50">
+    <div className="relative w-full aspect-[3/2] sm:aspect-[21/9] lg:aspect-[3/1] overflow-hidden rounded-3xl group">
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}
-           initial={{ opacity: 0, scale: 1.02 }}
-           animate={{ opacity: 1, scale: 1 }}
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
            exit={{ opacity: 0 }}
-           transition={{ duration: 1 }}
-           className="absolute inset-0 flex items-center justify-center bg-slate-100"
+           transition={{ duration: 0.8 }}
+           className="absolute inset-0 flex items-center justify-center overflow-hidden"
         >
+          {/* Main image - fully visible and centered */}
           <img 
             src={currentBanner.image} 
             alt={currentBanner.title || "Promo Banner"}
-            className="w-full h-full object-cover"
+            className="relative z-10 w-full h-full object-contain"
+            referrerPolicy="no-referrer"
           />
         </motion.div>
       </AnimatePresence>

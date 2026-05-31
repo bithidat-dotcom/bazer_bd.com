@@ -98,7 +98,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="w-full h-[85vh] md:h-auto md:max-w-md overflow-hidden bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col relative z-10 pt-4 md:pt-0"
+              className="w-full h-full md:h-auto md:max-w-md overflow-hidden bg-white rounded-none md:rounded-3xl shadow-2xl flex flex-col relative z-10 pt-4 md:pt-0"
             >
               {/* Header */}
               <div className="bg-slate-900 p-6 relative shrink-0">
@@ -192,7 +192,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 220 }}
-            className="w-full h-[85vh] md:h-auto md:max-w-md overflow-hidden bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col relative z-10 pt-4 md:pt-0"
+            className="w-full h-full md:h-auto md:max-w-md overflow-hidden bg-white rounded-none md:rounded-3xl shadow-2xl flex flex-col relative z-10 pt-4 md:pt-0"
           >
             {/* Header */}
             <div className="bg-slate-900 p-6 relative shrink-0">
@@ -227,7 +227,15 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                           : item.product.price;
                           
                         return (
-                          <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                          <div key={idx} className="flex gap-3 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                            <div className="w-16 h-16 rounded-lg bg-slate-50 overflow-hidden shrink-0">
+                                <img 
+                                  src={item.product.image} 
+                                  alt={item.product.name} 
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                            </div>
                             <div className="flex-1 min-w-0 pr-4">
                               <p className="text-sm font-bold text-slate-800 truncate">{item.product.name}</p>
                               <p className="text-xs font-black text-slate-900 mt-0.5">{price.toFixed(0)} ৳</p>
