@@ -7,6 +7,7 @@ export interface Seller {
   tiktok?: string;
   instagram?: string;
   is_top?: boolean;
+  is_verified?: boolean;
   created_at: string;
 }
 
@@ -38,6 +39,7 @@ export interface Product {
   seller?: string;
   seller_whatsapp?: string;
   seller_logo?: string;
+  is_new?: boolean;
 }
 
 export interface CartItem {

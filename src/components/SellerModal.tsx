@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Phone, Instagram, User2, ShoppingBag } from 'lucide-react';
+import { X, Phone, Instagram, User2, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Seller, Product } from '../types';
 import { getProductsBySeller } from '../lib/db-sync';
@@ -70,9 +70,14 @@ export default function SellerModal({
                    )}
                 </div>
                 <div className="pb-2 flex-1">
-                  <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tighter leading-none mb-3 drop-shadow-md">
-                    {seller.name}
-                  </h2>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tighter leading-none drop-shadow-md">
+                      {seller.name}
+                    </h2>
+                    {seller.is_verified && (
+                      <CheckCircle2 size={24} className="text-blue-400 fill-blue-400/10 drop-shadow-lg" />
+                    )}
+                  </div>
                     <div className="flex flex-wrap gap-2.5">
                       {/* WhatsApp */}
                       {seller.whatsapp && seller.whatsapp.trim() !== '' && (

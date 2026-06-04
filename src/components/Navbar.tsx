@@ -1,4 +1,4 @@
-import { Search, ShoppingBag, Filter as FilterIcon, X, Package, User } from 'lucide-react';
+import { Search, ShoppingBag, Filter as FilterIcon, X, Package, User, Tv, Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { UserProfile } from './AuthModal';
@@ -18,6 +18,8 @@ export default function Navbar({
   onCategoryFilter = () => {},
   discountFilter = null,
   onDiscountFilter = () => {},
+  priceFilter = null,
+  onPriceFilter = () => {},
   products = []
 }: { 
   onSearch: (query: string) => void, 
@@ -33,6 +35,8 @@ export default function Navbar({
   onCategoryFilter?: (cat: string | null) => void,
   discountFilter?: number | null,
   onDiscountFilter?: (pct: number | null) => void,
+  priceFilter?: {min: number, max: number} | null,
+  onPriceFilter?: (filter: {min: number, max: number} | null) => void,
   products?: Product[]
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -65,6 +69,45 @@ export default function Navbar({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Dynamic Price Range Volume Slider */}
+        <div className="border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Volume2 className="w-4 h-4 text-orange-500 shrink-0" />
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Price Volume</label>
+            </div>
+            <span className="text-xs font-black text-orange-600 font-mono">
+              {!priceFilter || priceFilter.max >= 10000 
+                ? "Show All Products" 
+                : `1৳ - ${priceFilter.max}৳`
+              }
+            </span>
+          </div>
+
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            {/* Range Slider acting like a Volume button */}
+            <input 
+              type="range"
+              min="1"
+              max="10000"
+              step="100"
+              value={priceFilter ? priceFilter.max : 10000}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                if (val >= 10000) {
+                  onPriceFilter(null);
+                } else {
+                  onPriceFilter({ min: 1, max: val });
+                }
+              }}
+              className="w-full accent-orange-500 h-2 cursor-pointer appearance-none outline-none focus:ring-1 focus:ring-orange-400 bg-slate-200 rounded-lg"
+            />
+          </div>
+          <p className="text-[9px] text-slate-400 mt-1.5 font-medium leading-tight">
+            Drag the volume slider to filter products by price in real time. Pulling it to the right-most (10000৳) shows all products.
+          </p>
         </div>
       </div>
     </div>
@@ -134,14 +177,14 @@ export default function Navbar({
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)} 
               className={`h-full px-2 md:px-4 flex items-center gap-1 md:gap-2 rounded-xl md:rounded-full border transition-colors text-xs md:text-sm font-medium ${
-                isFilterOpen || categoryFilter || discountFilter 
+                isFilterOpen || categoryFilter || discountFilter || priceFilter
                   ? 'bg-orange-50 border-orange-200 text-orange-600' 
                   : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
               }`}
             >
               <FilterIcon className="w-4 h-4" />
               <span className="hidden md:inline">Filter</span>
-              {(categoryFilter || discountFilter) && (
+              {(categoryFilter || discountFilter || priceFilter) && (
                 <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-white shadow-[0_0_0_1px_orange] -mt-0.5 -mr-0.5"></span>
               )}
             </button>

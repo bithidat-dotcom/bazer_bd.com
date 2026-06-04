@@ -119,6 +119,8 @@
     "orders": { "schema": "Order", "description": "Customer orders" },
     "sellers": { "schema": "Seller", "description": "Merchant profiles" },
     "register_people": { "schema": "User", "description": "User profiles" },
+    "users": { "schema": "User", "description": "Core users" },
+    "users_secure": { "schema": "User", "description": "Fallback auth secure DB" },
     "banners": { "schema": "Banner", "description": "Store banners" },
     "reviews": { "schema": "Review", "description": "Product reviews" },
     "likes": { "schema": "Like", "description": "Product likes" }

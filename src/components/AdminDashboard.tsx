@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { setFirestoreQuotaExceeded } from '../lib/db-sync';
-import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram } from 'lucide-react';
+import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 export default function AdminDashboard() {
@@ -13,6 +13,23 @@ export default function AdminDashboard() {
   const [selectedAdminCategory, setSelectedAdminCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics' | 'sellers'>('orders');
+  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+
+  useEffect(() => {
+    // Verify server connectivity
+    const checkConnection = () => {
+      fetch('/api/health')
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'ok') setServerStatus('connected');
+          else setServerStatus('disconnected');
+        })
+        .catch(() => setServerStatus('disconnected'));
+    };
+    checkConnection();
+    const interval = setInterval(checkConnection, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Product Creation & Edit state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -40,6 +57,7 @@ export default function AdminDashboard() {
     seller: '',
     seller_whatsapp: '',
     seller_logo: '',
+    is_new: true,
   });
 
   const [sellerForm, setSellerForm] = useState({
@@ -49,13 +67,16 @@ export default function AdminDashboard() {
     facebook: '',
     tiktok: '',
     instagram: '',
-    is_top: true
+    is_top: true,
+    is_verified: false
   });
 
   const categories = [
     { name: 'All', icon: LayoutGrid },
     { name: 'Food', icon: Utensils },
     { name: 'Fashion', icon: Shirt },
+    { name: 'Electronics', icon: Tv },
+    { name: 'Beauty', icon: Sparkles },
     { name: 'Gadget', icon: Cpu },
     { name: 'Robotic', icon: Bot },
     { name: 'PC', icon: Laptop },
@@ -112,9 +133,10 @@ export default function AdminDashboard() {
       setLoading(false);
     }, (error: any) => {
       console.error('Orders snapshot error:', error);
-      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota') || error.message?.includes('permission')) {
         setFirestoreQuotaExceeded(true);
       }
+      setLoading(false);
     });
 
     // Listener for users (register_people collection)
@@ -124,9 +146,10 @@ export default function AdminDashboard() {
       setLoading(false);
     }, (error: any) => {
       console.error('Users snapshot error:', error);
-      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota') || error.message?.includes('permission')) {
         setFirestoreQuotaExceeded(true);
       }
+      setLoading(false);
     });
 
     // Listener for products
@@ -154,9 +177,10 @@ export default function AdminDashboard() {
       setLoading(false);
     }, (error: any) => {
       console.error('Products snapshot error:', error);
-      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota') || error.message?.includes('permission')) {
         setFirestoreQuotaExceeded(true);
       }
+      setLoading(false);
     });
 
     // Listener for sellers
@@ -166,9 +190,10 @@ export default function AdminDashboard() {
       setLoading(false);
     }, (error: any) => {
       console.error('Sellers snapshot error:', error);
-      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota') || error.message?.includes('permission')) {
         setFirestoreQuotaExceeded(true);
       }
+      setLoading(false);
     });
 
     return () => {
@@ -192,6 +217,36 @@ export default function AdminDashboard() {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const oldStatus = order.status;
+      const isNewCancelled = status === 'cancelled' || status === 'cancelled_admin';
+      const isOldCancelled = oldStatus === 'cancelled' || oldStatus === 'cancelled_admin';
+
+      // If transitioning to cancelled from non-cancelled
+      if (isNewCancelled && !isOldCancelled) {
+        const items = order.items || [];
+        for (const item of items) {
+          if (item.product_id) {
+            await updateDoc(doc(db, 'products', item.product_id), {
+              stock: increment(item.quantity || 1)
+            });
+          }
+        }
+      }
+      // If transitioning FROM cancelled to non-cancelled (re-activating)
+      else if (!isNewCancelled && isOldCancelled) {
+        const items = order.items || [];
+        for (const item of items) {
+          if (item.product_id) {
+            await updateDoc(doc(db, 'products', item.product_id), {
+              stock: increment(-(item.quantity || 1))
+            });
+          }
+        }
+      }
+
       await updateDoc(doc(db, 'orders', orderId), { status });
     } catch (error) {
       console.error("Error updating order:", error);
@@ -229,6 +284,7 @@ export default function AdminDashboard() {
       seller: '',
       seller_whatsapp: '',
       seller_logo: '',
+      is_new: true,
     });
     setIsProductModalOpen(true);
   };
@@ -254,6 +310,7 @@ export default function AdminDashboard() {
       seller: prod.seller || '',
       seller_whatsapp: prod.seller_whatsapp || '',
       seller_logo: prod.seller_logo || '',
+      is_new: prod.is_new !== false,
     });
     setIsProductModalOpen(true);
   };
@@ -286,6 +343,7 @@ export default function AdminDashboard() {
       seller: productForm.seller || '',
       seller_whatsapp: productForm.seller_whatsapp || '',
       seller_logo: productForm.seller_logo || '',
+      is_new: productForm.is_new,
     };
 
     try {
@@ -322,7 +380,8 @@ export default function AdminDashboard() {
       facebook: '',
       tiktok: '',
       instagram: '',
-      is_top: true
+      is_top: true,
+      is_verified: false
     });
     setIsSellerModalOpen(true);
   };
@@ -336,7 +395,8 @@ export default function AdminDashboard() {
       facebook: sel.facebook || '',
       tiktok: sel.tiktok || '',
       instagram: sel.instagram || '',
-      is_top: sel.is_top !== undefined ? sel.is_top : true
+      is_top: sel.is_top !== undefined ? sel.is_top : true,
+      is_verified: sel.is_verified || false
     });
     setIsSellerModalOpen(true);
   };
@@ -409,9 +469,23 @@ export default function AdminDashboard() {
   return (
     <div className="bg-slate-50 min-h-screen p-4 md:p-8 text-slate-800">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-          <p className="text-slate-500 font-medium text-sm mt-1">Manage your business operations</p>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
+            <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition-all h-fit ${
+              serverStatus === 'connected' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+              serverStatus === 'checking' ? 'bg-slate-50 text-slate-400 border-slate-100' : 
+              'bg-rose-50 text-rose-600 border-rose-100'
+            }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                serverStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 
+                serverStatus === 'checking' ? 'bg-slate-300' : 
+                'bg-rose-500'
+              }`} />
+              Central Server {serverStatus}
+            </div>
+          </div>
+          <p className="text-slate-500 font-medium text-sm">Manage your business operations & partner inventory</p>
         </div>
 
         {/* Scroll Banner */}
@@ -952,7 +1026,12 @@ export default function AdminDashboard() {
                           )}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900">{sel.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-slate-900">{sel.name}</p>
+                            {sel.is_verified && (
+                              <CheckCircle size={14} className="text-blue-500 fill-blue-50" />
+                            )}
+                          </div>
                           <div className="flex gap-2 mt-1">
                             {sel.whatsapp && <Phone size={12} className="text-emerald-500" />}
                             {sel.facebook && <Facebook size={12} className="text-blue-600" />}
@@ -1108,6 +1187,17 @@ export default function AdminDashboard() {
                       placeholder="https://instagram.com/..."
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none text-sm transition-all"
                     />
+                  </div>
+
+                  <div className="flex items-center gap-6 pt-2">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setSellerForm({...sellerForm, is_top: !sellerForm.is_top})}>
+                      <input type="checkbox" checked={sellerForm.is_top} readOnly className="w-4 h-4 accent-orange-600" />
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">Top Seller</span>
+                    </div>
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setSellerForm({...sellerForm, is_verified: !sellerForm.is_verified})}>
+                      <input type="checkbox" checked={sellerForm.is_verified} readOnly className="w-4 h-4 accent-blue-600" />
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">Verified Seller Badge</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1315,7 +1405,26 @@ export default function AdminDashboard() {
                     <option key={cat.name} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Selected category maps to search indices and filter buttons in user storefront</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium pb-2">Selected category maps to search indices and filter buttons in user storefront</p>
+              </div>
+
+              {/* New/Latest Product Toggle */}
+              <div className="flex items-center gap-3 bg-gradient-to-r from-orange-50/40 to-amber-50/40 p-4 rounded-xl border border-orange-100/70">
+                <input 
+                  type="checkbox" 
+                  id="is_new"
+                  checked={productForm.is_new}
+                  onChange={(e) => setProductForm({...productForm, is_new: e.target.checked})}
+                  className="w-5 h-5 accent-orange-500 rounded-lg cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="is_new" className="block text-xs font-black text-slate-800 cursor-pointer uppercase tracking-wider">
+                    Flag as New & Latest
+                  </label>
+                  <p className="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">
+                    Adds an eye-catching "NEW" animated tab to the product card
+                  </p>
+                </div>
               </div>
 
               {/* Dynamic Specs Form for Gadget/PC/Robotic */}

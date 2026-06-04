@@ -67,6 +67,15 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
     return Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
   };
 
+  if (quotaExceeded) {
+    const result = {
+      totalLikes: getFallbackCount() + (locallyLiked ? 1 : 0),
+      userLiked: locallyLiked
+    };
+    setCached(cacheKey, result);
+    return result;
+  }
+
   try {
     // Check if db is defined and potentially reach it
     if (!db) throw new Error("Firestore not initialized");
@@ -81,7 +90,11 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
       const snapshotCount = await getCountFromServer(qCount);
       totalLikes = snapshotCount.data().count || 0;
     } catch (countErr: any) {
-      console.warn("Could not fetch server count, using fallback:", countErr.message);
+      if (countErr.message?.includes('quota') || countErr.code === 'resource-exhausted') {
+        quotaExceeded = true;
+      } else {
+        console.warn("Could not fetch server count, using fallback:", countErr.message);
+      }
     }
 
     // Attempt to check self-like status
@@ -93,17 +106,20 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
         userLiked = true;
       }
     } catch (selfErr: any) {
-       console.warn("Could not fetch self-like status:", selfErr.message);
+       if (selfErr.message?.includes('quota') || selfErr.code === 'resource-exhausted') {
+         quotaExceeded = true;
+       } else {
+         console.warn("Could not fetch self-like status:", selfErr.message);
+       }
     }
 
     const result = { totalLikes, userLiked: userLiked || locallyLiked };
     setCached(cacheKey, result);
     return result;
   } catch (err: any) {
-    if (err.message?.includes('quota') || err.message?.includes('Quota')) {
+    if (err.message?.includes('quota') || err.message?.includes('Quota') || err.code === 'resource-exhausted') {
         quotaExceeded = true;
-    }
-    if (!err.message?.includes('offline') && !err.message?.includes('quota')) {
+    } else if (!err.message?.includes('offline')) {
        console.error('Error fetching likes from server:', err.message || err);
     }
     
@@ -184,6 +200,11 @@ export async function getProductReviews(productId: string): Promise<any[]> {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
+  if (quotaExceeded) {
+    const saved = localStorage.getItem(`reviews-${productId}`);
+    return saved ? JSON.parse(saved) : [];
+  }
+
   try {
     if (!db) throw new Error("Firestore not initialized");
 
@@ -213,9 +234,8 @@ export async function getProductReviews(productId: string): Promise<any[]> {
     setCached(cacheKey, finalReviews);
     return finalReviews;
   } catch (err: any) {
-    if (err.message?.includes('quota') || err.message?.includes('Quota')) {
+    if (err.message?.includes('quota') || err.message?.includes('Quota') || err.code === 'resource-exhausted') {
        quotaExceeded = true;
-       console.warn('Firestore quota exceeded for reviews. Using local fallback.');
     } else {
        console.error('Error getting product reviews:', err);
     }
@@ -230,16 +250,36 @@ export async function getProductReviews(productId: string): Promise<any[]> {
  */
 export async function getSellerInfoByName(sellerName: string): Promise<any | null> {
   if (!sellerName) return null;
+  const cacheKey = `seller-info-${sellerName}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  if (quotaExceeded) {
+    const saved = localStorage.getItem('cached_sellers');
+    if (saved) {
+      const sellers = JSON.parse(saved);
+      const found = sellers.find((s: any) => s.name === sellerName);
+      if (found) return found;
+    }
+    return null;
+  }
+
   try {
     const q = query(collection(db, 'sellers'), where('name', '==', sellerName));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
       const data = snapshot.docs[0].data();
-      return { id: snapshot.docs[0].id, ...data };
+      const result = { id: snapshot.docs[0].id, ...data };
+      setCached(cacheKey, result);
+      return result;
     }
     return null;
-  } catch (err) {
-    console.error('Error fetching seller info:', err);
+  } catch (err: any) {
+    if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
+      quotaExceeded = true;
+    } else {
+      console.error('Error fetching seller info:', err);
+    }
     return null;
   }
 }
@@ -252,17 +292,27 @@ export async function getSellers(): Promise<any[]> {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
+  if (quotaExceeded) {
+    const saved = localStorage.getItem('cached_sellers');
+    return saved ? JSON.parse(saved) : [];
+  }
+
   try {
     if (!db) throw new Error("Firestore not initialized");
     const q = query(collection(db, 'sellers'), orderBy('created_at', 'desc'));
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setCached(cacheKey, data);
+    localStorage.setItem('cached_sellers', JSON.stringify(data));
     return data;
   } catch (err: any) {
-    if (err.message?.includes('quota')) quotaExceeded = true;
-    console.error('Error fetching sellers:', err);
-    return [];
+    if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
+      quotaExceeded = true;
+    } else {
+      console.error('Error fetching sellers:', err);
+    }
+    const saved = localStorage.getItem('cached_sellers');
+    return saved ? JSON.parse(saved) : [];
   }
 }
 
@@ -274,6 +324,15 @@ export async function getProductsBySeller(sellerName: string): Promise<any[]> {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
+  if (quotaExceeded) {
+    const saved = localStorage.getItem('cached_products');
+    if (saved) {
+      const allProds = JSON.parse(saved);
+      return allProds.filter((p: any) => p.seller === sellerName);
+    }
+    return [];
+  }
+
   try {
     if (!db) throw new Error("Firestore not initialized");
     const q = query(collection(db, 'products'), where('seller', '==', sellerName));
@@ -282,8 +341,16 @@ export async function getProductsBySeller(sellerName: string): Promise<any[]> {
     setCached(cacheKey, data);
     return data;
   } catch (err: any) {
-    if (err.message?.includes('quota')) quotaExceeded = true;
-    console.error('Error fetching seller products:', err);
+    if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
+      quotaExceeded = true;
+    } else {
+      console.error('Error fetching seller products:', err);
+    }
+    const saved = localStorage.getItem('cached_products');
+    if (saved) {
+      const allProds = JSON.parse(saved);
+      return allProds.filter((p: any) => p.seller === sellerName);
+    }
     return [];
   }
 }

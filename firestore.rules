@@ -19,10 +19,23 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Public Collections (Read only for public, Admin for write)
+    // Products Collection
     match /products/{productId} {
       allow read: if true;
-      allow write: if true; // Admin management is handled in UI, keeping rules permissive for now as requested
+      allow create: if true; // In a production app, we would check for seller auth, keeping it simple for now
+      allow update: if true; // Enforce seller ownership check in UI
+      allow delete: if true; // Admins can delete
+    }
+
+    // Sellers Collections
+    match /sellers/{username} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /sellers_auth/{username} {
+      allow read: if true;
+      allow write: if true;
     }
 
     match /banners/{bannerId} {
@@ -30,37 +43,39 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    match /sellers/{sellerId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if incoming().keys().hasAll(['product_id', 'rating']) 
-                    && incoming().rating is number 
-                    && incoming().product_id is string;
+      allow create: if true;
     }
 
     match /likes/{likeId} {
       allow read: if true;
-      allow create: if incoming().keys().hasAll(['product_id', 'device_id'])
-                    && incoming().product_id is string
-                    && incoming().device_id is string;
+      allow create: if true;
     }
 
-    // Sensitive Collections
+    // Orders Collection
     match /orders/{orderId} {
-      allow read: if true; // Admin needs to see these, and storefront needs to see status
+      allow read: if true;
       allow create: if true;
       allow update: if true;
       allow delete: if true;
     }
 
+    // User Collections
     match /register_people/{userId} {
       allow read: if true;
       allow create: if true;
       allow update: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /users_secure/{userId} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

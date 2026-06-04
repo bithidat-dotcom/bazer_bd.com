@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
@@ -65,6 +65,8 @@ export default function Storefront() {
     { name: 'All', icon: LayoutGrid },
     { name: 'Food', icon: Utensils },
     { name: 'Fashion', icon: Shirt },
+    { name: 'Electronics', icon: Tv },
+    { name: 'Beauty', icon: Sparkles },
     { name: 'Gadget', icon: Cpu },
     { name: 'Robotic', icon: Bot },
     { name: 'PC', icon: Laptop },
@@ -95,8 +97,10 @@ export default function Storefront() {
     const loadFallbacks = () => {
       const savedProducts = localStorage.getItem('cached_products');
       const savedBanners = localStorage.getItem('cached_banners');
+      const savedSellers = localStorage.getItem('cached_sellers');
       if (savedProducts) setProducts(JSON.parse(savedProducts));
       if (savedBanners) setBanners(JSON.parse(savedBanners));
+      if (savedSellers) setSellers(JSON.parse(savedSellers));
       setLoading(false);
     };
 
@@ -133,11 +137,11 @@ export default function Storefront() {
         localStorage.setItem('cached_products', JSON.stringify(prodData));
         setLoading(false);
       }, (error: any) => {
-        console.error('Firebase product error', error);
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
           setFirestoreQuotaExceeded(true);
           loadFallbacks();
         } else {
+          console.error('Firebase product error', error);
           setError(error.message);
           setLoading(false);
         }
@@ -157,16 +161,25 @@ export default function Storefront() {
         setBanners(bannerData);
         localStorage.setItem('cached_banners', JSON.stringify(bannerData));
       }, (error: any) => {
-        console.error('Firebase banner error', error);
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
           setFirestoreQuotaExceeded(true);
+          loadFallbacks();
+        } else {
+          console.error('Firebase banner error', error);
         }
       });
 
       // Fetch sellers
       const fetchSellers = async () => {
-        const data = await getSellers();
-        setSellers(data);
+        try {
+          const data = await getSellers();
+          if (data && data.length > 0) {
+            setSellers(data);
+            localStorage.setItem('cached_sellers', JSON.stringify(data));
+          }
+        } catch (err) {
+          console.warn('Silent seller fetch error:', err);
+        }
       };
       fetchSellers();
     } catch (err: any) {
@@ -285,9 +298,10 @@ export default function Storefront() {
       unsubWhatsapp = onSnapshot(qW, (snapshot) => {
         processSnapshot(snapshot.docs);
       }, (error: any) => {
-        console.error('Order notification error (Whatsapp):', error.message);
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
             setFirestoreQuotaExceeded(true);
+        } else {
+            console.error('Order notification error (Whatsapp):', error.message);
         }
       });
     }
@@ -297,9 +311,10 @@ export default function Storefront() {
       unsubUsername = onSnapshot(qU, (snapshot) => {
         processSnapshot(snapshot.docs);
       }, (error: any) => {
-        console.error('Order notification error (Username):', error.message);
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
             setFirestoreQuotaExceeded(true);
+        } else {
+            console.error('Order notification error (Username):', error.message);
         }
       });
     }
@@ -424,7 +439,20 @@ export default function Storefront() {
         whatsapp: formattedWhatsapp,
         location,
         status: 'pending',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        items: cart.map(item => {
+          const hasDiscount = item.product.discount && item.product.discount > 0;
+          const finalPrice = hasDiscount 
+            ? item.product.price * (1 - (item.product.discount || 0) / 100) 
+            : item.product.price;
+          return {
+            product_id: item.product.id,
+            name: item.product.name,
+            image: item.product.image || '',
+            price: finalPrice,
+            quantity: item.quantity
+          };
+        })
       });
 
       // Track coordinates for immediate client status notifications
@@ -554,6 +582,8 @@ export default function Storefront() {
         onCategoryFilter={setCategoryFilter}
         discountFilter={discountFilter}
         onDiscountFilter={setDiscountFilter}
+        priceFilter={priceFilter}
+        onPriceFilter={setPriceFilter}
         products={products}
       />
       
@@ -620,6 +650,16 @@ export default function Storefront() {
                         {price.label} ৳
                     </button>
                 ))}
+                
+                {priceFilter && !["Under 500", "500 - 1000", "1000 - 5000", "Above 5000"].includes((priceFilter as any).label || '') && (
+                    <button
+                      onClick={() => setPriceFilter(null)}
+                      className="px-4 py-3 py-1.5 sm:py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap border-orange-500 bg-orange-50 text-orange-600 flex items-center gap-1.5"
+                    >
+                      <Volume className="w-3 h-3 text-orange-600" />
+                      Max {priceFilter.max >= 100000 ? "10000৳+" : `${priceFilter.max}৳`}
+                    </button>
+                )}
             </div>
             
             {(priceFilter || sortBy !== 'newest') && (
@@ -682,39 +722,19 @@ export default function Storefront() {
                            <User2 size={36} />
                         </div>
                       )}
-                      
-                      {/* Floating Indicator Icons for Social Presence */}
-                      <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
-                        {seller.tiktok && seller.tiktok.trim() !== '' && seller.tiktok.toLowerCase().includes('tiktok.com') && (
-                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-md p-0.5" title="TikTok Present">
-                             <img 
-                               src="https://sf-static.tiktokcdn.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png" 
-                               alt="" 
-                               className="w-full h-full object-contain rounded-full"
-                             />
-                          </div>
-                        )}
-                        {seller.facebook && seller.facebook.trim() !== '' && (seller.facebook.toLowerCase().includes('facebook.com') || seller.facebook.toLowerCase().includes('fb.com') || seller.facebook.toLowerCase().includes('fb.me')) && (
-                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-md p-0.5" title="Facebook Present">
-                             <img 
-                               src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm0F2xlq4BO9-4boQ1D9oGwXTiYfW5KcUvew&s" 
-                               alt="" 
-                               className="w-full h-full object-contain rounded-full"
-                             />
-                          </div>
-                        )}
-                        {seller.instagram && seller.instagram.trim() !== '' && seller.instagram.toLowerCase().includes('instagram.com') && (
-                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-md p-0.5" title="Instagram Present">
-                             <img 
-                               src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/250px-Instagram_logo_2016.svg.png" 
-                               alt="" 
-                               className="w-full h-full object-contain rounded-full"
-                             />
-                          </div>
-                        )}
-                      </div>
+                      {/* Verified Badge */}
+                      {seller.is_verified && (
+                        <div className="absolute -top-1 -right-1 bg-blue-500 border-2 border-white text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg z-20">
+                          <CheckCircle2 size={12} className="stroke-[4]" />
+                        </div>
+                      )}
                    </div>
-                   <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest max-w-[80px] truncate">{seller.name}</span>
+                   <div className="flex items-center gap-1 max-w-[80px]">
+                      <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest truncate">{seller.name}</span>
+                      {seller.is_verified && (
+                        <CheckCircle2 size={10} className="text-blue-500 shrink-0" />
+                      )}
+                   </div>
                  </button>
                ))}
             </div>
@@ -777,7 +797,8 @@ export default function Storefront() {
               <div className="w-2 h-2 bg-slate-900 rounded-full shadow-lg shadow-black/50 blink"></div> 
               Orders Live ({products.reduce((acc, p) => acc + (p.stock || 0), 0) > 0 ? products.length * 2 + 5 : products.length} Active)
             </span>
-            <div className="flex gap-6 items-center">
+            <div className="flex gap-6 items-center flex-wrap">
+              <a href="/seller" className="hover:text-orange-700 text-orange-600 transition-colors uppercase tracking-widest bg-orange-50/70 border border-orange-200/50 px-2.5 py-1 rounded-lg font-black text-[9px]">Seller Partner Portal</a>
               <a href="#" className="hover:text-black transition-colors">Instagram: @quats.co</a>
               <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Official Policy</button>
               <a href="#" className="hover:text-black transition-colors">Privacy Policy</a>
@@ -806,6 +827,7 @@ export default function Storefront() {
         isOpen={isTrackingOpen} 
         onClose={() => setIsTrackingOpen(false)} 
         user={user}
+        products={products}
       />
 
       <CheckoutModal 
