@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment } from 'firebase/firestore';
+import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { setFirestoreQuotaExceeded } from '../lib/db-sync';
 import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv } from 'lucide-react';
@@ -12,7 +12,34 @@ export default function AdminDashboard() {
   const [sellers, setSellers] = useState<any[]>([]);
   const [selectedAdminCategory, setSelectedAdminCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics' | 'sellers'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics' | 'sellers' | 'settings'>('orders');
+  const [couponForm, setCouponForm] = useState({
+    isActive: false,
+    minPurchase: 100,
+    discountAmount: 10
+  });
+
+  useEffect(() => {
+    // Listener for settings
+    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'coupon'), (snapshot) => {
+      if (snapshot.exists()) {
+        setCouponForm(snapshot.data() as any);
+      }
+    });
+
+    return () => {
+        unsubscribeSettings();
+    };
+  }, []);
+
+  const saveCouponConfig = async () => {
+    try {
+        await setDoc(doc(db, 'settings', 'coupon'), couponForm);
+        alert('Coupon settings updated successfully!');
+    } catch (err) {
+        console.error('Error saving coupon settings:', err);
+    }
+  };
   const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
   useEffect(() => {
@@ -566,6 +593,15 @@ export default function AdminDashboard() {
             <User2 size={18} />
             Sellers
           </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'settings' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <LayoutGrid size={18} />
+            Settings
+          </button>
         </div>
       </div>
 
@@ -632,7 +668,14 @@ export default function AdminDashboard() {
                         })}
                       </div>
                     </td>
-                    <td className="p-5 font-black text-slate-900">{order.price?.toLocaleString()} ৳</td>
+                    <td className="p-5">
+                      <div className="font-black text-slate-900">{order.price?.toLocaleString()} ৳</div>
+                      {order.coupon_discount ? (
+                        <div className="mt-1 text-[9px] font-bold text-orange-600 bg-orange-50 border border-orange-100 rounded px-1.5 py-0.5 inline-block whitespace-nowrap">
+                          Coupon: -{order.coupon_discount} ৳
+                        </div>
+                      ) : null}
+                    </td>
                     <td className="p-5">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         order.status === 'cancelled' || order.status === 'cancelled_admin' ? 'bg-red-50 text-red-600' :
@@ -852,6 +895,36 @@ export default function AdminDashboard() {
                 <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold text-xs" id="sales-trend-fallback">No recent sales data recorded yet</div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-lg">
+          <h2 className="text-xl font-bold mb-6 tracking-tight">Coupon Settings</h2>
+          <div className="space-y-5">
+            <label className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer">
+              <span className="font-bold text-slate-800">Activate Coupon</span>
+              <input type="checkbox" checked={couponForm.isActive} onChange={() => setCouponForm(prev => ({...prev, isActive: !prev.isActive}))} 
+                     className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+            </label>
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Min Purchase Amount (৳)</label>
+              <input type="number" value={couponForm.minPurchase} onChange={(e) => setCouponForm(prev => ({...prev, minPurchase: Number(e.target.value)}))}
+                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Discount Amount (৳)</label>
+              <input type="number" value={couponForm.discountAmount} onChange={(e) => setCouponForm(prev => ({...prev, discountAmount: Number(e.target.value)}))}
+                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none" />
+            </div>
+            
+            <button onClick={saveCouponConfig}
+                    className="w-full bg-slate-900 text-white font-bold py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-md">
+              Save Configuration
+            </button>
           </div>
         </div>
       )}

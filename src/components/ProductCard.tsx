@@ -5,7 +5,7 @@ import { formatPrice } from '../lib/utils';
 import { Product } from '../types';
 import { getProductLikesState, toggleProductLike, getProductReviews, getSellerInfoByName } from '../lib/db-sync';
 
-export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { product: Product; onBuy: (product: Product) => void, onAddToCart?: (product: Product) => void, onClick?: (product: Product) => void }) {
+export default function ProductCard({ product, onBuy, onAddToCart, onClick, couponConfig }: { product: Product; onBuy: (product: Product) => void, onAddToCart?: (product: Product) => void, onClick?: (product: Product) => void, couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number } }) {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
@@ -114,6 +114,11 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick }: { 
       onClick={() => onClick && onClick(product)}
     >
         <div className="relative w-full aspect-square rounded-xl bg-white overflow-hidden mb-3">
+          {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
+            <div className="absolute top-16 left-2 sm:top-18 sm:left-2.5 z-10 bg-orange-500 text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tight">
+              Get {couponConfig.discountAmount}৳ Coupon
+            </div>
+          )}
           {/* Action Buttons Layer */}
           <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-20 flex flex-col gap-2 transition-all">
             {/* Like/Favorite floating button */}

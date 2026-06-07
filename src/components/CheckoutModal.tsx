@@ -14,9 +14,10 @@ interface CheckoutModalProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   user?: UserProfile | null;
+  couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number };
 }
 
-export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, onUpdateQuantity, onRemoveItem, user }: CheckoutModalProps) {
+export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, onUpdateQuantity, onRemoveItem, user, couponConfig }: CheckoutModalProps) {
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [location, setLocation] = useState('');
@@ -140,6 +141,21 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
     return sum + price * item.quantity;
   }, 0);
 
+  let couponDiscount = 0;
+  if (couponConfig?.isActive) {
+    cartItems.forEach(item => {
+      const hasDiscount = item.product.discount && item.product.discount > 0;
+      const unitPrice = hasDiscount 
+        ? item.product.price * (1 - (item.product.discount || 0) / 100) 
+        : item.product.price;
+        
+      if (unitPrice >= couponConfig.minPurchase) {
+        couponDiscount += couponConfig.discountAmount * item.quantity;
+      }
+    });
+  }
+  const finalPrice = Math.max(0, totalPrice - couponDiscount);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -203,7 +219,17 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                 <X size={20} />
               </button>
               <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Checkout ({cartItems.length} items)</h2>
-              <p className="text-white font-black mt-1 opacity-90">Total: {totalPrice.toFixed(0)} ৳</p>
+              {couponDiscount > 0 ? (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-white font-black opacity-90">{finalPrice.toFixed(0)} ৳</span>
+                  <span className="text-slate-400 font-bold line-through text-xs">{totalPrice.toFixed(0)} ৳</span>
+                  <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                    Coupon Applied: -{couponDiscount}৳
+                  </span>
+                </div>
+              ) : (
+                <p className="text-white font-black mt-1 opacity-90">Total: {totalPrice.toFixed(0)} ৳</p>
+              )}
             </div>
 
             {/* Content Swapper */}
@@ -354,7 +380,16 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                            </div>
                         ))}
                       </div>
-                      <div className="flex justify-between"><span className="text-slate-400">Total:</span> <span className="font-black text-slate-900">{totalPrice.toFixed(0)} ৳</span></div>
+                      {couponDiscount > 0 ? (
+                        <>
+                          <div className="flex justify-between text-xs"><span className="text-slate-400">Subtotal:</span> <span className="font-bold text-slate-700">{totalPrice.toFixed(0)} ৳</span></div>
+                          <div className="flex justify-between text-xs text-orange-600"><span className="font-bold">Coupon Discount:</span> <span className="font-black">-{couponDiscount.toFixed(0)} ৳</span></div>
+                          <hr className="border-slate-200 border-dashed my-2" />
+                          <div className="flex justify-between"><span className="text-slate-400">Total Price:</span> <span className="font-black text-slate-900">{finalPrice.toFixed(0)} ৳</span></div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between"><span className="text-slate-400">Total:</span> <span className="font-black text-slate-900">{totalPrice.toFixed(0)} ৳</span></div>
+                      )}
                       <hr className="border-slate-200 border-dashed my-2" />
                       <div className="flex justify-between"><span className="text-slate-400">Deliver to:</span> <span className="font-bold text-slate-900 truncate ml-2">{customerName}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">WhatsApp:</span> <span className="font-bold text-slate-900">{whatsapp}</span></div>

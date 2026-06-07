@@ -11,7 +11,7 @@ import WhatsappSupport from './components/WhatsappSupport';
 import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
 import SellerModal from './components/SellerModal';
-import AuthModal, { UserProfile } from './components/AuthModal';
+import ScrollButton from './components/ScrollButton';
 import PolicyModal from './components/PolicyModal';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
@@ -30,16 +30,28 @@ export default function Storefront() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
-  const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [priceFilter, setPriceFilter] = useState<{min: number, max: number} | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high'>('newest');
+  const [couponConfig, setCouponConfig] = useState<{ isActive: boolean; minPurchase: number; discountAmount: number }>({ isActive: false, minPurchase: 100, discountAmount: 10 });
+
+  useEffect(() => {
+    // Listener for settings
+    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'coupon'), (snapshot) => {
+      if (snapshot.exists()) {
+        setCouponConfig(snapshot.data() as any);
+      }
+    });
+
+    return () => {
+        unsubscribeSettings();
+    };
+  }, []);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
@@ -78,13 +90,6 @@ export default function Storefront() {
   useEffect(() => {
     // Cleanup: Remove old "hide" functionality data to restore all products
     localStorage.removeItem('hidden_products');
-    
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch(e) {}
-    }
   }, []);
 
   useEffect(() => {
@@ -218,8 +223,8 @@ export default function Storefront() {
 
   // Real-time mobile push notifications for status updates
   useEffect(() => {
-    const savedWhatsapp = localStorage.getItem('customer_whatsapp') || (user && user.whatsapp ? formatWhatsappNumber(user.whatsapp) : null);
-    const usernameKey = user ? user.username : null;
+    const savedWhatsapp = localStorage.getItem('customer_whatsapp');
+    const usernameKey = null;
 
     if (!savedWhatsapp && !usernameKey) return;
 
@@ -323,7 +328,7 @@ export default function Storefront() {
       unsubWhatsapp();
       unsubUsername();
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const filtered = products.filter(p => {
@@ -415,12 +420,29 @@ export default function Storefront() {
       return sum + price * item.quantity;
     }, 0);
 
+    let coupon_discount = 0;
+    if (couponConfig?.isActive) {
+      cart.forEach(item => {
+        const hasDiscount = item.product.discount && item.product.discount > 0;
+        const unitPrice = hasDiscount 
+          ? item.product.price * (1 - (item.product.discount || 0) / 100) 
+          : item.product.price;
+          
+        if (unitPrice >= couponConfig.minPurchase) {
+          coupon_discount += couponConfig.discountAmount * item.quantity;
+        }
+      });
+    }
+    const finalPrice = Math.max(0, totalPrice - coupon_discount);
+
     const formattedWhatsapp = formatWhatsappNumber(whatsapp);
 
     console.log("Submitting Order Data:", {
       product_id: combinedProductIds,
       product_name: combinedProductNames,
-      price: totalPrice,
+      price: finalPrice,
+      original_price: totalPrice,
+      coupon_discount,
       customer_name,
       whatsapp: formattedWhatsapp,
       location,
@@ -431,11 +453,13 @@ export default function Storefront() {
       const docRef = await addDoc(collection(db, "orders"), {
         product_id: combinedProductIds,
         product_name: combinedProductNames,
-        price: totalPrice,
+        price: finalPrice,
+        original_price: totalPrice,
+        coupon_discount,
         customer_name,
-        customer_username: user?.username || null,
-        customer_uid: user?.uid || null,
-        customer_image: user?.profileImage || null,
+        customer_username: null,
+        customer_uid: null,
+        customer_image: null,
         whatsapp: formattedWhatsapp,
         location,
         status: 'pending',
@@ -520,11 +544,6 @@ export default function Storefront() {
       return [...prevCart, { product, quantity }];
     });
     
-    if (!user) {
-      setAlertMessage("Please create a profile or log in with email and password first!");
-      setIsAuthOpen(true);
-      return;
-    }
     setIsModalOpen(true);
   };
 
@@ -545,11 +564,6 @@ export default function Storefront() {
   };
 
   const handleOpenCart = () => {
-    if (!user) {
-      setAlertMessage("Please create a profile or log in with email and password first!");
-      setIsAuthOpen(true);
-      return;
-    }
     setIsModalOpen(true);
   };
 
@@ -562,21 +576,10 @@ export default function Storefront() {
         cartCount={cartItemCount} 
         onCartClick={handleOpenCart} 
         onTrackOrderClick={() => setIsTrackingOpen(true)}
-        onLoginClick={() => setIsAuthOpen(true)}
-        onLogoutClick={async () => {
-          try {
-            const { getAuth, signOut } = await import('firebase/auth');
-            const auth = getAuth();
-            await signOut(auth);
-          } catch (e) {
-            console.warn('Firebase sign out error:', e);
-          }
-          localStorage.removeItem('user');
-          localStorage.removeItem('customer_whatsapp');
-          setUser(null);
-        }}
-        onEditProfileClick={() => setIsAuthOpen(true)}
-        user={user}
+        onLoginClick={() => {}}
+        onLogoutClick={async () => {}}
+        onEditProfileClick={() => {}}
+        user={null}
         categories={categories.map(c => c.name)}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
@@ -620,46 +623,36 @@ export default function Storefront() {
 
         {/* Quick Filters Row */}
         <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3 mb-8 overflow-x-auto pb-4 scrollbar-hidden items-center">
-            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl shrink-0">
+            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl shrink-0 overflow-x-auto scrollbar-hidden">
                 <button 
                   onClick={() => setSortBy('newest')}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${sortBy === 'newest' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${sortBy === 'newest' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >Newest</button>
                 <button 
                    onClick={() => setSortBy('price-low')}
-                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${sortBy === 'price-low' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${sortBy === 'price-low' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >Price ↓</button>
                 <button 
                    onClick={() => setSortBy('price-high')}
-                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${sortBy === 'price-high' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${sortBy === 'price-high' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >Price ↑</button>
             </div>
 
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 overflow-x-auto scrollbar-hidden pb-1">
                 {[
-                    {label: "Under 500", min: 0, max: 500},
-                    {label: "500 - 1000", min: 500, max: 1000},
-                    {label: "1000 - 5000", min: 1000, max: 5000},
-                    {label: "Above 5000", min: 5000, max: 100000}
+                    {label: "Under 500 ৳", min: 0, max: 500},
+                    {label: "500 - 1000 ৳", min: 500, max: 1000},
+                    {label: "1000 - 5000 ৳", min: 1000, max: 5000},
+                    {label: "Above 5000 ৳", min: 5000, max: 999999999}
                 ].map(price => (
                     <button
                       key={price.label}
                       onClick={() => setPriceFilter(priceFilter?.label === price.label ? null : price as any)}
                       className={`px-4 py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap ${priceFilter?.label === price.label ? 'border-orange-500 bg-orange-50 text-orange-600' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'}`}
                     >
-                        {price.label} ৳
+                        {price.label}
                     </button>
                 ))}
-                
-                {priceFilter && !["Under 500", "500 - 1000", "1000 - 5000", "Above 5000"].includes((priceFilter as any).label || '') && (
-                    <button
-                      onClick={() => setPriceFilter(null)}
-                      className="px-4 py-3 py-1.5 sm:py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap border-orange-500 bg-orange-50 text-orange-600 flex items-center gap-1.5"
-                    >
-                      <Volume className="w-3 h-3 text-orange-600" />
-                      Max {priceFilter.max >= 100000 ? "10000৳+" : `${priceFilter.max}৳`}
-                    </button>
-                )}
             </div>
             
             {(priceFilter || sortBy !== 'newest') && (
@@ -689,6 +682,7 @@ export default function Storefront() {
                     onBuy={handleBuyNow} 
                     onAddToCart={handleAddToCart}
                     onClick={setSelectedProduct}
+                    couponConfig={couponConfig}
                   />
                 </div>
               ))}
@@ -768,6 +762,7 @@ export default function Storefront() {
                     onBuy={handleBuyNow} 
                     onAddToCart={handleAddToCart}
                     onClick={setSelectedProduct}
+                    couponConfig={couponConfig}
                   />
                 </div>
               ))}
@@ -816,17 +811,11 @@ export default function Storefront() {
         .blink { animation: blink 2s infinite; }
       `}</style>
       
-      <AuthModal 
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLogin={setUser}
-        initialUser={user}
-      />
 
       <TrackingModal 
         isOpen={isTrackingOpen} 
         onClose={() => setIsTrackingOpen(false)} 
-        user={user}
+        user={null}
         products={products}
       />
 
@@ -837,7 +826,8 @@ export default function Storefront() {
         onSubmit={submitOrder}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
-        user={user}
+        user={null}
+        couponConfig={couponConfig}
       />
 
       <ProductModal
@@ -850,6 +840,7 @@ export default function Storefront() {
         onProductSelect={setSelectedProduct}
         sellers={sellers}
         onSellerSelect={setSelectedSeller}
+        couponConfig={couponConfig}
       />
 
       <SellerModal
@@ -865,6 +856,8 @@ export default function Storefront() {
         isOpen={isPolicyOpen}
         onClose={() => setIsPolicyOpen(false)}
       />
+
+      <ScrollButton />
 
       <WhatsappSupport />
 
@@ -948,12 +941,12 @@ export default function Storefront() {
       
       <BottomNav 
         onHomeClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        onProfileClick={() => setIsAuthOpen(true)}
+        onProfileClick={() => {}}
         onOrdersClick={() => setIsTrackingOpen(true)}
         onCartClick={handleOpenCart}
         onSupportClick={() => window.open('https://wa.me/8801716807465', '_blank', 'noopener,noreferrer')}
         cartCount={cartItemCount}
-        user={user}
+        user={null}
       />
     </div>
   );

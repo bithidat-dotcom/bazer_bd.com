@@ -22,11 +22,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: AuthModalProps) {
-  const [isSignUp, setIsSignUp] = useState(true); // Default to Create Account for new users
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [profileImage, setProfileImage] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [location, setLocation] = useState('');
@@ -45,20 +41,15 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
     if (isOpen) {
       if (initialUser) {
         setUsername(initialUser.username || '');
-        setEmail(initialUser.email || '');
         setProfileImage(initialUser.profileImage || '');
         setWhatsapp(initialUser.whatsapp || '');
         setLocation(initialUser.location || '');
-        setIsSignUp(false); // Edit mode or already registered -> focus on profile update or login
         setActiveTab('profile'); // Default to profile tab on open
       } else {
         setUsername('');
-        setEmail('');
-        setPassword('');
         setProfileImage('');
         setWhatsapp('');
         setLocation('');
-        setIsSignUp(true); // Default to sign up for new users
         setActiveTab('profile');
       }
       setError('');
@@ -129,39 +120,38 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
     e.preventDefault();
     setError('');
 
-    if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!whatsapp.trim()) {
+      setError('WhatsApp Number is required');
       return;
     }
 
-    if (isSignUp && !username.trim()) {
-      setError('Username is required for new accounts');
+    if (!username.trim()) {
+      setError('Full Name / Username is required');
+      return;
+    }
+
+    if (!location.trim()) {
+      setError('Delivery Address is required');
       return;
     }
     
     setLoading(true);
     
     try {
-      const formattedUsername = username.trim().toLowerCase();
+      const formattedUsername = username.trim();
       const formattedWhatsapp = formatWhatsappNumber(whatsapp);
-      const cleanEmail = email.trim().toLowerCase();
 
-      const endpoint = isSignUp ? '/api/auth/user/signup' : '/api/auth/user/signin';
-      const payload = isSignUp ? {
-        email: cleanEmail,
-        password,
+      const endpoint = '/api/auth/user/save';
+      const payload: any = {
         username: formattedUsername,
         whatsapp: formattedWhatsapp,
         location: location.trim(),
         profileImage
-      } : {
-        email: cleanEmail,
-        password
       };
+
+      if (initialUser) {
+        payload.uid = initialUser.uid;
+      }
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -180,12 +170,11 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
       
       // Sync user records with app
       localStorage.setItem('user', JSON.stringify(userProfile));
-      localStorage.setItem('user_token', data.token);
       onLogin(userProfile);
       onClose();
     } catch (err: any) {
       console.error('Unified Auth error:', err);
-      setError(err.message || 'Something went wrong. Please check your credentials and try again.');
+      setError(err.message || 'Something went wrong. Please check your details and try again.');
     } finally {
       setLoading(false);
     }
@@ -220,10 +209,10 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
               <UserPlus size={28} />
             </div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              {initialUser ? 'Your Profile' : (isSignUp ? 'Create Safe Profile' : 'Access Profile')}
+              {initialUser ? 'Your Profile' : 'Fill Details'}
             </h2>
             <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mt-1">
-              {initialUser ? 'Manage info or track orders' : (isSignUp ? 'Sign up & lock records securely' : 'Sign in to access order state')}
+              {initialUser ? 'Manage info or track orders' : 'Enter details to track orders & history'}
             </p>
           </div>
 
@@ -262,26 +251,6 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
             </div>
           )}
 
-          {/* Mode Switcher Buttons */}
-          {!initialUser && (
-            <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-xl mb-5 border border-slate-150">
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(true); setError(''); }}
-                className={`py-2 text-xs font-bold rounded-lg transition-all ${isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-              >
-                Create Account
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(false); setError(''); }}
-                className={`py-2 text-xs font-bold rounded-lg transition-all ${!isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-              >
-                Sign In
-              </button>
-            </div>
-          )}
-
           {/* Profile form section */}
           {(!initialUser || activeTab === 'profile') && (
             <form onSubmit={handleAuth} className="space-y-4 text-left">
@@ -291,154 +260,100 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialUser }: Aut
                 </div>
               )}
               
-              {/* Email Field */}
-              <div>
+               <div>
                 <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                  Email for Safety & Recovery
+                  Full Name / Username
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    placeholder="e.g. name@email.com"
-                    value={email}
-                    disabled={!!initialUser}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800 disabled:opacity-60"
+                    placeholder="e.g. John Doe"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800"
                   />
                 </div>
-                <p className="text-[8px] text-slate-400 mt-1 font-bold">Use a real email to recover your account if you sign in on another phone.</p>
               </div>
 
-              {/* Password Field */}
-              {!initialUser && (
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                    {isSignUp ? 'Create Account Password' : 'Enter Password'}
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      placeholder="Min 6 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800"
-                    />
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                  WhatsApp Number
+                </label>
+                <div className="relative">
+                  <MessageCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. 01712345678"
+                    value={whatsapp}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setWhatsapp(val);
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800"
+                  />
+                </div>
+                <p className="text-[9px] text-slate-450 mt-1 font-medium px-1">Will be formatted into global standard +88017... format automatically</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                  Delivery Address
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-3 text-slate-400" size={16} />
+                  <textarea
+                    required
+                    placeholder="Full delivery destination in Bangladesh"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800 resize-none h-16"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                  Profile Photo (Optional)
+                </label>
+                <div className="flex items-center gap-3 bg-slate-50 p-2 border border-slate-150 rounded-xl">
+                  <div 
+                    className="w-12 h-12 rounded-xl bg-white border border-dashed border-slate-350 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-slate-100 transition-colors shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {profileImage ? (
+                      <img src={profileImage} alt="Profile" className="w-full h-full object-cover animate-fade-in" />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-750 border border-slate-200 font-extrabold rounded-lg text-[10px] uppercase transition-colors w-full cursor-pointer"
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      Upload Photo
                     </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleImageChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
                   </div>
-                  {isSignUp && (
-                    <p className="text-[8px] text-slate-400 mt-1 font-bold">Remember this password to log in on other devices.</p>
-                  )}
                 </div>
-              )}
-
-              {/* Fields visible ONLY during Sign Up (Register) or Edit Profile */}
-              {(isSignUp || !!initialUser) && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                      Username
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. john_doe"
-                        value={username}
-                        disabled={!!initialUser}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800 disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                      WhatsApp Number
-                    </label>
-                    <div className="relative">
-                      <MessageCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      <input
-                        type="tel"
-                        placeholder="e.g. 01712345678"
-                        value={whatsapp}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setWhatsapp(val);
-                        }}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800"
-                      />
-                    </div>
-                    <p className="text-[9px] text-slate-455 mt-1 font-medium px-1">Will be formatted into global standard +88017... format automatically</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                      Delivery Address
-                    </label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3.5 top-3 text-slate-400" size={16} />
-                      <textarea
-                        placeholder="Full delivery destination in Bangladesh"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition-all text-xs font-bold text-slate-800 resize-none h-16"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                      Profile Photo
-                    </label>
-                    <div className="flex items-center gap-3 bg-slate-50 p-2 border border-slate-150 rounded-xl">
-                      <div 
-                        className="w-12 h-12 rounded-xl bg-white border border-dashed border-slate-350 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-slate-100 transition-colors shrink-0"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {profileImage ? (
-                          <img src={profileImage} alt="Profile" className="w-full h-full object-cover animate-fade-in" />
-                        ) : (
-                          <ImageIcon className="w-5 h-5 text-slate-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-750 border border-slate-200 font-extrabold rounded-lg text-[10px] uppercase transition-colors w-full cursor-pointer"
-                        >
-                          Upload Photo
-                        </button>
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={handleImageChange} 
-                          accept="image/*" 
-                          className="hidden" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+              </div>
 
               <button 
                 type="submit"
                 disabled={loading}
                 className="w-full py-3 bg-slate-900 text-white text-xs uppercase tracking-widest font-black rounded-xl hover:bg-black transition-all disabled:opacity-50 mt-4 active:scale-95 cursor-pointer shadow-md shadow-slate-900/10 flex items-center justify-center gap-2"
               >
-                {loading ? 'Processing...' : (initialUser ? 'Update Settings' : (isSignUp ? 'Register & secure' : 'Secure Login'))}
+                {loading ? 'Processing...' : (initialUser ? 'Update Settings' : 'Save Details')}
               </button>
             </form>
           )}

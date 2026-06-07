@@ -35,6 +35,8 @@ interface Order {
   whatsapp?: string;
   location?: string;
   items?: OrderItem[];
+  coupon_discount?: number;
+  original_price?: number;
 }
 
 export default function TrackingModal({ isOpen, onClose, user, products = [] }: TrackingModalProps) {
@@ -589,10 +591,27 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
 
                     return (
                       <div className="bg-slate-50/60 p-4 rounded-xl border border-slate-150 text-xs space-y-2.5">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-500 font-bold">Products Subtotal:</span>
-                          <span className="font-extrabold text-slate-800 font-mono">{finalSubtotal.toLocaleString()}৳</span>
-                        </div>
+                        {selectedOrder.coupon_discount ? (
+                          <>
+                            <div className="flex justify-between items-center text-slate-500">
+                              <span className="font-bold">Original Item Total:</span>
+                              <span className="font-extrabold font-mono line-through">{((selectedOrder.original_price || (finalSubtotal + selectedOrder.coupon_discount))).toLocaleString()}৳</span>
+                            </div>
+                            <div className="flex justify-between items-center text-orange-600 font-bold">
+                              <span>Coupon Discount:</span>
+                              <span className="font-mono">-{selectedOrder.coupon_discount.toLocaleString()}৳</span>
+                            </div>
+                            <div className="flex justify-between items-center border-t border-slate-200/50 pt-2 font-bold text-slate-800">
+                              <span>Discounted Subtotal:</span>
+                              <span className="font-extrabold font-mono">{finalSubtotal.toLocaleString()}৳</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 font-bold">Products Subtotal:</span>
+                            <span className="font-extrabold text-slate-800 font-mono">{finalSubtotal.toLocaleString()}৳</span>
+                          </div>
+                        )}
                         
                         <div className="flex justify-between items-start gap-4">
                           <div className="text-left">

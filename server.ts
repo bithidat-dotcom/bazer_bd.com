@@ -122,81 +122,55 @@ async function startServer() {
     }
   });
 
-  // User Signup - Custom Database Auth
-  app.post("/api/auth/user/signup", async (req, res) => {
+  // User Profile Save (Unified Profile Update)
+  app.post("/api/auth/user/save", async (req, res) => {
     try {
-      const { email, password, username, whatsapp, location, profileImage } = req.body;
+      const { username, whatsapp, location, profileImage, uid } = req.body;
       
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password required" });
+      if (!whatsapp || !username) {
+        return res.status(400).json({ error: "Name and WhatsApp number are required" });
       }
 
-      const docId = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
-      const userAuthRef = doc(db, "users_secure", docId);
-      const existing = await getDoc(userAuthRef);
-      
-      if (existing.exists()) {
-        return res.status(409).json({ error: "Email already registered" });
+      const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, "");
+      if (!cleanWhatsapp || cleanWhatsapp.length < 5) {
+        return res.status(400).json({ error: "Invalid WhatsApp number" });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      const userData = {
-        uid: docId,
-        username: username || email.split('@')[0],
-        email: email.toLowerCase(),
-        whatsapp: whatsapp || "",
-        location: location || "",
-        profileImage: profileImage || "",
-        password: hashedPassword,
-        created_at: new Date().toISOString()
-      };
-
-      await setDoc(userAuthRef, userData);
-
-      // Also register to register_people for admin views (without password)
-      const { password: _, ...publicData } = userData;
-      await setDoc(doc(db, "register_people", docId), publicData);
-
-      const token = jwt.sign({ uid: docId, email: userData.email }, JWT_SECRET, { expiresIn: "30d" });
-      res.status(201).json({ user: publicData, token });
-    } catch (error: any) {
-      console.error("User signup error:", error);
-      res.status(500).json({ error: "Registration failed" });
-    }
-  });
-
-  // User Signin
-  app.post("/api/auth/user/signin", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password required" });
-      }
-
-      const docId = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
-      const userRef = doc(db, "users_secure", docId);
+      const docId = uid || cleanWhatsapp;
+      const userRef = doc(db, "register_people", docId);
       const snap = await getDoc(userRef);
       
-      if (!snap.exists()) {
-        return res.status(404).json({ error: "Account not found" });
+      let userData: any;
+      
+      if (snap.exists()) {
+        // Existing user: merge or update fields
+        const existingData = snap.data();
+        userData = {
+          ...existingData,
+          username: username.trim(),
+          whatsapp: whatsapp.trim(),
+          location: location ? location.trim() : (existingData.location || ""),
+          profileImage: profileImage || existingData.profileImage || "",
+          updated_at: new Date().toISOString()
+        };
+      } else {
+        // New user creation
+        userData = {
+          uid: docId,
+          username: username.trim(),
+          whatsapp: whatsapp.trim(),
+          location: location ? location.trim() : "",
+          profileImage: profileImage || "",
+          created_at: new Date().toISOString()
+        };
       }
 
-      const userData = snap.data();
-      const isMatch = await bcrypt.compare(password, userData.password);
-      
-      if (!isMatch) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
+      await setDoc(userRef, userData);
 
-      const token = jwt.sign({ uid: docId, email: userData.email }, JWT_SECRET, { expiresIn: "30d" });
-      
-      const { password: _, ...userToSend } = userData;
-      res.json({ user: userToSend, token });
+      res.json({ user: userData });
     } catch (error: any) {
-      console.error("User signin error:", error);
-      res.status(500).json({ error: "Authentication failed" });
+      console.error("User save error:", error);
+      res.status(500).json({ error: "Failed to save profile details" });
     }
   });
 

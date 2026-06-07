@@ -19,6 +19,10 @@ service cloud.firestore {
       return resource.data;
     }
 
+    match /system_health/{documentId} {
+      allow read: if true;
+    }
+
     // Products Collection
     match /products/{productId} {
       allow read: if true;

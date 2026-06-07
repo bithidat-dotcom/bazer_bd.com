@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { Seller } from '../types';
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram, Share2, Copy, Send } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram, Share2, Copy, Send, Sparkles } from 'lucide-react';
 import { formatPrice } from '../lib/utils';
 import ProductCard from './ProductCard';
 import { getProductLikesState, toggleProductLike, getProductReviews, saveProductReview } from '../lib/db-sync';
@@ -25,9 +25,10 @@ interface ProductModalProps {
   onProductSelect?: (product: Product) => void;
   sellers?: Seller[];
   onSellerSelect?: (seller: Seller) => void;
+  couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number };
 }
 
-export default function ProductModal({ product, isOpen, onClose, onAddToCart, onBuyNow, allProducts = [], onProductSelect, sellers = [], onSellerSelect }: ProductModalProps) {
+export default function ProductModal({ product, isOpen, onClose, onAddToCart, onBuyNow, allProducts = [], onProductSelect, sellers = [], onSellerSelect, couponConfig }: ProductModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
@@ -751,6 +752,12 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
 
               {/* Product Stock Indicator */}
               <div className="mb-5">
+                {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
+                  <div className="mb-4 bg-orange-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+                      <Sparkles className="w-6 h-6 shrink-0" />
+                      <p className="font-bold text-sm">Buy this product and get {couponConfig.discountAmount}৳ coupon!</p>
+                  </div>
+                )}
                 {product.stock !== undefined ? (
                   product.stock >= 0 ? (
                     <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black shadow-sm border backdrop-blur-md ${
