@@ -82,9 +82,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
     setLoading(true);
     setHasSearched(true);
     try {
-      const q = user.uid 
-        ? query(collection(db, 'orders'), where('customer_uid', '==', user.uid))
-        : query(collection(db, 'orders'), where('customer_username', '==', user.username));
+      const q = query(collection(db, 'orders'), where('customer_username', '==', user.username));
       const snapshot = await getDocs(q);
       const fetchedOrders = snapshot.docs.map(d => ({
         id: d.id,

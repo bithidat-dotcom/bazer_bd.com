@@ -16,7 +16,6 @@ import PolicyModal from './components/PolicyModal';
 import AuthModal from './components/AuthModal';
 import DotLoader from './components/DotLoader';
 import { db } from './lib/firebase';
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
 import { getSellers, isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from './lib/db-sync';
@@ -46,11 +45,19 @@ export default function Storefront() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
-    const auth = getAuth();
-    return onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-    });
+      const savedUser = localStorage.getItem('pbazar_user');
+      if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
+  
+  const handleAuthSuccess = (userData: any) => {
+      setUser(userData);
+      localStorage.setItem('pbazar_user', JSON.stringify(userData));
+  };
+  
+  const handleLogout = () => {
+      setUser(null);
+      localStorage.removeItem('pbazar_user');
+  };
 
   useEffect(() => {
     // Listener for settings
@@ -469,8 +476,8 @@ export default function Storefront() {
         original_price: totalPrice,
         coupon_discount,
         customer_name,
-        customer_username: user ? user.email?.split('@')[0] : null,
-        customer_uid: user ? user.uid : null,
+        customer_username: user ? user.whatsapp : null,
+        customer_uid: null,
         customer_image: null,
         whatsapp: formattedWhatsapp,
         location,
@@ -589,9 +596,9 @@ export default function Storefront() {
         onCartClick={handleOpenCart} 
         onTrackOrderClick={() => setIsTrackingOpen(true)}
         onLoginClick={() => setIsAuthOpen(true)}
-        onLogoutClick={() => signOut(getAuth())}
+        onLogoutClick={handleLogout}
         onEditProfileClick={() => {}}
-        user={user ? { username: user.email?.split('@')[0] || 'User', email: user.email || '', uid: user.uid } : null}
+        user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
         categories={categories.map(c => c.name)}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
@@ -867,7 +874,7 @@ export default function Storefront() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={setUser}
+        onAuthSuccess={handleAuthSuccess}
       />
 
       <ScrollButton />

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,22 +19,37 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const auth = getAuth();
-    const email = `${whatsapp}@pbazar.com`;
 
     try {
+      const userDocRef = doc(db, 'users', whatsapp);
+      const userDoc = await getDoc(userDocRef);
+      
       if (isRegister) {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          whatsapp,
-          createdAt: new Date().toISOString()
-        });
-        onAuthSuccess(userCredential.user);
+          if (userDoc.exists()) {
+              setError("User already exists with this WhatsApp number");
+              return;
+          }
+          const userData = {
+            whatsapp,
+            password,
+            createdAt: new Date().toISOString()
+          };
+          await setDoc(userDocRef, userData);
+          onAuthSuccess(userData);
+          onClose();
       } else {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        onAuthSuccess(userCredential.user);
+          if (!userDoc.exists()) {
+              setError("User not found");
+              return;
+          }
+          const userData = userDoc.data();
+          if (userData.password !== password) {
+              setError("Incorrect password");
+              return;
+          }
+          onAuthSuccess(userData);
+          onClose();
       }
-      onClose();
     } catch (err: any) {
       setError(err.message);
     }
