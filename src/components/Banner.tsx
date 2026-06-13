@@ -1,9 +1,22 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { Banner as BannerType } from '../types';
+import DotLoader from './DotLoader';
 
 export default function HeroBanner({ banners }: { banners: BannerType[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
+  const imgRef = React.useRef<HTMLImageElement>(null);
+  
+  useEffect(() => {
+    // When index changes, ensure it starts as not loaded
+    setLoadingStates(prev => ({...prev, [currentIndex]: false}));
+
+    // If already complete, set to loaded
+    if (imgRef.current && imgRef.current.complete) {
+      setLoadingStates(prev => ({...prev, [currentIndex]: true}));
+    }
+  }, [currentIndex]);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -29,17 +42,23 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           exit={{ opacity: 0 }}
-           transition={{ duration: 0.8 }}
+           initial={{ x: '100%' }}
+           animate={{ x: 0 }}
+           exit={{ x: '-100%' }}
+           transition={{ type: 'spring', stiffness: 100, damping: 20 }}
            className="absolute inset-0 flex items-center justify-center overflow-hidden"
         >
           {/* Main image - fully visible and centered */}
+          {!loadingStates[currentIndex] && (
+            <DotLoader />
+          )}
+
           <img 
+            ref={imgRef}
             src={currentBanner.image} 
             alt={currentBanner.title || "Promo Banner"}
-            className="relative z-10 w-full h-full object-contain"
+            onLoad={() => setLoadingStates(prev => ({...prev, [currentIndex]: true}))}
+            className={`relative z-10 w-full h-full object-contain transition-opacity duration-500 ${loadingStates[currentIndex] ? 'opacity-100' : 'opacity-0'}`}
             referrerPolicy="no-referrer"
           />
         </motion.div>

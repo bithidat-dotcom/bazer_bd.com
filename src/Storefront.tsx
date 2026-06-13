@@ -13,7 +13,10 @@ import CategoryScroller from './components/CategoryScroller';
 import SellerModal from './components/SellerModal';
 import ScrollButton from './components/ScrollButton';
 import PolicyModal from './components/PolicyModal';
+import AuthModal from './components/AuthModal';
+import DotLoader from './components/DotLoader';
 import { db } from './lib/firebase';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
 import { getSellers, isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from './lib/db-sync';
@@ -39,6 +42,15 @@ export default function Storefront() {
   const [priceFilter, setPriceFilter] = useState<{min: number, max: number} | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high'>('newest');
   const [couponConfig, setCouponConfig] = useState<{ isActive: boolean; minPurchase: number; discountAmount: number }>({ isActive: false, minPurchase: 100, discountAmount: 10 });
+  const [user, setUser] = useState<any>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  useEffect(() => {
+    const auth = getAuth();
+    return onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+    });
+  }, []);
 
   useEffect(() => {
     // Listener for settings
@@ -457,8 +469,8 @@ export default function Storefront() {
         original_price: totalPrice,
         coupon_discount,
         customer_name,
-        customer_username: null,
-        customer_uid: null,
+        customer_username: user ? user.email?.split('@')[0] : null,
+        customer_uid: user ? user.uid : null,
         customer_image: null,
         whatsapp: formattedWhatsapp,
         location,
@@ -576,10 +588,10 @@ export default function Storefront() {
         cartCount={cartItemCount} 
         onCartClick={handleOpenCart} 
         onTrackOrderClick={() => setIsTrackingOpen(true)}
-        onLoginClick={() => {}}
-        onLogoutClick={async () => {}}
+        onLoginClick={() => setIsAuthOpen(true)}
+        onLogoutClick={() => signOut(getAuth())}
         onEditProfileClick={() => {}}
-        user={null}
+        user={user ? { username: user.email?.split('@')[0] || 'User', email: user.email || '', uid: user.uid } : null}
         categories={categories.map(c => c.name)}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
@@ -588,8 +600,7 @@ export default function Storefront() {
         priceFilter={priceFilter}
         onPriceFilter={setPriceFilter}
         products={products}
-      />
-      
+      />      
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
         <HeroBanner banners={banners} />
         
@@ -737,11 +748,7 @@ export default function Storefront() {
         
         <section>
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
-              {[...Array(10)].map((_, i) => (
-                <div key={i} className="aspect-[3/4] glass animate-pulse rounded-[2rem]" />
-              ))}
-            </div>
+             <DotLoader />
           ) : error ? (
             <div className="text-center py-20 glass rounded-2xl border border-dashed border-red-200">
               <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
@@ -815,7 +822,7 @@ export default function Storefront() {
       <TrackingModal 
         isOpen={isTrackingOpen} 
         onClose={() => setIsTrackingOpen(false)} 
-        user={null}
+        user={user ? { username: user.email?.split('@')[0] || 'User', email: user.email || '', uid: user.uid } : null}
         products={products}
       />
 
@@ -855,6 +862,12 @@ export default function Storefront() {
       <PolicyModal 
         isOpen={isPolicyOpen}
         onClose={() => setIsPolicyOpen(false)}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={setUser}
       />
 
       <ScrollButton />

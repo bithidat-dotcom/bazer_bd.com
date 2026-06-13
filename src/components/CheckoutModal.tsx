@@ -4,7 +4,7 @@ import { Product, CartItem } from '../types';
 import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle } from 'lucide-react';
 import { formatWhatsappNumber } from '../lib/utils';
 
-import { UserProfile } from './AuthModal';
+import { UserProfile } from '../types';
 
 interface CheckoutModalProps {
   cartItems: CartItem[];

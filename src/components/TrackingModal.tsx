@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { UserProfile } from './AuthModal';
+import { UserProfile } from '../types';
 import { formatWhatsappNumber } from '../lib/utils';
 import { Product } from '../types';
 
@@ -82,10 +82,9 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
     setLoading(true);
     setHasSearched(true);
     try {
-      const q = query(
-        collection(db, 'orders'),
-        where('customer_username', '==', user.username)
-      );
+      const q = user.uid 
+        ? query(collection(db, 'orders'), where('customer_uid', '==', user.uid))
+        : query(collection(db, 'orders'), where('customer_username', '==', user.username));
       const snapshot = await getDocs(q);
       const fetchedOrders = snapshot.docs.map(d => ({
         id: d.id,

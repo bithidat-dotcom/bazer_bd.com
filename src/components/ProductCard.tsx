@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { formatPrice } from '../lib/utils';
 import { Product } from '../types';
+import LoadingImage from './LoadingImage';
 import { getProductLikesState, toggleProductLike, getProductReviews, getSellerInfoByName } from '../lib/db-sync';
 
 export default function ProductCard({ product, onBuy, onAddToCart, onClick, couponConfig }: { product: Product; onBuy: (product: Product) => void, onAddToCart?: (product: Product) => void, onClick?: (product: Product) => void, couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number } }) {
@@ -156,11 +157,9 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick, coup
             </button>
           </div>
 
-          <img 
+          <LoadingImage 
             src={product.image} 
             alt={product.name}
-            onContextMenu={(e) => e.preventDefault()}
-            onDragStart={(e) => e.preventDefault()}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
           />
           {/* Badges Container */}

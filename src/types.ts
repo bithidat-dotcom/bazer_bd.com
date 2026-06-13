@@ -65,3 +65,12 @@ export interface Banner {
   title?: string;
   created_at: string;
 }
+
+export interface UserProfile {
+  username: string;
+  email: string;
+  uid?: string;
+  profileImage?: string;
+  whatsapp?: string;
+  location?: string;
+}

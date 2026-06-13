@@ -1,7 +1,7 @@
 import { Search, ShoppingBag, Filter as FilterIcon, X, Package, User, Tv, Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { UserProfile } from './AuthModal';
+import { UserProfile } from '../types';
 import { Product } from '../types';
 
 export default function Navbar({ 
