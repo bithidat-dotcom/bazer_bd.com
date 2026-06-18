@@ -829,7 +829,7 @@ export default function Storefront() {
       <TrackingModal 
         isOpen={isTrackingOpen} 
         onClose={() => setIsTrackingOpen(false)} 
-        user={user ? { username: user.email?.split('@')[0] || 'User', email: user.email || '', uid: user.uid } : null}
+        user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
         products={products}
       />
 
