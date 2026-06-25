@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { Seller } from '../types';
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram, Share2, Copy, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Star, Heart, CheckCircle, MessagesSquare, User2, Cpu, Clock, ShieldAlert, X, Maximize2, Phone, Facebook, Instagram, Share2, Copy, Send, Sparkles, Zap } from 'lucide-react';
 import { formatPrice } from '../lib/utils';
 import ProductCard from './ProductCard';
 import { getProductLikesState, toggleProductLike, getProductReviews, saveProductReview } from '../lib/db-sync';
@@ -578,6 +578,12 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                     {likesCount || (isLiked ? 1 : 0)} {likesCount === 1 ? 'Like' : 'Likes'}
                   </span>
                 )}
+                {product.is_super_sale && (
+                  <span className="text-[10px] sm:text-xs font-black text-white bg-orange-600 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md animate-pulse">
+                    <Zap size={12} className="fill-white" />
+                    SUPER SALE VIP
+                  </span>
+                )}
               </div>
               
               <div className="flex items-start justify-between gap-3 mb-2">
@@ -614,8 +620,12 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                               onClick={() => handleShare('whatsapp')}
                               className="flex items-center gap-3 w-full p-3 hover:bg-emerald-50 rounded-2xl transition-colors group cursor-pointer"
                             >
-                              <div className="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                                <Send size={16} />
+                              <div className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all overflow-hidden">
+                                <img 
+                                  src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+                                  className="w-full h-full object-cover" 
+                                  alt="WhatsApp"
+                                />
                               </div>
                               <span className="text-xs font-black text-slate-700">WhatsApp</span>
                             </button>
@@ -998,7 +1008,11 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                           }}
                           className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-center"
                         >
-                          <Phone size={14} />
+                          <img 
+                            src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+                            className="w-5 h-5 object-contain rounded-full" 
+                            alt="WhatsApp"
+                          />
                           Contact
                         </button>
                     )}

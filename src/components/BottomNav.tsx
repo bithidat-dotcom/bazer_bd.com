@@ -50,7 +50,13 @@ export default function BottomNav({
         onClick={onSupportClick}
         className="w-full flex flex-col items-center justify-center gap-1 text-slate-950 hover:text-black transition-colors duration-250 py-1"
       >
-        <MessageCircle className="w-5.5 h-5.5 text-black font-extrabold fill-black/10" />
+        <div className="w-5.5 h-5.5 rounded-full overflow-hidden shadow-sm border border-slate-100">
+          <img 
+            src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+            className="w-full h-full object-cover" 
+            alt="Support"
+          />
+        </div>
         <span className="text-[9.5px] font-bold uppercase tracking-wider">Support</span>
       </motion.button>
 

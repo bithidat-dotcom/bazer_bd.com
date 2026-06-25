@@ -65,7 +65,11 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                     onClick={() => window.open(waLink, '_blank')}
                     className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
                   >
-                    <MessageCircle size={20} />
+                    <img 
+                      src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+                      className="w-6 h-6 object-contain rounded-full shadow-md" 
+                      alt="WhatsApp"
+                    />
                     Confirm with Seller
                   </button>
                   <p className="text-[9px] text-slate-400 font-bold">Connecting to Admin: {firstItem?.product.seller || 'Verified Seller'}</p>

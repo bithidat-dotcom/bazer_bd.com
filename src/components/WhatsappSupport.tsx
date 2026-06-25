@@ -14,10 +14,14 @@ export default function WhatsappSupport() {
       animate={{ scale: 1, opacity: 1 }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      className="hidden md:flex fixed bottom-6 right-6 z-50 items-center justify-center w-14 h-14 bg-slate-900 text-white rounded-full shadow-2xl shadow-slate-950/30 hover:bg-black transition-colors group cursor-pointer"
+      className="hidden md:flex fixed bottom-6 right-6 z-50 items-center justify-center w-14 h-14 bg-white text-white rounded-full shadow-2xl shadow-slate-950/30 transition-colors group cursor-pointer overflow-hidden border border-slate-100"
       title="Chat with Support"
     >
-      <MessageCircle size={28} className="group-hover:rotate-12 transition-transform text-white" />
+      <img 
+        src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
+        alt="Support"
+      />
       <span className="absolute right-full mr-3 px-2 py-1 bg-white text-slate-900 text-[10px] font-bold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-100">
         Support
       </span>

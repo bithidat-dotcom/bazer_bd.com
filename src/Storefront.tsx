@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import HeroBanner from './components/Banner';
@@ -15,8 +15,10 @@ import ScrollButton from './components/ScrollButton';
 import PolicyModal from './components/PolicyModal';
 import AuthModal from './components/AuthModal';
 import DotLoader from './components/DotLoader';
+import PopupAd from './components/PopupAd';
+import SuperSaleCard from './components/SuperSaleCard';
 import { db } from './lib/firebase';
-import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
 import { getSellers, isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from './lib/db-sync';
 import { formatWhatsappNumber } from './lib/utils';
@@ -43,6 +45,19 @@ export default function Storefront() {
   const [couponConfig, setCouponConfig] = useState<{ isActive: boolean; minPurchase: number; discountAmount: number }>({ isActive: false, minPurchase: 100, discountAmount: 10 });
   const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupContent, setPopupContent] = useState({ imageUrl: '', title: '', link: '' });
+
+  useEffect(() => {
+    const fetchAd = async () => {
+        const adDoc = await getDoc(doc(db, 'settings', 'ad'));
+        if (adDoc.exists()) {
+            setPopupContent(adDoc.data() as any);
+            setShowPopup(true);
+        }
+    }
+    fetchAd();
+  }, []);
 
   useEffect(() => {
       const savedUser = localStorage.getItem('pbazar_user');
@@ -74,6 +89,7 @@ export default function Storefront() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const [superSaleProducts, setSuperSaleProducts] = useState<Product[]>([]);
 
   // Deep Linking: Auto-open product from URL parameter ?p=ID
   useEffect(() => {
@@ -153,7 +169,11 @@ export default function Storefront() {
             flashSaleEnd: data.flashSaleEnd || null,
             seller: data.seller || '',
             seller_whatsapp: data.seller_whatsapp || '',
-            seller_logo: data.seller_logo || ''
+            seller_logo: data.seller_logo || '',
+            is_new: data.is_new !== undefined ? !!data.is_new : true,
+            is_super_sale: !!data.is_super_sale,
+            super_sale_at: data.super_sale_at || null,
+            order_count: Number(data.order_count || 0)
           } as Product;
         });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -380,6 +400,17 @@ export default function Storefront() {
 
     // Calculate Recommendations (For You Section)
     const calculateRecommendations = () => {
+      // Super Sale (Filter for products promoted within the last 24 hours)
+      const sale = products.filter(p => {
+        if (!p.is_super_sale) return false;
+        if (!p.super_sale_at) return true; // Legacy manual ones stay
+        
+        const saleTime = new Date(p.super_sale_at).getTime();
+        const now = new Date().getTime();
+        return (now - saleTime) < (24 * 60 * 60 * 1000); // 24 hours
+      });
+      setSuperSaleProducts(sale);
+
       const favIds = JSON.parse(localStorage.getItem('favorites') || '[]');
       
       const likedProducts = products.filter(p => favIds.includes(p.id));
@@ -418,7 +449,7 @@ export default function Storefront() {
     const handleFavUpdate = () => calculateRecommendations();
     window.addEventListener('favorites-updated', handleFavUpdate);
     return () => window.removeEventListener('favorites-updated', handleFavUpdate);
-  }, [searchQuery, products, discountFilter, categoryFilter]);
+  }, [searchQuery, products, discountFilter, categoryFilter, sortBy]);
 
 
 
@@ -506,17 +537,28 @@ export default function Storefront() {
         localStorage.setItem('tracked_order_ids', JSON.stringify(savedIds));
       }
 
-      // Decrement real stock by ordered quantity inside Firestore for inventory tracking
+      // Decrement real stock and increment order count for auto-promotion
       for (const item of cart) {
         if (item.product.id) {
           try {
             const productRef = doc(db, "products", item.product.id);
-            await updateDoc(productRef, {
-              stock: increment(-item.quantity)
-            });
-            console.log(`Decremented stock for ${item.product.name} by ${item.quantity}`);
+            const currentCount = (item.product.order_count || 0) + item.quantity;
+            
+            const updateData: any = {
+              stock: increment(-item.quantity),
+              order_count: increment(item.quantity)
+            };
+
+            // Auto-promote to Super Sale if orders > 3
+            if (currentCount >= 3 && !item.product.is_super_sale) {
+              updateData.is_super_sale = true;
+              updateData.super_sale_at = new Date().toISOString();
+            }
+
+            await updateDoc(productRef, updateData);
+            console.log(`Updated product ${item.product.name}: stock -${item.quantity}, orders +${item.quantity}`);
           } catch (stockErr) {
-            console.error("Failed to update product stock", stockErr);
+            console.error("Failed to update product data", stockErr);
           }
         }
       }
@@ -608,7 +650,27 @@ export default function Storefront() {
         onPriceFilter={setPriceFilter}
         products={products}
       />      
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
+      {error ? (
+        <div className="flex flex-col items-center justify-center py-40 px-6 space-y-8 animate-in fade-in zoom-in duration-500">
+           <div className="text-center space-y-6">
+              <h1 className="text-2xl sm:text-4xl font-black text-slate-800 leading-tight tracking-tighter uppercase italic">
+                we are in truble issue <br /> we are fixing it sorry for it
+              </h1>
+              <div className="flex justify-center">
+                 <Bot size={120} className="text-orange-500 animate-bounce" />
+              </div>
+              <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Maintenance in progress</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 bg-slate-900 text-white px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs hover:shadow-2xl hover:shadow-orange-500/20 transition-all active:scale-95 flex items-center gap-2 mx-auto"
+              >
+                Retry Connection
+              </button>
+           </div>
+        </div>
+      ) : (
+        <>
+          <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
         <HeroBanner banners={banners} />
         
         {/* AI Finder */}
@@ -641,6 +703,9 @@ export default function Storefront() {
 
         {/* Quick Filters Row */}
         <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3 mb-8 overflow-x-auto pb-4 scrollbar-hidden items-center">
+            <div className="text-[10px] font-black uppercase text-slate-400 shrink-0">
+               {filteredProducts.length} Items Found
+            </div>
             <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl shrink-0 overflow-x-auto scrollbar-hidden">
                 <button 
                   onClick={() => setSortBy('newest')}
@@ -680,6 +745,44 @@ export default function Storefront() {
                 >Clear All</button>
             )}
         </div>
+
+        {/* Super Sale Section */}
+        {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
+          <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
+            
+            <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto px-4 sm:px-0">
+               <div className="flex items-center gap-3">
+                 <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center animate-bounce shadow-xl shadow-orange-500/40 border-2 border-white">
+                    <Zap className="text-white fill-white" size={24} />
+                 </div>
+                 <div>
+                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Super Sale</h2>
+                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] animate-pulse">Limited Hot Deals • Active Now</p>
+                 </div>
+               </div>
+               <div className="hidden sm:flex items-center gap-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Swipe for more</span>
+                  <div className="w-10 h-0.5 bg-slate-200 rounded-full"></div>
+               </div>
+            </div>
+
+            <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hidden max-w-7xl mx-auto px-4 sm:px-0">
+              {superSaleProducts.map(product => (
+                <div key={product.id} className="w-[260px] sm:w-[300px] shrink-0">
+                  <SuperSaleCard 
+                    product={product} 
+                    onBuy={handleBuyNow} 
+                    onAddToCart={handleAddToCart}
+                    onClick={setSelectedProduct}
+                    couponConfig={couponConfig}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Recommended For You Section */}
         {recommendedProducts.length > 0 && !categoryFilter && !searchQuery && (
@@ -756,17 +859,6 @@ export default function Storefront() {
         <section>
           {loading ? (
              <DotLoader />
-          ) : error ? (
-            <div className="text-center py-20 glass rounded-2xl border border-dashed border-red-200">
-              <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-              <p className="text-red-500 text-sm font-bold">{error}</p>
-              <button 
-                onClick={fetchData}
-                className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold"
-              >
-                Retry
-              </button>
-            </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8">
               {filteredProducts.map((product) => (
@@ -816,6 +908,8 @@ export default function Storefront() {
           </div>
         </div>
       </footer>
+        </>
+      )}
       
       <style>{`
         @keyframes blink {
@@ -958,6 +1052,12 @@ export default function Storefront() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      <PopupAd 
+        isOpen={showPopup}
+        onClose={() => setShowPopup(false)}
+        adContent={popupContent}
+      />
       
       <BottomNav 
         onHomeClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

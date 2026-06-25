@@ -87,7 +87,11 @@ export default function SellerModal({
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 text-xs font-black uppercase tracking-tight"
                         >
-                          <Phone size={14} />
+                          <img 
+                            src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+                            className="w-5 h-5 object-contain rounded-full shadow-md" 
+                            alt="WhatsApp"
+                          />
                           <span>WhatsApp</span>
                         </a>
                       )}

@@ -1,4 +1,4 @@
-import { ShoppingCart, Star, Heart, Clock, Share2, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Clock, Share2, CheckCircle2, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { formatPrice } from '../lib/utils';
@@ -179,6 +179,12 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick, coup
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[7px] sm:text-[8.5px] font-black px-2 py-0.5 sm:py-1 rounded shadow-lg uppercase tracking-widest flex items-center gap-1 border border-orange-400/30 animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
                 <span>NEW</span>
+              </div>
+            )}
+            {product.is_super_sale && (
+              <div className="bg-orange-600 text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-lg uppercase tracking-tight flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                <Zap size={10} className="fill-white" />
+                <span>Super Sale</span>
               </div>
             )}
           </div>

@@ -40,6 +40,9 @@ export interface Product {
   seller_whatsapp?: string;
   seller_logo?: string;
   is_new?: boolean;
+  is_super_sale?: boolean;
+  super_sale_at?: string;
+  order_count?: number;
 }
 
 export interface CartItem {

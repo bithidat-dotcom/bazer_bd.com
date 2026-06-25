@@ -518,8 +518,12 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                     </div>
 
                     <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-100">
-                        <MessageCircle size={16} />
+                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                        <img 
+                          src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
+                          className="w-full h-full object-cover" 
+                          alt="WA"
+                        />
                       </div>
                       <div className="min-w-0">
                         <span className="text-[8px] font-black text-slate-400 uppercase block tracking-wider">WhatsApp Phone</span>
