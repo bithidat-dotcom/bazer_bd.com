@@ -174,6 +174,67 @@ async function startServer() {
     }
   });
 
+  // Order Placement Notification API
+  app.post("/api/notify/order-placed", async (req, res) => {
+    try {
+      const { orderId, customerName, whatsapp, items, totalAmount } = req.body;
+      
+      console.log(`[ADMIN NOTIFICATION] New Order #${orderId} from ${customerName} (${whatsapp}) for ${totalAmount} TK`);
+      
+      // Group items by seller to notify them
+      const sellerNotifications: Record<string, any> = {};
+      items.forEach((item: any) => {
+        const sellerId = item.product.seller_id || item.product.seller || 'unknown';
+        if (!sellerNotifications[sellerId]) {
+          sellerNotifications[sellerId] = {
+            whatsapp: item.product.seller_whatsapp,
+            items: []
+          };
+        }
+        sellerNotifications[sellerId].items.push(item);
+      });
+
+      for (const [sellerId, data] of Object.entries(sellerNotifications)) {
+        if (data.whatsapp) {
+          console.log(`[SELLER NOTIFICATION] Notify ${sellerId} (${data.whatsapp}) about items in Order #${orderId}`);
+          // Simulated WhatsApp API call for Seller
+        }
+      }
+
+      res.json({ success: true, message: "Notifications sent to admin and sellers" });
+    } catch (error) {
+      console.error("Order placement notification error:", error);
+      res.status(500).json({ error: "Failed to send notifications" });
+    }
+  });
+
+  // Order Notification API
+  app.post("/api/notify/order-confirmed", async (req, res) => {
+    try {
+      const { orderId, whatsapp, customerName, totalAmount } = req.body;
+      
+      if (!whatsapp) {
+        return res.status(400).json({ error: "Missing whatsapp number" });
+      }
+
+      console.log(`[NOTIFICATION] Sending confirmation to ${whatsapp} for Order #${orderId}`);
+      
+      // In a real production app, you would integrate Twilio or a similar service here:
+      /*
+      await twilioClient.messages.create({
+         body: `Hi ${customerName}, your order #${orderId} for ${totalAmount} TK has been confirmed by pbazar! Thank you for shopping with us.`,
+         from: 'whatsapp:+14155238886',
+         to: `whatsapp:${whatsapp}`
+      });
+      */
+
+      res.json({ success: true, message: "Notification sent successfully" });
+    } catch (error) {
+      console.error("Notification error:", error);
+      res.status(500).json({ error: "Failed to send notification" });
+    }
+  });
+
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

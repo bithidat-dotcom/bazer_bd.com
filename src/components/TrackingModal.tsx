@@ -405,7 +405,8 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                     {(() => {
                       let text = 'Pending';
                       let style = 'bg-yellow-50 text-yellow-600 border-yellow-200';
-                      if (selectedOrder.status === 'packing') { text = 'Packing in Progress'; style = 'bg-blue-50 text-blue-600 border-blue-150'; }
+                      if (selectedOrder.status === 'confirmed') { text = 'Order Confirmed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
+                      else if (selectedOrder.status === 'packing') { text = 'Packing in Progress'; style = 'bg-blue-50 text-blue-600 border-blue-150'; }
                       else if (selectedOrder.status === 'shipping') { text = 'Shipped via Carrier'; style = 'bg-purple-50 text-purple-600 border-purple-150'; }
                       else if (selectedOrder.status === 'delivery') { text = 'Out for Courier Delivery'; style = 'bg-orange-50 text-orange-600 border-orange-200'; }
                       else if (selectedOrder.status === 'completed') { text = 'Delivered & Completed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
@@ -437,16 +438,18 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                         style={{ 
                           width: 
                             selectedOrder.status === 'completed' ? '100%' :
-                            selectedOrder.status === 'delivery' ? '75%' :
-                            selectedOrder.status === 'shipping' ? '50%' :
-                            selectedOrder.status === 'packing' ? '25%' : '0%' 
+                            selectedOrder.status === 'delivery' ? '80%' :
+                            selectedOrder.status === 'shipping' ? '60%' :
+                            selectedOrder.status === 'packing' ? '40%' : 
+                            selectedOrder.status === 'confirmed' ? '20%' : '0%' 
                         }}
                       />
 
                       {/* Timestep Nodes */}
-                      {['pending', 'packing', 'shipping', 'delivery', 'completed'].map((st, idx) => {
+                      {['pending', 'confirmed', 'packing', 'shipping', 'delivery', 'completed'].map((st, idx) => {
                         const labels: Record<string, string> = {
                           pending: 'Placed',
+                          confirmed: 'Confirmed',
                           packing: 'Packing',
                           shipping: 'In Transit',
                           delivery: 'Out Delivery',

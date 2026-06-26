@@ -34,7 +34,7 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
             />
           </div>
           <span className="text-white font-black italic tracking-tighter text-xl uppercase drop-shadow-md">HOT DEAL</span>
-          <Zap className="text-yellow-300 fill-yellow-300 animate-bounce" size={20} />
+          <Zap className="text-yellow-300 fill-yellow-300" size={20} />
         </div>
       </div>
 
@@ -47,13 +47,16 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
           {hasDiscount && (
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
               <div className="relative">
                 <div className="absolute inset-0 bg-red-600 blur-lg opacity-40 animate-pulse"></div>
                 <div className="relative bg-red-600 text-white text-[12px] font-black px-4 py-2 rounded-2xl shadow-2xl border-2 border-white flex flex-col items-center justify-center leading-none">
                   <span className="text-[10px] opacity-80 uppercase tracking-tighter">Save</span>
-                  <span>{product.discount}%</span>
+                  <span className="text-lg">{product.discount}%</span>
                 </div>
+              </div>
+              <div className="bg-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-full border border-white shadow-sm uppercase tracking-widest animate-pulse">
+                Flash Sale
               </div>
             </div>
           )}

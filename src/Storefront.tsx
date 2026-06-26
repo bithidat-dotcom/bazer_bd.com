@@ -80,6 +80,8 @@ export default function Storefront() {
       if (snapshot.exists()) {
         setCouponConfig(snapshot.data() as any);
       }
+    }, (error) => {
+      console.error("Settings snapshot error:", error);
     });
 
     return () => {
@@ -178,6 +180,15 @@ export default function Storefront() {
         });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setProducts(prodData);
+        
+        // Filter Super Sale Products: Strictly marked by admin
+        const superSale = prodData.filter(p => p.is_super_sale);
+        setSuperSaleProducts(superSale);
+
+        // Recommended: High rating or high order count
+        const recommended = prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8);
+        setRecommendedProducts(recommended);
+
         localStorage.setItem('cached_products', JSON.stringify(prodData));
         setLoading(false);
       }, (error: any) => {
@@ -511,6 +522,7 @@ export default function Storefront() {
         customer_uid: null,
         customer_image: null,
         whatsapp: formattedWhatsapp,
+        whatsapp_number: formattedWhatsapp, // For Admin Table View Sync
         location,
         status: 'pending',
         created_at: new Date().toISOString(),
@@ -528,6 +540,30 @@ export default function Storefront() {
           };
         })
       });
+
+      // Trigger notification for admin and sellers
+      try {
+        await fetch('/api/notify/order-placed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: docRef.id,
+            customerName: customer_name,
+            whatsapp: formattedWhatsapp,
+            items: cart.map(item => ({
+               product: {
+                 name: item.product.name,
+                 seller: item.product.seller,
+                 seller_id: item.product.seller_id,
+                 seller_whatsapp: item.product.seller_whatsapp
+               }
+            })),
+            totalAmount: finalPrice
+          })
+        });
+      } catch (notifyErr) {
+        console.error("Failed to notify admin/seller:", notifyErr);
+      }
 
       // Track coordinates for immediate client status notifications
       localStorage.setItem('customer_whatsapp', formattedWhatsapp);
@@ -639,7 +675,7 @@ export default function Storefront() {
         onTrackOrderClick={() => setIsTrackingOpen(true)}
         onLoginClick={() => setIsAuthOpen(true)}
         onLogoutClick={handleLogout}
-        onEditProfileClick={() => {}}
+        onEditProfileClick={() => setIsAuthOpen(true)}
         user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
         categories={categories.map(c => c.name)}
         categoryFilter={categoryFilter}
@@ -754,7 +790,7 @@ export default function Storefront() {
             
             <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto px-4 sm:px-0">
                <div className="flex items-center gap-3">
-                 <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center animate-bounce shadow-xl shadow-orange-500/40 border-2 border-white">
+                 <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/40 border-2 border-white">
                     <Zap className="text-white fill-white" size={24} />
                  </div>
                  <div>
@@ -969,6 +1005,8 @@ export default function Storefront() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={handleAuthSuccess}
+        onLogout={handleLogout}
+        user={user}
       />
 
       <ScrollButton />
@@ -1061,12 +1099,12 @@ export default function Storefront() {
       
       <BottomNav 
         onHomeClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        onProfileClick={() => {}}
+        onProfileClick={() => setIsAuthOpen(true)}
         onOrdersClick={() => setIsTrackingOpen(true)}
         onCartClick={handleOpenCart}
         onSupportClick={() => window.open('https://wa.me/8801716807465', '_blank', 'noopener,noreferrer')}
         cartCount={cartItemCount}
-        user={null}
+        user={user}
       />
     </div>
   );

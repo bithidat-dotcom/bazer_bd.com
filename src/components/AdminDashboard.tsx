@@ -27,12 +27,16 @@ export default function AdminDashboard() {
       if (snapshot.exists()) {
         setCouponForm(snapshot.data() as any);
       }
+    }, (error) => {
+      console.error("Settings snapshot error:", error);
     });
 
     const unsubscribeAd = onSnapshot(doc(db, 'settings', 'ad'), (snapshot) => {
       if (snapshot.exists()) {
         setAdForm(snapshot.data() as any);
       }
+    }, (error) => {
+      console.error("Ad snapshot error:", error);
     });
 
     return () => {
@@ -295,6 +299,25 @@ export default function AdminDashboard() {
       }
 
       await updateDoc(doc(db, 'orders', orderId), { status });
+
+      // Trigger notification if confirmed
+      if (status === 'confirmed' && oldStatus !== 'confirmed') {
+        try {
+          await fetch('/api/notify/order-confirmed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId,
+              whatsapp: order.whatsapp,
+              customerName: order.customer_name,
+              totalAmount: order.price
+            })
+          });
+          console.log("Confirmation notification triggered");
+        } catch (nErr) {
+          console.error("Failed to trigger notification:", nErr);
+        }
+      }
     } catch (error) {
       console.error("Error updating order:", error);
     }
@@ -745,6 +768,7 @@ export default function AdminDashboard() {
                           className="bg-slate-100 border-none rounded-lg p-2 text-xs font-bold focus:ring-2 focus:ring-black transition-all cursor-pointer"
                         >
                           <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
                           <option value="packing">Packing</option>
                           <option value="shipping">Shipping</option>
                           <option value="delivery">Delivery</option>
