@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { 
   ShoppingBag, Cpu, Bot, Laptop, Shirt, Utensils, Sparkles, Tv, Scissors, Dumbbell, ShoppingCart, LayoutGrid, 
   Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, LogOut, Lock, Mail, Info, Star, MessageSquare, 
-  Check, ArrowRight, Eye, EyeOff, Globe, AlertCircle, Trash2, Edit, CheckCircle2 
+  Check, ArrowRight, Eye, EyeOff, Globe, AlertCircle, Trash2, Edit, CheckCircle2, Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -46,9 +46,10 @@ export default function SellerDashboard() {
 
   // Main Dashboard states
   const [products, setProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [allReviews, setAllReviews] = useState<any[]>([]);
   const [myReviews, setMyReviews] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'products' | 'reviews' | 'settings'>('products');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'reviews' | 'settings'>('orders');
   const [loading, setLoading] = useState(false);
 
   // Modal / Form states for product creation
@@ -234,9 +235,31 @@ export default function SellerDashboard() {
       console.error("Reviews listener failed:", err);
     });
 
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      const allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filtered = allOrders.filter((order: any) => {
+        if (order.seller_ids && order.seller_ids.includes(seller.username)) {
+          return true;
+        }
+        if (order.items && Array.isArray(order.items)) {
+          return order.items.some((item: any) => 
+            (item.seller_id || '').toLowerCase() === seller.username.toLowerCase() ||
+            (item.seller || '').toLowerCase() === seller.display_name.toLowerCase()
+          );
+        }
+        return false;
+      });
+      // Sort newest first
+      filtered.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      setOrders(filtered);
+    }, (err) => {
+      console.error("Orders listener failed:", err);
+    });
+
     return () => {
       unsubProd();
       unsubReviews();
+      unsubOrders();
     };
   }, [seller]);
 
@@ -771,6 +794,13 @@ export default function SellerDashboard() {
         <div className="px-6 py-2 border-b border-slate-150 flex items-center justify-between gap-5 flex-wrap">
           <div className="flex gap-2">
             <button
+              onClick={() => setActiveTab('orders')}
+              className={`px-4.5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 ${activeTab === 'orders' ? 'bg-slate-900 border border-slate-900 text-white shadow-md' : 'bg-white border border-slate-150 hover:bg-slate-50 text-slate-450 text-slate-600'}`}
+            >
+              <Package size={14} />
+              My Orders ({orders.length})
+            </button>
+            <button
               onClick={() => setActiveTab('products')}
               className={`px-4.5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 ${activeTab === 'products' ? 'bg-slate-900 border border-slate-900 text-white shadow-md' : 'bg-white border border-slate-150 hover:bg-slate-50 text-slate-450 text-slate-600'}`}
             >
@@ -807,6 +837,75 @@ export default function SellerDashboard() {
         {/* Active view window container */}
         <div className="flex-1 p-6 overflow-y-auto">
           
+          {/* TAB 0: ORDERS */}
+          {activeTab === 'orders' && (
+            <div className="space-y-5">
+              <div className="bg-white p-5 rounded-2xl border border-slate-150">
+                <h3 className="text-lg font-black tracking-tight text-slate-800 mb-4">Store Orders</h3>
+                {orders.length === 0 ? (
+                  <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs">
+                    <Package size={36} className="text-slate-300 mx-auto mb-3" />
+                    <h3 className="text-sm font-black text-slate-800 mb-1">No Orders Yet</h3>
+                    <p className="text-xs font-bold text-slate-500">Your customer orders will appear here when they are placed.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {orders.map(order => (
+                      <div key={order.id} className="bg-white border border-slate-150 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                              Order #{order.id.substring(0, 6)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {new Date(order.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-black text-slate-800">{order.customer_name}</h4>
+                            <span className="text-xs text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                              {order.whatsapp}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">{order.location}</p>
+                          
+                          <div className="mt-3 space-y-1.5">
+                            {order.items && order.items.map((item: any, idx: number) => {
+                              // Only show items that belong to this seller
+                              const isMine = (item.seller_id || '').toLowerCase() === seller.username.toLowerCase() || 
+                                             (item.seller || '').toLowerCase() === seller.display_name.toLowerCase();
+                              if (!isMine) return null;
+                              return (
+                                <div key={idx} className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-150 w-fit">
+                                  <span className="w-1.5 h-1.5 bg-orange-500 rounded-full shrink-0"></span>
+                                  <span>{item.quantity}x {item.name}</span>
+                                  <span className="text-slate-400">@ ৳{item.price}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center border-t border-slate-100 md:border-none pt-3 md:pt-0">
+                          <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${
+                            order.status === 'pending' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
+                            order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                            order.status === 'packing' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                            order.status === 'shipping' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                            order.status === 'delivery' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                            order.status === 'completed' ? 'bg-green-50 text-green-600 border-green-200' :
+                            'bg-red-50 text-red-600 border-red-200'
+                          }`}>
+                            {order.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: SELLER PRODUCTS CATALOG */}
           {activeTab === 'products' && (
             <div className="space-y-5">

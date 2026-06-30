@@ -26,6 +26,7 @@ import { formatWhatsappNumber } from './lib/utils';
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [visibleCount, setVisibleCount] = useState(30);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,21 @@ export default function Storefront() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupContent, setPopupContent] = useState({ imageUrl: '', title: '', link: '' });
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery, discountFilter, categoryFilter, priceFilter, sortBy]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        setVisibleCount(prev => prev + 30);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
 
   useEffect(() => {
     const fetchAd = async () => {
@@ -445,7 +461,7 @@ export default function Storefront() {
         recs = [...inCat.slice(0, 6), ...outCat.slice(0, 6)];
       } else {
         // If no favorites yet, show top rated categories diversity
-        recs = products
+        recs = [...products]
           .sort((a, b) => (b.rating || 0) - (a.rating || 0))
           .slice(0, 10);
       }
@@ -514,7 +530,10 @@ export default function Storefront() {
       const docRef = await addDoc(collection(db, "orders"), {
         product_id: combinedProductIds,
         product_name: combinedProductNames,
+        quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
         price: finalPrice,
+        seller: cart.map(item => item.product.seller).filter(Boolean).join(', '),
+        seller_id: cart.map(item => item.product.seller_id).filter(Boolean).join(', '),
         original_price: totalPrice,
         coupon_discount,
         customer_name,
@@ -526,6 +545,7 @@ export default function Storefront() {
         location,
         status: 'pending',
         created_at: new Date().toISOString(),
+        seller_ids: Array.from(new Set(cart.map(item => item.product.seller_id).filter(Boolean))),
         items: cart.map(item => {
           const hasDiscount = item.product.discount && item.product.discount > 0;
           const finalPrice = hasDiscount 
@@ -536,7 +556,10 @@ export default function Storefront() {
             name: item.product.name,
             image: item.product.image || '',
             price: finalPrice,
-            quantity: item.quantity
+            quantity: item.quantity,
+            seller: item.product.seller || '',
+            seller_id: item.product.seller_id || '',
+            seller_whatsapp: item.product.seller_whatsapp || ''
           };
         })
       });
@@ -897,7 +920,7 @@ export default function Storefront() {
              <DotLoader />
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8">
-              {filteredProducts.map((product) => (
+              {filteredProducts.slice(0, visibleCount).map((product) => (
                 <div key={product.id}>
                   <ProductCard 
                     product={product} 
