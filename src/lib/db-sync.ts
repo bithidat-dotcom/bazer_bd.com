@@ -153,7 +153,11 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
     updatedFavs = [...favs, productId];
     nextLikedState = true;
   }
-  localStorage.setItem('favorites', JSON.stringify(updatedFavs));
+  try {
+    localStorage.setItem('favorites', JSON.stringify(updatedFavs));
+  } catch (e) {
+    console.warn('LocalStorage quota exceeded, could not save favorite');
+  }
   window.dispatchEvent(new Event('favorites-updated'));
 
   try {
@@ -303,7 +307,11 @@ export async function getSellers(): Promise<any[]> {
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setCached(cacheKey, data);
-    localStorage.setItem('cached_sellers', JSON.stringify(data));
+    try {
+      localStorage.setItem('cached_sellers', JSON.stringify(data));
+    } catch (e) {
+      console.warn('LocalStorage quota exceeded, skipping cache for sellers');
+    }
     return data;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
@@ -366,7 +374,11 @@ export async function saveProductReview(productId: string, userName: string, rat
 
   // Add to local storage for instant render before server gets it or as a fallback
   const savedLocal = JSON.parse(localStorage.getItem(`reviews-${productId}`) || '[]');
-  localStorage.setItem(`reviews-${productId}`, JSON.stringify([localNewReview, ...savedLocal]));
+  try {
+    localStorage.setItem(`reviews-${productId}`, JSON.stringify([localNewReview, ...savedLocal]));
+  } catch (e) {
+    console.warn('LocalStorage quota exceeded, could not cache local review');
+  }
 
   // Clear cache to show new review
   delete memoryCache[`reviews-${productId}`];

@@ -26,7 +26,6 @@ import { formatWhatsappNumber } from './lib/utils';
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [visibleCount, setVisibleCount] = useState(30);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,21 +47,6 @@ export default function Storefront() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupContent, setPopupContent] = useState({ imageUrl: '', title: '', link: '' });
-
-  useEffect(() => {
-    setVisibleCount(30);
-  }, [searchQuery, discountFilter, categoryFilter, priceFilter, sortBy]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
-        setVisibleCount(prev => prev + 30);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
 
   useEffect(() => {
     const fetchAd = async () => {
@@ -205,7 +189,18 @@ export default function Storefront() {
         const recommended = prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8);
         setRecommendedProducts(recommended);
 
-        localStorage.setItem('cached_products', JSON.stringify(prodData));
+        try {
+          localStorage.setItem('cached_products', JSON.stringify(prodData));
+        } catch (e) {
+          console.warn('LocalStorage quota exceeded, skipping cache for products');
+          // If quota is exceeded, we might want to clear some space or store fewer items
+          try {
+            // Attempt to store a smaller subset (e.g., first 50 products)
+            localStorage.setItem('cached_products', JSON.stringify(prodData.slice(0, 50)));
+          } catch (retryError) {
+            console.error('Failed to store even a subset of products in localStorage');
+          }
+        }
         setLoading(false);
       }, (error: any) => {
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
@@ -230,7 +225,11 @@ export default function Storefront() {
         });
         bannerData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setBanners(bannerData);
-        localStorage.setItem('cached_banners', JSON.stringify(bannerData));
+        try {
+          localStorage.setItem('cached_banners', JSON.stringify(bannerData));
+        } catch (e) {
+          console.warn('LocalStorage quota exceeded, skipping cache for banners');
+        }
       }, (error: any) => {
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
           setFirestoreQuotaExceeded(true);
@@ -246,7 +245,11 @@ export default function Storefront() {
           const data = await getSellers();
           if (data && data.length > 0) {
             setSellers(data);
-            localStorage.setItem('cached_sellers', JSON.stringify(data));
+            try {
+              localStorage.setItem('cached_sellers', JSON.stringify(data));
+            } catch (e) {
+              console.warn('LocalStorage quota exceeded, skipping cache for sellers');
+            }
           }
         } catch (err) {
           console.warn('Silent seller fetch error:', err);
@@ -461,7 +464,7 @@ export default function Storefront() {
         recs = [...inCat.slice(0, 6), ...outCat.slice(0, 6)];
       } else {
         // If no favorites yet, show top rated categories diversity
-        recs = [...products]
+        recs = products
           .sort((a, b) => (b.rating || 0) - (a.rating || 0))
           .slice(0, 10);
       }
@@ -593,7 +596,11 @@ export default function Storefront() {
       const savedIds = JSON.parse(localStorage.getItem('tracked_order_ids') || '[]');
       if (!savedIds.includes(docRef.id)) {
         savedIds.push(docRef.id);
-        localStorage.setItem('tracked_order_ids', JSON.stringify(savedIds));
+        try {
+          localStorage.setItem('tracked_order_ids', JSON.stringify(savedIds));
+        } catch (e) {
+          console.warn('LocalStorage quota exceeded, could not save tracked order ID');
+        }
       }
 
       // Decrement real stock and increment order count for auto-promotion
@@ -920,7 +927,7 @@ export default function Storefront() {
              <DotLoader />
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8">
-              {filteredProducts.slice(0, visibleCount).map((product) => (
+              {filteredProducts.map((product) => (
                 <div key={product.id}>
                   <ProductCard 
                     product={product} 
