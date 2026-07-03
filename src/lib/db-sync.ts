@@ -1,5 +1,6 @@
 import { db } from './firebase';
 import { collection, doc, query, where, getDocs, getCountFromServer, addDoc, deleteDoc, orderBy } from 'firebase/firestore';
+import { Storage } from './storage';
 
 interface DBReview {
   id: string;
@@ -12,10 +13,10 @@ interface DBReview {
 
 // Generate or fetch a unique client device ID to identify unique likes without user login
 export function getDeviceId(): string {
-  let id = localStorage.getItem('device_id');
+  let id = Storage.getSmall<string>('device_id');
   if (!id) {
     id = 'usr_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
-    localStorage.setItem('device_id', id);
+    Storage.setSmall('device_id', id);
   }
   return id;
 }
@@ -59,7 +60,7 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
   const deviceId = getDeviceId();
   
   // First, check local favorites state for UI speed
-  const localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
+  const localFavs = Storage.getSmall<string[]>('favorites') || [];
   const locallyLiked = localFavs.includes(productId);
   
   // Calculate a deterministic fallback count based on product ID
@@ -138,7 +139,7 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
   const deviceId = getDeviceId();
   
   // Update localStorage first for instant UI response
-  const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+  const favs = Storage.getSmall<string[]>('favorites') || [];
   
   // Clear cache for this product on toggle
   delete memoryCache[`likes-${productId}`];
@@ -153,11 +154,8 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
     updatedFavs = [...favs, productId];
     nextLikedState = true;
   }
-  try {
-    localStorage.setItem('favorites', JSON.stringify(updatedFavs));
-  } catch (e) {
-    console.warn('LocalStorage quota exceeded, could not save favorite');
-  }
+  
+  Storage.setSmall('favorites', updatedFavs);
   window.dispatchEvent(new Event('favorites-updated'));
 
   try {
@@ -205,8 +203,8 @@ export async function getProductReviews(productId: string): Promise<any[]> {
   if (cached) return cached;
 
   if (quotaExceeded) {
-    const saved = localStorage.getItem(`reviews-${productId}`);
-    return saved ? JSON.parse(saved) : [];
+    const saved = await Storage.getLarge<any[]>(`reviews-${productId}`);
+    return saved || [];
   }
 
   try {
@@ -217,7 +215,7 @@ export async function getProductReviews(productId: string): Promise<any[]> {
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Merge server reviews & locally saved offline reviews if they exist
-    const savedLocal = JSON.parse(localStorage.getItem(`reviews-${productId}`) || '[]');
+    const savedLocal = await Storage.getLarge<any[]>(`reviews-${productId}`) || [];
     const results = [...(data || [])];
     
     // Filter local reviews to avoid duplicates with downloaded ones
@@ -236,6 +234,7 @@ export async function getProductReviews(productId: string): Promise<any[]> {
 
     const finalReviews = [...formattedSrv, ...localFiltered];
     setCached(cacheKey, finalReviews);
+    await Storage.setLarge(`reviews-${productId}`, finalReviews);
     return finalReviews;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.message?.includes('Quota') || err.code === 'resource-exhausted') {
@@ -243,9 +242,8 @@ export async function getProductReviews(productId: string): Promise<any[]> {
     } else {
        console.error('Error getting product reviews:', err);
     }
-    const saved = localStorage.getItem(`reviews-${productId}`);
-    if (saved) return JSON.parse(saved);
-    return [];
+    const saved = await Storage.getLarge<any[]>(`reviews-${productId}`);
+    return saved || [];
   }
 }
 
@@ -259,9 +257,8 @@ export async function getSellerInfoByName(sellerName: string): Promise<any | nul
   if (cached) return cached;
 
   if (quotaExceeded) {
-    const saved = localStorage.getItem('cached_sellers');
-    if (saved) {
-      const sellers = JSON.parse(saved);
+    const sellers = await Storage.getLarge<any[]>('cached_sellers');
+    if (sellers) {
       const found = sellers.find((s: any) => s.name === sellerName);
       if (found) return found;
     }
@@ -297,8 +294,8 @@ export async function getSellers(): Promise<any[]> {
   if (cached) return cached;
 
   if (quotaExceeded) {
-    const saved = localStorage.getItem('cached_sellers');
-    return saved ? JSON.parse(saved) : [];
+    const saved = await Storage.getLarge<any[]>('cached_sellers');
+    return saved || [];
   }
 
   try {
@@ -307,11 +304,7 @@ export async function getSellers(): Promise<any[]> {
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setCached(cacheKey, data);
-    try {
-      localStorage.setItem('cached_sellers', JSON.stringify(data));
-    } catch (e) {
-      console.warn('LocalStorage quota exceeded, skipping cache for sellers');
-    }
+    await Storage.setLarge('cached_sellers', data);
     return data;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
@@ -319,8 +312,8 @@ export async function getSellers(): Promise<any[]> {
     } else {
       console.error('Error fetching sellers:', err);
     }
-    const saved = localStorage.getItem('cached_sellers');
-    return saved ? JSON.parse(saved) : [];
+    const saved = await Storage.getLarge<any[]>('cached_sellers');
+    return saved || [];
   }
 }
 
@@ -333,9 +326,8 @@ export async function getProductsBySeller(sellerName: string): Promise<any[]> {
   if (cached) return cached;
 
   if (quotaExceeded) {
-    const saved = localStorage.getItem('cached_products');
-    if (saved) {
-      const allProds = JSON.parse(saved);
+    const allProds = await Storage.getLarge<any[]>('cached_products');
+    if (allProds) {
       return allProds.filter((p: any) => p.seller === sellerName);
     }
     return [];
@@ -354,10 +346,9 @@ export async function getProductsBySeller(sellerName: string): Promise<any[]> {
     } else {
       console.error('Error fetching seller products:', err);
     }
-    const saved = localStorage.getItem('cached_products');
+    const saved = await Storage.getLarge<any[]>('cached_products');
     if (saved) {
-      const allProds = JSON.parse(saved);
-      return allProds.filter((p: any) => p.seller === sellerName);
+      return saved.filter((p: any) => p.seller === sellerName);
     }
     return [];
   }
@@ -373,12 +364,8 @@ export async function saveProductReview(productId: string, userName: string, rat
   };
 
   // Add to local storage for instant render before server gets it or as a fallback
-  const savedLocal = JSON.parse(localStorage.getItem(`reviews-${productId}`) || '[]');
-  try {
-    localStorage.setItem(`reviews-${productId}`, JSON.stringify([localNewReview, ...savedLocal]));
-  } catch (e) {
-    console.warn('LocalStorage quota exceeded, could not cache local review');
-  }
+  const savedLocal = await Storage.getLarge<any[]>(`reviews-${productId}`) || [];
+  await Storage.setLarge(`reviews-${productId}`, [localNewReview, ...savedLocal]);
 
   // Clear cache to show new review
   delete memoryCache[`reviews-${productId}`];

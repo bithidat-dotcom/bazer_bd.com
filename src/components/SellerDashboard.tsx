@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { Storage } from '../lib/storage';
 
 interface SellerUser {
   username: string;
@@ -92,13 +93,9 @@ export default function SellerDashboard() {
 
   // 1. Check for stored login session on mount & verify server connection
   useEffect(() => {
-    const storedSeller = localStorage.getItem('seller_user');
+    const storedSeller = Storage.getSmall<SellerUser>('seller_user');
     if (storedSeller) {
-      try {
-        setSeller(JSON.parse(storedSeller));
-      } catch (e) {
-        localStorage.removeItem('seller_user');
-      }
+      setSeller(storedSeller);
     }
     setAuthLoading(false);
 
@@ -181,8 +178,8 @@ export default function SellerDashboard() {
 
       // Success
       const authUser: SellerUser = data.user;
-      localStorage.setItem('seller_user', JSON.stringify(authUser));
-      localStorage.setItem('seller_token', data.token);
+      Storage.setSmall('seller_user', authUser);
+      Storage.setSmall('seller_token', data.token);
       setSeller(authUser);
       
       const welcomeMsg = authMode === 'signup' ? 'Registration completed! Welcome to Pbazar Partner Portal' : `Welcome back, ${authUser.display_name}!`;
@@ -198,6 +195,7 @@ export default function SellerDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('seller_user');
+    localStorage.removeItem('seller_token');
     setSeller(null);
     showAlert('Successfully logged out.', 'success');
   };
@@ -445,7 +443,7 @@ export default function SellerDashboard() {
       }, { merge: true });
 
       // 3. Update local state and sessions
-      localStorage.setItem('seller_user', JSON.stringify(updatedUser));
+      Storage.setSmall('seller_user', updatedUser);
       setSeller(updatedUser);
       showAlert("Store details updated on server catalog!", "success");
     } catch (err: any) {

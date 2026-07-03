@@ -22,6 +22,7 @@ import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment
 import { Banner, Product, CartItem, Seller } from './types';
 import { getSellers, isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from './lib/db-sync';
 import { formatWhatsappNumber } from './lib/utils';
+import { Storage } from './lib/storage';
 
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,13 +61,13 @@ export default function Storefront() {
   }, []);
 
   useEffect(() => {
-      const savedUser = localStorage.getItem('pbazar_user');
-      if (savedUser) setUser(JSON.parse(savedUser));
+      const savedUser = Storage.getSmall<any>('pbazar_user');
+      if (savedUser) setUser(savedUser);
   }, []);
   
   const handleAuthSuccess = (userData: any) => {
       setUser(userData);
-      localStorage.setItem('pbazar_user', JSON.stringify(userData));
+      Storage.setSmall('pbazar_user', userData);
   };
   
   const handleLogout = () => {
@@ -136,13 +137,13 @@ export default function Storefront() {
     let unsubProd = () => {};
     let unsubBanner = () => {};
 
-    const loadFallbacks = () => {
-      const savedProducts = localStorage.getItem('cached_products');
-      const savedBanners = localStorage.getItem('cached_banners');
-      const savedSellers = localStorage.getItem('cached_sellers');
-      if (savedProducts) setProducts(JSON.parse(savedProducts));
-      if (savedBanners) setBanners(JSON.parse(savedBanners));
-      if (savedSellers) setSellers(JSON.parse(savedSellers));
+    const loadFallbacks = async () => {
+      const savedProducts = await Storage.getLarge<Product[]>('cached_products');
+      const savedBanners = await Storage.getLarge<Banner[]>('cached_banners');
+      const savedSellers = await Storage.getLarge<Seller[]>('cached_sellers');
+      if (savedProducts) setProducts(savedProducts);
+      if (savedBanners) setBanners(savedBanners);
+      if (savedSellers) setSellers(savedSellers);
       setLoading(false);
     };
 
@@ -189,18 +190,7 @@ export default function Storefront() {
         const recommended = prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8);
         setRecommendedProducts(recommended);
 
-        try {
-          localStorage.setItem('cached_products', JSON.stringify(prodData));
-        } catch (e) {
-          console.warn('LocalStorage quota exceeded, skipping cache for products');
-          // If quota is exceeded, we might want to clear some space or store fewer items
-          try {
-            // Attempt to store a smaller subset (e.g., first 50 products)
-            localStorage.setItem('cached_products', JSON.stringify(prodData.slice(0, 50)));
-          } catch (retryError) {
-            console.error('Failed to store even a subset of products in localStorage');
-          }
-        }
+        Storage.setLarge('cached_products', prodData);
         setLoading(false);
       }, (error: any) => {
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
@@ -225,11 +215,7 @@ export default function Storefront() {
         });
         bannerData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setBanners(bannerData);
-        try {
-          localStorage.setItem('cached_banners', JSON.stringify(bannerData));
-        } catch (e) {
-          console.warn('LocalStorage quota exceeded, skipping cache for banners');
-        }
+        Storage.setLarge('cached_banners', bannerData);
       }, (error: any) => {
         if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
           setFirestoreQuotaExceeded(true);
@@ -245,11 +231,7 @@ export default function Storefront() {
           const data = await getSellers();
           if (data && data.length > 0) {
             setSellers(data);
-            try {
-              localStorage.setItem('cached_sellers', JSON.stringify(data));
-            } catch (e) {
-              console.warn('LocalStorage quota exceeded, skipping cache for sellers');
-            }
+            Storage.setLarge('cached_sellers', data);
           }
         } catch (err) {
           console.warn('Silent seller fetch error:', err);
@@ -592,15 +574,11 @@ export default function Storefront() {
       }
 
       // Track coordinates for immediate client status notifications
-      localStorage.setItem('customer_whatsapp', formattedWhatsapp);
-      const savedIds = JSON.parse(localStorage.getItem('tracked_order_ids') || '[]');
+      Storage.setSmall('customer_whatsapp', formattedWhatsapp);
+      const savedIds = Storage.getSmall<string[]>('tracked_order_ids') || [];
       if (!savedIds.includes(docRef.id)) {
         savedIds.push(docRef.id);
-        try {
-          localStorage.setItem('tracked_order_ids', JSON.stringify(savedIds));
-        } catch (e) {
-          console.warn('LocalStorage quota exceeded, could not save tracked order ID');
-        }
+        Storage.setSmall('tracked_order_ids', savedIds);
       }
 
       // Decrement real stock and increment order count for auto-promotion
