@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { setFirestoreQuotaExceeded } from '../lib/db-sync';
+import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
+import { Storage } from '../lib/storage';
 import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -166,10 +167,35 @@ export default function AdminDashboard() {
   }, [renderChart]);
 
   useEffect(() => {
+    // Initial load from cache if possible
+    const loadFallbacks = async () => {
+      const savedOrders = await Storage.getLarge<any[]>('admin_cached_orders');
+      const savedUsers = await Storage.getLarge<any[]>('admin_cached_users');
+      const savedProducts = await Storage.getLarge<any[]>('admin_cached_products');
+      const savedSellers = await Storage.getLarge<any[]>('admin_cached_sellers');
+      
+      if (savedOrders) setOrders(savedOrders);
+      if (savedUsers) setUsers(savedUsers);
+      if (savedProducts) setProducts(savedProducts);
+      if (savedSellers) setSellers(savedSellers);
+      
+      if (savedOrders || savedUsers || savedProducts || savedSellers) {
+        setLoading(false);
+      }
+    };
+
+    if (isFirestoreQuotaExceeded()) {
+      loadFallbacks();
+    } else {
+      // Still try to load from cache for instant initial render
+      loadFallbacks();
+    }
+
     // Listener for orders
     const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
       const ordersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setOrders(ordersData);
+      Storage.setLarge('admin_cached_orders', ordersData);
 
       // Recalculate analytics data whenever orders change
       const dailySales: { [key: string]: number } = {};
@@ -194,6 +220,7 @@ export default function AdminDashboard() {
     const unsubscribeUsers = onSnapshot(collection(db, 'register_people'), (snapshot) => {
       const usersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setUsers(usersData);
+      Storage.setLarge('admin_cached_users', usersData);
       setLoading(false);
     }, (error: any) => {
       console.error('Users snapshot error:', error);
@@ -225,6 +252,7 @@ export default function AdminDashboard() {
         };
       });
       setProducts(productsData);
+      Storage.setLarge('admin_cached_products', productsData);
       setLoading(false);
     }, (error: any) => {
       console.error('Products snapshot error:', error);
@@ -238,6 +266,7 @@ export default function AdminDashboard() {
     const unsubscribeSellers = onSnapshot(collection(db, 'sellers'), (snapshot) => {
       const sellersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setSellers(sellersData);
+      Storage.setLarge('admin_cached_sellers', sellersData);
       setLoading(false);
     }, (error: any) => {
       console.error('Sellers snapshot error:', error);

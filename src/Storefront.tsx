@@ -72,7 +72,7 @@ export default function Storefront() {
   
   const handleLogout = () => {
       setUser(null);
-      localStorage.removeItem('pbazar_user');
+      Storage.removeSmall('pbazar_user');
   };
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function Storefront() {
 
   useEffect(() => {
     // Cleanup: Remove old "hide" functionality data to restore all products
-    localStorage.removeItem('hidden_products');
+    Storage.removeSmall('hidden_products');
   }, []);
 
   useEffect(() => {
@@ -274,7 +274,7 @@ export default function Storefront() {
 
   // Real-time mobile push notifications for status updates
   useEffect(() => {
-    const savedWhatsapp = localStorage.getItem('customer_whatsapp');
+    const savedWhatsapp = Storage.getSmall<string>('customer_whatsapp');
     const usernameKey = null;
 
     if (!savedWhatsapp && !usernameKey) return;
@@ -423,7 +423,7 @@ export default function Storefront() {
       });
       setSuperSaleProducts(sale);
 
-      const favIds = JSON.parse(localStorage.getItem('favorites') || '[]');
+      const favIds = Storage.getSmall<string[]>('favorites') || [];
       
       const likedProducts = products.filter(p => favIds.includes(p.id));
       const likedCategories = Array.from(new Set(likedProducts.map(p => p.category)));
@@ -715,7 +715,43 @@ export default function Storefront() {
       ) : (
         <>
           <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
-        <HeroBanner banners={banners} />
+        {/* Super Sale Section at top - "Product in banner state" */}
+        {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
+          <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
+            
+            <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto px-4 sm:px-0">
+               <div className="flex items-center gap-3">
+                 <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/40 border-2 border-white">
+                    <Zap className="text-white fill-white" size={24} />
+                 </div>
+                 <div>
+                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Super Sale</h2>
+                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] animate-pulse">Limited Hot Deals • Active Now</p>
+                 </div>
+               </div>
+               <div className="hidden sm:flex items-center gap-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Swipe for more</span>
+                  <div className="w-10 h-0.5 bg-slate-200 rounded-full"></div>
+               </div>
+            </div>
+
+            <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hidden max-w-7xl mx-auto px-4 sm:px-0">
+              {superSaleProducts.map(product => (
+                <div key={product.id} className="w-[260px] sm:w-[300px] shrink-0">
+                  <SuperSaleCard 
+                    product={product} 
+                    onBuy={handleBuyNow} 
+                    onAddToCart={handleAddToCart}
+                    onClick={setSelectedProduct}
+                    couponConfig={couponConfig}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         
         {/* AI Finder */}
         <div className="mb-6 hidden">
@@ -790,43 +826,6 @@ export default function Storefront() {
             )}
         </div>
 
-        {/* Super Sale Section */}
-        {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
-          <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
-            
-            <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto px-4 sm:px-0">
-               <div className="flex items-center gap-3">
-                 <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/40 border-2 border-white">
-                    <Zap className="text-white fill-white" size={24} />
-                 </div>
-                 <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Super Sale</h2>
-                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] animate-pulse">Limited Hot Deals • Active Now</p>
-                 </div>
-               </div>
-               <div className="hidden sm:flex items-center gap-2">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Swipe for more</span>
-                  <div className="w-10 h-0.5 bg-slate-200 rounded-full"></div>
-               </div>
-            </div>
-
-            <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hidden max-w-7xl mx-auto px-4 sm:px-0">
-              {superSaleProducts.map(product => (
-                <div key={product.id} className="w-[260px] sm:w-[300px] shrink-0">
-                  <SuperSaleCard 
-                    product={product} 
-                    onBuy={handleBuyNow} 
-                    onAddToCart={handleAddToCart}
-                    onClick={setSelectedProduct}
-                    couponConfig={couponConfig}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Recommended For You Section */}
         {recommendedProducts.length > 0 && !categoryFilter && !searchQuery && (
@@ -926,6 +925,10 @@ export default function Storefront() {
             </div>
           )}
         </section>
+
+        <section className="mt-8">
+           <HeroBanner banners={banners} />
+        </section>
       </main>
 
       <footer className="hidden md:block glass border-t border-slate-200 mt-12 mb-0 relative z-40 bg-white/80 backdrop-blur-xl">
@@ -944,10 +947,10 @@ export default function Storefront() {
             </span>
             <div className="flex gap-6 items-center flex-wrap">
               <a href="/seller" className="hover:text-orange-700 text-orange-600 transition-colors uppercase tracking-widest bg-orange-50/70 border border-orange-200/50 px-2.5 py-1 rounded-lg font-black text-[9px]">Seller Partner Portal</a>
-              <a href="#" className="hover:text-black transition-colors">Instagram: @quats.co</a>
+              <a href="#" className="hover:text-black transition-colors">Instagram: @pbazar.bd</a>
               <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Official Policy</button>
-              <a href="#" className="hover:text-black transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-black transition-colors">Terms & Conditions</a>
+              <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Privacy Policy</button>
+              <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Terms & Conditions</button>
             </div>
           </div>
         </div>

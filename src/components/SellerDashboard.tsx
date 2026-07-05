@@ -194,8 +194,8 @@ export default function SellerDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('seller_user');
-    localStorage.removeItem('seller_token');
+    Storage.removeSmall('seller_user');
+    Storage.removeSmall('seller_token');
     setSeller(null);
     showAlert('Successfully logged out.', 'success');
   };

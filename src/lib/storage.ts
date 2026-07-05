@@ -59,6 +59,10 @@ class StorageService {
     }
   }
 
+  removeSmall(key: string): void {
+    localStorage.removeItem(key);
+  }
+
   /**
    * Hybrid helper: Tries LocalStorage first, then IndexedDB
    */
