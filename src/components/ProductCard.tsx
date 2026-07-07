@@ -6,7 +6,7 @@ import { Product } from '../types';
 import LoadingImage from './LoadingImage';
 import { getProductLikesState, toggleProductLike, getProductReviews, getSellerInfoByName } from '../lib/db-sync';
 
-export default function ProductCard({ product, onBuy, onAddToCart, onClick, couponConfig }: { product: Product; onBuy: (product: Product) => void, onAddToCart?: (product: Product) => void, onClick?: (product: Product) => void, couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number } }) {
+export default function ProductCard({ product, onBuy, onAddToCart, onClick, couponConfig, isSearchVariant }: { product: Product; onBuy: (product: Product) => void, onAddToCart?: (product: Product) => void, onClick?: (product: Product) => void, couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }, isSearchVariant?: boolean }) {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
@@ -163,31 +163,33 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick, coup
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
           />
           {/* Badges Container */}
-          <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex flex-col gap-1.5 items-start">
-            {hasDiscount && (
-              <>
-                <div className="bg-red-600 backdrop-blur-md text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-lg uppercase tracking-tight">
-                  -{product.discount}% OFF
+          {!isSearchVariant && (
+            <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex flex-col gap-1.5 items-start">
+              {hasDiscount && (
+                <>
+                  <div className="bg-red-600 backdrop-blur-md text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-lg uppercase tracking-tight">
+                    -{product.discount}% OFF
+                  </div>
+                  <div className="bg-white/90 backdrop-blur-md border border-slate-150 text-black text-[6px] sm:text-[8px] font-black px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded flex items-center gap-1 shadow-md">
+                    <Clock size={8} className="sm:size-2.5" />
+                    <span>FLASH</span>
+                  </div>
+                </>
+              )}
+              {((product.is_new !== false && (product.is_new || (product.created_at && (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7)))) && (
+                <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[7px] sm:text-[8.5px] font-black px-2 py-0.5 sm:py-1 rounded shadow-lg uppercase tracking-widest flex items-center gap-1 border border-orange-400/30 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
+                  <span>NEW</span>
                 </div>
-                <div className="bg-white/90 backdrop-blur-md border border-slate-150 text-black text-[6px] sm:text-[8px] font-black px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded flex items-center gap-1 shadow-md">
-                  <Clock size={8} className="sm:size-2.5" />
-                  <span>FLASH</span>
+              )}
+              {product.is_super_sale && (
+                <div className="bg-orange-600 text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-lg uppercase tracking-tight flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <Zap size={10} className="fill-white" />
+                  <span>Super Sale</span>
                 </div>
-              </>
-            )}
-            {((product.is_new !== false && (product.is_new || (product.created_at && (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7)))) && (
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[7px] sm:text-[8.5px] font-black px-2 py-0.5 sm:py-1 rounded shadow-lg uppercase tracking-widest flex items-center gap-1 border border-orange-400/30 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
-                <span>NEW</span>
-              </div>
-            )}
-            {product.is_super_sale && (
-              <div className="bg-orange-600 text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-lg uppercase tracking-tight flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
-                <Zap size={10} className="fill-white" />
-                <span>Super Sale</span>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
         
         <div className="px-1 flex flex-col flex-1">
@@ -209,7 +211,7 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick, coup
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10 hidden md:block leading-relaxed">
+          <p className={`text-sm text-slate-500 line-clamp-2 mb-4 h-10 leading-relaxed ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
             {product.description}
           </p>
         </div>

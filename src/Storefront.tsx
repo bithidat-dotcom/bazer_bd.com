@@ -1,6 +1,6 @@
 import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import HeroBanner from './components/Banner';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
@@ -39,6 +39,29 @@ export default function Storefront() {
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      setIsSearchActive(true);
+      setIsSearchLoading(true);
+      
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      searchTimeoutRef.current = setTimeout(() => {
+        setIsSearchLoading(false);
+      }, 2000);
+    } else {
+      setIsSearchActive(false);
+      setIsSearchLoading(false);
+    }
+  };
+
   const [discountFilter, setDiscountFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [priceFilter, setPriceFilter] = useState<{min: number, max: number} | null>(null);
@@ -677,7 +700,7 @@ export default function Storefront() {
   return (
     <div className="min-h-screen bg-mesh">
       <Navbar 
-        onSearch={setSearchQuery} 
+        onSearch={handleSearch} 
         cartCount={cartItemCount} 
         onCartClick={handleOpenCart} 
         onTrackOrderClick={() => setIsTrackingOpen(true)}
@@ -715,6 +738,46 @@ export default function Storefront() {
       ) : (
         <>
           <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
+          {isSearchActive ? (
+            <div className="flex flex-col space-y-6 animate-in fade-in">
+               <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Search Results</h2>
+                  <span className="text-sm font-medium text-slate-500">for "{searchQuery}"</span>
+               </div>
+               
+               {isSearchLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                     <DotLoader />
+                     <p className="text-sm font-bold text-slate-500 uppercase tracking-widest animate-pulse">Searching...</p>
+                  </div>
+               ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-8">
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.map(product => (
+                        <div key={product.id}>
+                          <ProductCard 
+                            product={product} 
+                            onBuy={handleBuyNow} 
+                            onAddToCart={handleAddToCart}
+                            onClick={setSelectedProduct}
+                            couponConfig={couponConfig}
+                            isSearchVariant={true}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-32 glass rounded-[2.5rem] border border-dashed border-slate-200">
+                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Filter className="w-8 h-8 text-slate-300" />
+                        </div>
+                        <p className="text-slate-500 font-bold tracking-tight">No products found matching your search.</p>
+                      </div>
+                    )}
+                  </div>
+               )}
+            </div>
+          ) : (
+             <>
         {/* Super Sale Section at top - "Product in banner state" */}
         {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
           <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
@@ -737,9 +800,9 @@ export default function Storefront() {
                </div>
             </div>
 
-            <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hidden max-w-7xl mx-auto px-4 sm:px-0">
+            <div className="flex gap-4 overflow-x-auto pb-8 scrollbar-hidden max-w-7xl mx-auto px-4 sm:px-0">
               {superSaleProducts.map(product => (
-                <div key={product.id} className="w-[260px] sm:w-[300px] shrink-0">
+                <div key={product.id} className="w-[160px] sm:w-[220px] shrink-0">
                   <SuperSaleCard 
                     product={product} 
                     onBuy={handleBuyNow} 
@@ -929,6 +992,8 @@ export default function Storefront() {
         <section className="mt-8">
            <HeroBanner banners={banners} />
         </section>
+             </>
+          )}
       </main>
 
       <footer className="hidden md:block glass border-t border-slate-200 mt-12 mb-0 relative z-40 bg-white/80 backdrop-blur-xl">
@@ -1018,6 +1083,7 @@ export default function Storefront() {
         onAuthSuccess={handleAuthSuccess}
         onLogout={handleLogout}
         user={user}
+        onOpenPolicy={() => setIsPolicyOpen(true)}
       />
 
       <ScrollButton />

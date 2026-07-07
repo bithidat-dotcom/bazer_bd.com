@@ -20,43 +20,40 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
 
   return (
     <motion.div 
-      whileHover={{ y: -8 }}
-      className="max-w-sm w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-white relative group h-full flex flex-col transition-all duration-500"
+      whileHover={{ y: -4 }}
+      className="w-full bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-white relative group h-full flex flex-col transition-all duration-300"
     >
       {/* Hot Deal Header */}
-      <div className="relative bg-gradient-to-r from-orange-600 to-red-600 p-4 text-center">
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-white shadow-lg">
+      <div className="relative bg-gradient-to-r from-orange-600 to-red-600 p-2 sm:p-3 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white overflow-hidden bg-white shadow-sm shrink-0">
             <img 
               src="https://t3.ftcdn.net/jpg/02/35/26/30/360_F_235263034_miJw2igmixo7ymCqhHZ7c8wp9kaujzfM.jpg" 
               alt="Fire" 
               className="w-full h-full object-cover animate-pulse scale-110"
             />
           </div>
-          <span className="text-white font-black italic tracking-tighter text-xl uppercase drop-shadow-md">HOT DEAL</span>
-          <Zap className="text-yellow-300 fill-yellow-300" size={20} />
+          <span className="text-white font-black italic tracking-tighter text-xs sm:text-sm uppercase drop-shadow-sm">HOT DEAL</span>
+          <Zap className="text-yellow-300 fill-yellow-300 w-3 h-3 sm:w-4 sm:h-4" />
         </div>
       </div>
 
-      <div className="p-6 flex-1 flex flex-col" onClick={() => onClick(product)}>
+      <div className="p-3 flex-1 flex flex-col" onClick={() => onClick(product)}>
         {/* Product Image */}
-        <div className="w-full h-64 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 overflow-hidden relative cursor-pointer shadow-inner">
+        <div className="w-full h-32 sm:h-48 bg-slate-50 rounded-xl flex items-center justify-center mb-3 overflow-hidden relative cursor-pointer shadow-inner">
           <img 
             src={product.image || 'https://placehold.co/400x400/e2e8f0/64748b?text=Premium+Product'} 
             alt={product.name} 
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
           {hasDiscount && (
-            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
+            <div className="absolute top-2 right-2 z-10 flex flex-col gap-1.5 items-end">
               <div className="relative">
-                <div className="absolute inset-0 bg-red-600 blur-lg opacity-40 animate-pulse"></div>
-                <div className="relative bg-red-600 text-white text-[12px] font-black px-4 py-2 rounded-2xl shadow-2xl border-2 border-white flex flex-col items-center justify-center leading-none">
-                  <span className="text-[10px] opacity-80 uppercase tracking-tighter">Save</span>
-                  <span className="text-lg">{product.discount}%</span>
+                <div className="absolute inset-0 bg-red-600 blur opacity-40 animate-pulse"></div>
+                <div className="relative bg-red-600 text-white font-black px-2 py-1 sm:px-3 sm:py-2 rounded-xl shadow-lg border border-white flex flex-col items-center justify-center leading-none">
+                  <span className="text-[8px] sm:text-[9px] opacity-90 uppercase tracking-tighter">Save</span>
+                  <span className="text-sm sm:text-base">{product.discount}%</span>
                 </div>
-              </div>
-              <div className="bg-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-full border border-white shadow-sm uppercase tracking-widest animate-pulse">
-                Flash Sale
               </div>
             </div>
           )}
@@ -64,31 +61,27 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
         </div>
 
         {/* Content */}
-        <div className="text-center space-y-3 flex-1 px-2">
-          <h2 className="text-2xl font-black text-slate-800 line-clamp-1 uppercase tracking-tight leading-none">{product.name}</h2>
+        <div className="text-center space-y-2 flex-1 px-1">
+          <h2 className="text-sm sm:text-base font-black text-slate-800 line-clamp-1 uppercase tracking-tight leading-tight">{product.name}</h2>
           
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-4xl font-black text-red-600 tabular-nums drop-shadow-sm">{formatPrice(discountedPrice)}</span>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-lg sm:text-2xl font-black text-red-600 tabular-nums drop-shadow-sm">{formatPrice(discountedPrice)}</span>
             {hasDiscount && (
-              <span className="text-slate-400 line-through text-base font-bold tabular-nums">{formatPrice(product.price)}</span>
+              <span className="text-slate-400 line-through text-[10px] sm:text-xs font-bold tabular-nums">{formatPrice(product.price)}</span>
             )}
           </div>
-          
-          <p className="text-slate-500 text-sm font-medium leading-relaxed px-2 line-clamp-2">
-            {product.description || 'Premium quality product with limited seasonal offer. Don\'t miss out! Special Super Sale edition available for a limited time.'}
-          </p>
         </div>
 
         {/* Action Button */}
-        <div className="mt-8">
+        <div className="mt-3">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               onAddToCart(product);
             }}
-            className="w-full py-5 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-black text-lg uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-xl shadow-orange-500/30 transform hover:-translate-y-1 flex items-center justify-center gap-3 active:scale-95"
+            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2"
           >
-            <ShoppingCart size={22} className="group-hover:rotate-12 transition-transform" />
+            <ShoppingCart size={14} className="group-hover:rotate-12 transition-transform" />
             Add to Cart
           </button>
         </div>

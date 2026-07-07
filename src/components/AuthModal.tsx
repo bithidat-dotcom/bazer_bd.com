@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { X, LogOut, User, Phone, Calendar } from 'lucide-react';
+import { X, LogOut, User, Phone, Calendar, FileText } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,9 +9,10 @@ interface AuthModalProps {
   onAuthSuccess: (user: any) => void;
   onLogout: () => void;
   user: any;
+  onOpenPolicy?: () => void;
 }
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess, onLogout, user }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onAuthSuccess, onLogout, user, onOpenPolicy }: AuthModalProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [whatsapp, setWhatsapp] = useState('');
   const [password, setPassword] = useState('');
@@ -106,6 +107,17 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, onLogout, us
                 </div>
               </div>
             </div>
+
+            <button 
+              onClick={() => {
+                onClose();
+                onOpenPolicy && onOpenPolicy();
+              }}
+              className="w-full py-4 bg-slate-50 border border-slate-200 text-slate-700 font-black text-xs uppercase tracking-[0.2em] rounded-2xl transition-all hover:bg-slate-100 flex items-center justify-center gap-2"
+            >
+              <FileText size={16} />
+              Policies & Terms
+            </button>
 
             <button 
               onClick={() => {
