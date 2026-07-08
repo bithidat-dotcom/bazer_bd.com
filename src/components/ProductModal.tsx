@@ -467,13 +467,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
               >
-                 {hasDiscount && (
-                    <div className="absolute top-4 right-4 bg-red-600 backdrop-blur-md text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-tight shadow-lg z-10">
-                        {product.discount}% OFF SALE
-                    </div>
-                 )}
-
-                 <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait">
                     <motion.img 
                         key={currentImageIndex}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -578,12 +572,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                     {likesCount || (isLiked ? 1 : 0)} {likesCount === 1 ? 'Like' : 'Likes'}
                   </span>
                 )}
-                {product.is_super_sale && (
-                  <span className="text-[10px] sm:text-xs font-black text-white bg-orange-600 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md animate-pulse">
-                    <Zap size={12} className="fill-white" />
-                    SUPER SALE VIP
-                  </span>
-                )}
+                {/* Super sale badge removed */}
               </div>
               
               <div className="flex items-start justify-between gap-3 mb-2">
@@ -707,58 +696,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                 )}
               </div>
 
-              {/* Discount Real-time Ticking Timer Counter Block */}
-              {hasDiscount && timeLeft && (
-                <div className="mb-5 bg-amber-50/80 backdrop-blur-md border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <span className="p-1 sm:p-1.5 bg-amber-500 text-white rounded-lg shrink-0">
-                        <Clock className="w-4 h-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[10px] sm:text-xs font-black text-amber-950 uppercase tracking-wider leading-none">Flash Sale Offer Active</p>
-                        <p className="text-[8px] sm:text-[10px] text-amber-700 font-bold mt-1 leading-tight">
-                          Ends at {product.flashSaleEnd ? (
-                            (() => {
-                              try {
-                                const parts = product.flashSaleEnd.match(/(\d{1,2}):(\d{2})\s+(AM|PM)/i);
-                                if (parts) return `${parts[1]}:${parts[2]} ${parts[3].toUpperCase()}`;
-                                const d = new Date(product.flashSaleEnd);
-                                if (!isNaN(d.getTime())) {
-                                  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                                }
-                                return product.flashSaleEnd;
-                              } catch (e) { return 'soon'; }
-                            })()
-                          ) : 'countdown expiry'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-1.5 font-mono text-[11px] sm:text-sm shrink-0">
-                      <div className="bg-amber-500 text-white rounded-lg px-2 py-1 font-bold min-w-[24px] sm:min-w-[32px] text-center shadow-sm">
-                        {((val: any) => {
-                          if (val === undefined || val === null || isNaN(val)) return '00';
-                          return String(val).padStart(2, '0');
-                        })(timeLeft.hours)}
-                      </div>
-                      <span className="text-amber-600 font-black animate-pulse">:</span>
-                      <div className="bg-amber-500 text-white rounded-lg px-2 py-1 font-bold min-w-[24px] sm:min-w-[32px] text-center shadow-sm">
-                        {((val: any) => {
-                          if (val === undefined || val === null || isNaN(val)) return '00';
-                          return String(val).padStart(2, '0');
-                        })(timeLeft.minutes)}
-                      </div>
-                      <span className="text-amber-600 font-black animate-pulse">:</span>
-                      <div className="bg-amber-500 text-white rounded-lg px-2 py-1 font-bold min-w-[24px] sm:min-w-[32px] text-center shadow-sm">
-                        {((val: any) => {
-                          if (val === undefined || val === null || isNaN(val)) return '00';
-                          return String(val).padStart(2, '0');
-                        })(timeLeft.seconds)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Flash Sale countdown block removed */}
 
               {/* Product Stock Indicator */}
               <div className="mb-5">

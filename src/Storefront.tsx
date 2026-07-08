@@ -778,6 +778,9 @@ export default function Storefront() {
             </div>
           ) : (
              <>
+        <section className="mb-8">
+           <HeroBanner banners={banners} />
+        </section>
         {/* Super Sale Section at top - "Product in banner state" */}
         {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
           <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
@@ -802,7 +805,7 @@ export default function Storefront() {
 
             <div className="flex gap-4 overflow-x-auto pb-8 scrollbar-hidden max-w-7xl mx-auto px-4 sm:px-0">
               {superSaleProducts.map(product => (
-                <div key={product.id} className="w-[160px] sm:w-[220px] shrink-0">
+                <div key={product.id} className="w-[140px] sm:w-[220px] shrink-0">
                   <SuperSaleCard 
                     product={product} 
                     onBuy={handleBuyNow} 
@@ -987,10 +990,6 @@ export default function Storefront() {
               <p className="text-slate-500 font-bold tracking-tight">No products found matching your search.</p>
             </div>
           )}
-        </section>
-
-        <section className="mt-8">
-           <HeroBanner banners={banners} />
         </section>
              </>
           )}

@@ -46,17 +46,6 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
             alt={product.name} 
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
-          {hasDiscount && (
-            <div className="absolute top-2 right-2 z-10 flex flex-col gap-1.5 items-end">
-              <div className="relative">
-                <div className="absolute inset-0 bg-red-600 blur opacity-40 animate-pulse"></div>
-                <div className="relative bg-red-600 text-white font-black px-2 py-1 sm:px-3 sm:py-2 rounded-xl shadow-lg border border-white flex flex-col items-center justify-center leading-none">
-                  <span className="text-[8px] sm:text-[9px] opacity-90 uppercase tracking-tighter">Save</span>
-                  <span className="text-sm sm:text-base">{product.discount}%</span>
-                </div>
-              </div>
-            </div>
-          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
         </div>
 

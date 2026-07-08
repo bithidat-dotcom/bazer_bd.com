@@ -177,8 +177,13 @@ export async function toggleProductLike(productId: string): Promise<{ totalLikes
       await Promise.all(deletions);
     }
     
+    // Clear cache again to ensure getProductLikesState fetches fresh count
+    delete memoryCache[`likes-${productId}`];
+    
     // Fetch fresh stats to return
-    return await getProductLikesState(productId);
+    const newState = await getProductLikesState(productId);
+    window.dispatchEvent(new Event('favorites-updated'));
+    return newState;
   } catch (err: any) {
     console.error('Error syncing like with server:', err.message || err);
     
