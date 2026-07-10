@@ -1,5 +1,6 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import HeroBanner from './components/Banner';
 import Navbar from './components/Navbar';
@@ -33,6 +34,26 @@ export default function Storefront() {
   const [error, setError] = useState<string | null>(null);
   
   const [cart, setCart] = useState<CartItem[]>([]);
+  
+  useEffect(() => {
+    const loadCart = async () => {
+      const savedCart = await Storage.getLarge<CartItem[]>('pbazar_cart');
+      if (savedCart && Array.isArray(savedCart)) {
+        setCart(savedCart);
+      }
+    };
+    loadCart();
+  }, []);
+
+  useEffect(() => {
+    const saveCart = async () => {
+      if (cart.length > 0) {
+        await Storage.setLarge('pbazar_cart', cart);
+      }
+    };
+    saveCart();
+  }, [cart]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
@@ -74,10 +95,31 @@ export default function Storefront() {
 
   useEffect(() => {
     const fetchAd = async () => {
-        const adDoc = await getDoc(doc(db, 'settings', 'ad'));
-        if (adDoc.exists()) {
-            setPopupContent(adDoc.data() as any);
+        // Cache ad for 1 hour to save reads
+        const cachedAd = await Storage.getLarge<any>('cached_ad');
+        const lastAdFetch = await Storage.getLarge<number>('last_ad_fetch') || 0;
+        
+        if (cachedAd && Date.now() - lastAdFetch < 60 * 60 * 1000) {
+            setPopupContent(cachedAd);
             setShowPopup(true);
+            return;
+        }
+
+        if (isFirestoreQuotaExceeded()) return;
+
+        try {
+            const adDoc = await getDoc(doc(db, 'settings', 'ad'));
+            if (adDoc.exists()) {
+                const data = adDoc.data() as any;
+                setPopupContent(data);
+                setShowPopup(true);
+                await Storage.setLarge('cached_ad', data);
+                await Storage.setLarge('last_ad_fetch', Date.now());
+            }
+        } catch (err: any) {
+            if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
+                setFirestoreQuotaExceeded(true);
+            }
         }
     }
     fetchAd();
@@ -104,8 +146,11 @@ export default function Storefront() {
       if (snapshot.exists()) {
         setCouponConfig(snapshot.data() as any);
       }
-    }, (error) => {
+    }, (error: any) => {
       console.error("Settings snapshot error:", error);
+      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     return () => {
@@ -113,6 +158,7 @@ export default function Storefront() {
     };
   }, []);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [cartNotification, setCartNotification] = useState<{productName: string} | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [superSaleProducts, setSuperSaleProducts] = useState<Product[]>([]);
@@ -488,7 +534,17 @@ export default function Storefront() {
 
 
 
-  async function submitOrder(customer_name: string, whatsapp: string, location: string): Promise<void> {
+  const handleLogoClick = () => {
+    setSearchQuery('');
+    setCategoryFilter(null);
+    setDiscountFilter(null);
+    setPriceFilter(null);
+    setIsSearchActive(false);
+    setIsSearchLoading(false);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+  };
+
+  async function submitOrder(customer_name: string, whatsapp: string, location: string, area: string, postCode: string): Promise<string | undefined> {
     if (cart.length === 0) return;
 
     const combinedProductNames = cart
@@ -531,6 +587,8 @@ export default function Storefront() {
       customer_name,
       whatsapp: formattedWhatsapp,
       location,
+      area,
+      post_code: postCode,
       status: 'pending'
     });
     
@@ -551,6 +609,8 @@ export default function Storefront() {
         whatsapp: formattedWhatsapp,
         whatsapp_number: formattedWhatsapp, // For Admin Table View Sync
         location,
+        area,
+        post_code: postCode,
         status: 'pending',
         created_at: new Date().toISOString(),
         seller_ids: Array.from(new Set(cart.map(item => item.product.seller_id).filter(Boolean))),
@@ -581,6 +641,7 @@ export default function Storefront() {
             orderId: docRef.id,
             customerName: customer_name,
             whatsapp: formattedWhatsapp,
+            location: `${location}, ${area}${postCode ? ` (${postCode})` : ''}`,
             items: cart.map(item => ({
                product: {
                  name: item.product.name,
@@ -636,6 +697,7 @@ export default function Storefront() {
       
       // Auto-hide success message
       setTimeout(() => setSuccessMessage(""), 6000);
+      return docRef.id;
     } catch (err: any) {
       console.error("INSERT FAILED:", err);
       if (!err.message?.includes('alert')) {
@@ -657,6 +719,10 @@ export default function Storefront() {
       }
       return [...prevCart, { product, quantity }];
     });
+    
+    // Add feedback for cart update
+    setCartNotification({ productName: product.name });
+    setTimeout(() => setCartNotification(null), 3000);
   };
 
   const handleBuyNow = (product: Product, quantity: number = 1) => {
@@ -695,7 +761,7 @@ export default function Storefront() {
     setIsModalOpen(true);
   };
 
-  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartItemCount = (Array.isArray(cart)) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
 
   return (
     <div className="min-h-screen bg-mesh">
@@ -707,6 +773,7 @@ export default function Storefront() {
         onLoginClick={() => setIsAuthOpen(true)}
         onLogoutClick={handleLogout}
         onEditProfileClick={() => setIsAuthOpen(true)}
+        onLogoClick={handleLogoClick}
         user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
         categories={categories.map(c => c.name)}
         categoryFilter={categoryFilter}
@@ -716,7 +783,9 @@ export default function Storefront() {
         priceFilter={priceFilter}
         onPriceFilter={setPriceFilter}
         products={products}
-      />      
+      />
+
+
       {error ? (
         <div className="flex flex-col items-center justify-center py-40 px-6 space-y-8 animate-in fade-in zoom-in duration-500">
            <div className="text-center space-y-6">
@@ -778,8 +847,15 @@ export default function Storefront() {
             </div>
           ) : (
              <>
-        <section className="mb-8">
-           <HeroBanner banners={banners} />
+        <section className="mb-10 px-4 md:px-6">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch">
+             <div className="rounded-l-[2rem] md:rounded-r-none overflow-hidden shadow-sm border border-slate-100">
+               <HeroBanner banners={banners} startIndex={0} />
+             </div>
+             <div className="hidden md:block rounded-r-[2rem] md:rounded-l-none overflow-hidden shadow-sm border border-slate-100 border-l-0">
+               <HeroBanner banners={banners} startIndex={1} />
+             </div>
+           </div>
         </section>
         {/* Super Sale Section at top - "Product in banner state" */}
         {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
@@ -1007,10 +1083,13 @@ export default function Storefront() {
           <div className="flex flex-wrap gap-8 items-center justify-between border-t border-slate-200 pt-4 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 bg-slate-900 rounded-full shadow-lg shadow-black/50 blink"></div> 
-              Orders Live ({products.reduce((acc, p) => acc + (p.stock || 0), 0) > 0 ? products.length * 2 + 5 : products.length} Active)
+              Orders Live ({Array.isArray(products) ? (products.reduce((acc, p) => acc + (Number(p.stock) || 0), 0) > 0 ? products.length * 2 + 5 : products.length) : 0} Active)
             </span>
             <div className="flex gap-6 items-center flex-wrap">
-              <a href="/seller" className="hover:text-orange-700 text-orange-600 transition-colors uppercase tracking-widest bg-orange-50/70 border border-orange-200/50 px-2.5 py-1 rounded-lg font-black text-[9px]">Seller Partner Portal</a>
+              <a href="https://admin4565.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:bg-orange-600 hover:text-white text-orange-600 transition-colors uppercase tracking-widest bg-orange-50/70 border border-orange-200/50 px-3 py-1.5 rounded-xl font-black text-[9px] flex items-center gap-1.5 shadow-sm active:scale-95">
+                <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></span>
+                Become a Seller
+              </a>
               <a href="#" className="hover:text-black transition-colors">Instagram: @pbazar.bd</a>
               <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Official Policy</button>
               <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Privacy Policy</button>
@@ -1165,6 +1244,34 @@ export default function Storefront() {
             </div>
           </motion.div>
         )}
+
+        {cartNotification && (
+          <motion.div
+            key="cart-notification"
+            initial={{ opacity: 0, y: -100, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -100, x: '-50%', scale: 0.8 }}
+            className="fixed top-0 left-1/2 z-[110] w-[calc(100%-2rem)] max-w-sm pointer-events-none"
+          >
+            <div className="bg-orange-600 text-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(249,115,22,0.4)] border border-orange-500 flex items-center gap-4 overflow-hidden relative text-left pointer-events-auto">
+              <motion.div 
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', damping: 12 }}
+                className="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center shrink-0 border border-white/30"
+              >
+                <ShoppingBag className="w-5 h-5" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black uppercase tracking-widest opacity-70">Added to Cart</p>
+                <p className="text-sm font-bold tracking-tight truncate mt-0.5">{cartNotification.productName}</p>
+              </div>
+              <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
+                <CheckCircle2 size={16} className="text-white" />
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
       
       <PopupAd 
@@ -1174,7 +1281,10 @@ export default function Storefront() {
       />
       
       <BottomNav 
-        onHomeClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onHomeClick={() => {
+          handleLogoClick();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         onProfileClick={() => setIsAuthOpen(true)}
         onOrdersClick={() => setIsTrackingOpen(true)}
         onCartClick={handleOpenCart}

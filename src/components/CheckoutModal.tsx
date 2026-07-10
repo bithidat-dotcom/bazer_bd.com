@@ -10,7 +10,7 @@ interface CheckoutModalProps {
   cartItems: CartItem[];
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (customerName: string, whatsapp: string, location: string) => Promise<void>;
+  onSubmit: (customerName: string, whatsapp: string, location: string, area: string, postCode: string) => Promise<string | undefined>;
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   user?: UserProfile | null;
@@ -21,13 +21,18 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [location, setLocation] = useState('');
+  const [area, setArea] = useState('');
+  const [postCode, setPostCode] = useState('');
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [cartSnapshot, setCartSnapshot] = useState<CartItem[]>([]);
 
   React.useEffect(() => {
     if (isOpen) {
       setShowSuccess(false);
+      setOrderId(null);
       if (user) {
         if (!customerName) setCustomerName(user.username || '');
         if (!whatsapp) setWhatsapp(user.whatsapp || '');
@@ -37,10 +42,12 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   }, [isOpen, user]);
 
   if (showSuccess) {
-     const firstItem = cartItems[0];
+     const displayItems = cartSnapshot.length > 0 ? cartSnapshot : cartItems;
+     const firstItem = displayItems[0];
      const sellerW = firstItem?.product.seller_whatsapp;
-     const productList = cartItems.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
-     const waLink = sellerW ? `https://wa.me/${sellerW.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I just placed an order for: ${productList}. My name is ${customerName}. Please confirm my order.`)}` : null;
+     const productList = displayItems.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
+     const messageText = `Hi, I just placed an order (ID: ${orderId || 'New'}). Items: ${productList}. My name is ${customerName}. Please confirm my order.`;
+     const waLink = sellerW ? `https://wa.me/${sellerW.replace(/\D/g, '')}?text=${encodeURIComponent(messageText)}` : null;
 
      return (
       <AnimatePresence>
@@ -50,12 +57,17 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="w-full h-[60vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 text-center relative z-10"
+              className="w-full h-[70vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 text-center relative z-10"
             >
               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle size={40} />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">Order Confirmed!</h3>
+              <h3 className="text-2xl font-black text-slate-900 mb-1">Order Confirmed!</h3>
+              {orderId && (
+                <p className="text-orange-600 font-black text-xs uppercase tracking-widest mb-4 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                  Order ID: {orderId}
+                </p>
+              )}
               <p className="text-slate-500 text-sm mb-8">Your order has been recorded in our system successfully.</p>
               
               {waLink && (
@@ -137,16 +149,16 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
     );
   }
 
-  const totalPrice = cartItems.reduce((sum, item) => {
+  const totalPrice = Array.isArray(cartItems) ? cartItems.reduce((sum, item) => {
     const hasDiscount = item.product.discount && item.product.discount > 0;
     const price = hasDiscount 
       ? item.product.price * (1 - (item.product.discount || 0) / 100) 
       : item.product.price;
     return sum + price * item.quantity;
-  }, 0);
+  }, 0) : 0;
 
   let couponDiscount = 0;
-  if (couponConfig?.isActive) {
+  if (couponConfig?.isActive && Array.isArray(cartItems)) {
     cartItems.forEach(item => {
       const hasDiscount = item.product.discount && item.product.discount > 0;
       const unitPrice = hasDiscount 
@@ -163,8 +175,8 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerName || !whatsapp || !location) {
-      alert("Please fill all fields");
+    if (!customerName || !whatsapp || !location || !area) {
+      alert("Please fill all mandatory fields (Name, WhatsApp, Address, Area)");
       return;
     }
 
@@ -175,9 +187,14 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
 
   const handleFinalConfirm = async () => {
     setIsSubmitting(true);
+    setCartSnapshot([...cartItems]);
     try {
       console.log('Starting order submission...');
-      await onSubmit(customerName, whatsapp, location);
+      const newOrderId = await onSubmit(customerName, whatsapp, location, area, postCode);
+      
+      if (newOrderId) {
+        setOrderId(newOrderId);
+      }
       
       // Show success screen which has the WhatsApp redirect
       setShowSuccess(true);
@@ -188,7 +205,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
         const sellerW = firstItem.product.seller_whatsapp;
         if (sellerW) {
           const productList = cartItems.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
-          const message = encodeURIComponent(`Hi, I just placed an order for: ${productList}. My name is ${customerName}. Please confirm my order.`);
+          const message = encodeURIComponent(`Hi, I just placed an order (ID: ${newOrderId || 'New'}). Items: ${productList}. My name is ${customerName}. Please confirm my order.`);
           window.open(`https://wa.me/${sellerW.replace(/\D/g, '')}?text=${message}`, '_blank');
         }
       }
@@ -341,9 +358,33 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                             required
                             value={location}
                             onChange={(e) => setLocation(e.target.value)}
-                            placeholder="Enter your address"
+                            placeholder="Enter your street address / Village / House"
                             rows={2}
                             className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">Area / City</label>
+                          <input
+                            type="text"
+                            required
+                            value={area}
+                            onChange={(e) => setArea(e.target.value)}
+                            placeholder="e.g. Dhaka"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">Post Code</label>
+                          <input
+                            type="text"
+                            value={postCode}
+                            onChange={(e) => setPostCode(e.target.value)}
+                            placeholder="e.g. 1200"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all"
                           />
                         </div>
                       </div>
@@ -396,6 +437,9 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                       )}
                       <hr className="border-slate-200 border-dashed my-2" />
                       <div className="flex justify-between"><span className="text-slate-400">Deliver to:</span> <span className="font-bold text-slate-900 truncate ml-2">{customerName}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Address:</span> <span className="font-bold text-slate-900 truncate ml-2">{location}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Area:</span> <span className="font-bold text-slate-900 ml-2">{area}</span></div>
+                      {postCode && <div className="flex justify-between"><span className="text-slate-400">Post Code:</span> <span className="font-bold text-slate-900 ml-2">{postCode}</span></div>}
                       <div className="flex justify-between"><span className="text-slate-400">WhatsApp:</span> <span className="font-bold text-slate-900">{whatsapp}</span></div>
                     </div>
 

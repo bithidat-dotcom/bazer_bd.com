@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Banner as BannerType } from '../types';
 import DotLoader from './DotLoader';
 
-export default function HeroBanner({ banners }: { banners: BannerType[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export default function HeroBanner({ banners, startIndex = 0 }: { banners: BannerType[], startIndex?: number }) {
+  const [currentIndex, setCurrentIndex] = useState(startIndex % (banners.length || 1));
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
   const imgRef = React.useRef<HTMLImageElement>(null);
   
@@ -38,7 +38,7 @@ export default function HeroBanner({ banners }: { banners: BannerType[] }) {
   if (!currentBanner) return null;
 
   return (
-    <div className="relative w-full aspect-[3/2] sm:aspect-[21/9] lg:aspect-[3/1] overflow-hidden rounded-3xl group">
+    <div className="relative w-full aspect-[3/2] sm:aspect-[21/9] lg:aspect-[16/9] overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}

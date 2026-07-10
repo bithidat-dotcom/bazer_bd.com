@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, addDoc, getDocs, query, where, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { setFirestoreQuotaExceeded } from '../lib/db-sync';
 import { 
   ShoppingBag, Cpu, Bot, Laptop, Shirt, Utensils, Sparkles, Tv, Scissors, Dumbbell, ShoppingCart, LayoutGrid, 
   Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, LogOut, Lock, Mail, Info, Star, MessageSquare, 
@@ -220,8 +221,11 @@ export default function SellerDashboard() {
       );
       setProducts(filtered);
       setLoading(false);
-    }, (err) => {
+    }, (err: any) => {
       console.error("Products listen error", err);
+      if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
       setLoading(false);
     });
 
@@ -229,8 +233,11 @@ export default function SellerDashboard() {
     const unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
       const parsedReviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAllReviews(parsedReviews);
-    }, (err) => {
+    }, (err: any) => {
       console.error("Reviews listener failed:", err);
+      if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
@@ -250,8 +257,11 @@ export default function SellerDashboard() {
       // Sort newest first
       filtered.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       setOrders(filtered);
-    }, (err) => {
+    }, (err: any) => {
       console.error("Orders listener failed:", err);
+      if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
+        setFirestoreQuotaExceeded(true);
+      }
     });
 
     return () => {
@@ -865,7 +875,14 @@ export default function SellerDashboard() {
                               {order.whatsapp}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">{order.location}</p>
+                          <p className="text-xs text-slate-900 font-bold mt-1">
+                            {order.location}
+                            {(order.area || order.post_code) && (
+                              <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                {order.area}{order.post_code ? ` (${order.post_code})` : ''}
+                              </span>
+                            )}
+                          </p>
                           
                           <div className="mt-3 space-y-1.5">
                             {order.items && order.items.map((item: any, idx: number) => {

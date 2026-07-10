@@ -587,7 +587,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                   {/* Pricing breakout with delivery details */}
                   {(() => {
                     const itemsList = resolveOrderItems(selectedOrder);
-                    const parsedSubtotal = itemsList.reduce((sum, current) => sum + (current.price * current.quantity), 0);
+                    const parsedSubtotal = Array.isArray(itemsList) ? itemsList.reduce((sum, current) => sum + (current.price * current.quantity), 0) : 0;
                     // Use total order price instead of computed subtotal in case discount overrides are manually input, or fallback
                     const finalSubtotal = selectedOrder.price;
                     const delivery = getDeliveryDetails(selectedOrder.location || '', finalSubtotal);

@@ -1,6 +1,7 @@
 import { Search, ShoppingBag, Filter as FilterIcon, X, Package, User, Tv, Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import { UserProfile } from '../types';
 import { Product } from '../types';
 
@@ -12,6 +13,7 @@ export default function Navbar({
   onLoginClick,
   onLogoutClick,
   onEditProfileClick,
+  onLogoClick,
   user,
   categories = [],
   categoryFilter = null,
@@ -29,6 +31,7 @@ export default function Navbar({
   onLoginClick?: () => void,
   onLogoutClick?: () => void,
   onEditProfileClick?: () => void,
+  onLogoClick?: () => void,
   user?: UserProfile | null,
   categories?: string[],
   categoryFilter?: string | null,
@@ -116,7 +119,16 @@ export default function Navbar({
   return (
     <nav className="sticky top-0 z-50 bg-orange-500 px-4 py-3 sm:px-8 shadow-sm relative border-b-2 border-orange-600">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 relative">
-        <Link to="/" className="flex text-sm sm:text-lg md:text-2xl font-bold font-display tracking-tight items-center gap-1 md:gap-2 shrink-0">
+        <Link 
+          to="/" 
+          onClick={(e) => {
+            if (onLogoClick) {
+              onLogoClick();
+            }
+            setSearchValue('');
+          }}
+          className="flex text-sm sm:text-lg md:text-2xl font-bold font-display tracking-tight items-center gap-1 md:gap-2 shrink-0"
+        >
           <img src="https://i.postimg.cc/KvqR53hq/download-(1).png" alt="pbazar Logo" className="w-6 h-6 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white animate-pulse-subtle" />
           <span className="text-white">pbazar</span>
         </Link>
@@ -199,10 +211,16 @@ export default function Navbar({
           </button>
           
           <button onClick={onCartClick} className="p-2 hover:bg-orange-400/20 rounded-full transition-colors relative group">
-            <ShoppingBag className="w-5 h-5 text-white" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-orange-600 text-[10px] flex items-center justify-center rounded-full border-2 border-orange-500 font-black">{cartCount}</span>
-            )}
+            <motion.div
+              key={`cart-icon-${cartCount}`}
+              animate={cartCount > 0 ? { scale: [1, 1.2, 1] } : {}}
+              transition={{ duration: 0.3 }}
+            >
+              <ShoppingBag className="w-5 h-5 text-white" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-orange-600 text-[10px] flex items-center justify-center rounded-full border-2 border-orange-500 font-black">{cartCount}</span>
+              )}
+            </motion.div>
           </button>
 
           {user ? (

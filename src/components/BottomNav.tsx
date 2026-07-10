@@ -36,12 +36,19 @@ export default function BottomNav({
         onClick={onCartClick}
         className="w-full flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-slate-900 transition-colors duration-250 relative py-1"
       >
-        <ShoppingBag className="w-5.5 h-5.5" />
-        {cartCount > 0 && (
-            <span className="absolute top-0 right-[20%] min-w-4 h-4 px-1 bg-slate-950 text-white text-[8px] flex items-center justify-center rounded-full font-black border border-white leading-none">
-                {cartCount}
-            </span>
-        )}
+        <motion.div
+          key={`cart-icon-bottom-${cartCount}`}
+          animate={cartCount > 0 ? { scale: [1, 1.2, 1] } : {}}
+          transition={{ duration: 0.3 }}
+          className="relative"
+        >
+          <ShoppingBag className="w-5.5 h-5.5" />
+          {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-slate-950 text-white text-[8px] flex items-center justify-center rounded-full font-black border border-white leading-none">
+                  {cartCount}
+              </span>
+          )}
+        </motion.div>
         <span className="text-[9.5px] font-bold uppercase tracking-wider">Cart</span>
       </motion.button>
 
