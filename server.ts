@@ -235,26 +235,6 @@ async function startServer() {
     }
   });
 
-  // Admin Settings API
-  app.post("/api/admin/settings/sidebar-ads", async (req, res) => {
-    try {
-      const { left, right } = req.body;
-      
-      // Update Firestore
-      await setDoc(doc(db, "settings", "sidebar_ads"), {
-        left: left || { image: "", link: "" },
-        right: right || { image: "", link: "" },
-        updated_at: new Date().toISOString()
-      });
-
-      console.log("[ADMIN] Sidebar ads updated via server API");
-      res.json({ success: true, message: "Sidebar ads updated successfully" });
-    } catch (error) {
-      console.error("Error updating sidebar ads:", error);
-      res.status(500).json({ error: "Failed to update sidebar ads" });
-    }
-  });
-
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

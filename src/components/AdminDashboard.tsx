@@ -21,13 +21,6 @@ export default function AdminDashboard() {
   });
 
   const [adForm, setAdForm] = useState({ imageUrl: '', title: '', link: '' });
-  const [sidebarAdsForm, setSidebarAdsForm] = useState<{
-    left: { image: string, link: string },
-    right: { image: string, link: string }
-  }>({
-    left: { image: '', link: '' },
-    right: { image: '', link: '' }
-  });
 
   useEffect(() => {
     // Listener for settings
@@ -53,18 +46,9 @@ export default function AdminDashboard() {
       }
     });
 
-    const unsubscribeSidebarAds = onSnapshot(doc(db, 'settings', 'sidebar_ads'), (snapshot) => {
-      if (snapshot.exists()) {
-        setSidebarAdsForm(snapshot.data() as any);
-      }
-    }, (error: any) => {
-      console.error("Sidebar Ads snapshot error:", error);
-    });
-
     return () => {
         unsubscribeSettings();
         unsubscribeAd();
-        unsubscribeSidebarAds();
     };
   }, []);
 
@@ -83,26 +67,6 @@ export default function AdminDashboard() {
         alert('Ad settings updated successfully!');
     } catch (err) {
         console.error('Error saving ad settings:', err);
-    }
-  };
-
-  const saveSidebarAdsConfig = async () => {
-    try {
-        const response = await fetch('/api/admin/settings/sidebar-ads', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sidebarAdsForm)
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-          alert('Sidebar ads updated successfully via server!');
-        } else {
-          throw new Error(data.error || 'Failed to update');
-        }
-    } catch (err) {
-        console.error('Error saving sidebar ads:', err);
-        alert('Failed to update sidebar ads via server.');
     }
   };
   const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
@@ -1085,52 +1049,6 @@ export default function AdminDashboard() {
             <button onClick={saveAdConfig}
                     className="w-full bg-orange-600 text-white font-bold py-3 rounded-2xl hover:bg-orange-700 transition-all shadow-md">
               Save Ad Content
-            </button>
-          </div>
-
-          <h2 className="text-xl font-bold mb-6 mt-12 tracking-tight">Sidebar Ads (Desktop)</h2>
-          <div className="space-y-8">
-            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                Left Sidebar
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Image URL</label>
-                  <input type="url" value={sidebarAdsForm.left?.image} onChange={(e) => setSidebarAdsForm(prev => ({...prev, left: {...prev.left, image: e.target.value}}))}
-                         className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Click Link</label>
-                  <input type="url" value={sidebarAdsForm.left?.link} onChange={(e) => setSidebarAdsForm(prev => ({...prev, left: {...prev.left, link: e.target.value}}))}
-                         className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none" />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                Right Sidebar
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Image URL</label>
-                  <input type="url" value={sidebarAdsForm.right?.image} onChange={(e) => setSidebarAdsForm(prev => ({...prev, right: {...prev.right, image: e.target.value}}))}
-                         className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Click Link</label>
-                  <input type="url" value={sidebarAdsForm.right?.link} onChange={(e) => setSidebarAdsForm(prev => ({...prev, right: {...prev.right, link: e.target.value}}))}
-                         className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none" />
-                </div>
-              </div>
-            </div>
-            
-            <button onClick={saveSidebarAdsConfig}
-                    className="w-full bg-slate-900 text-white font-black uppercase tracking-widest text-xs py-4 rounded-2xl hover:bg-black transition-all shadow-xl active:scale-95">
-              Update Sidebar Ads
             </button>
           </div>
         </div>

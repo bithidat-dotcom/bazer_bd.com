@@ -785,17 +785,38 @@ export default function Storefront() {
         products={products}
       />
 
-
       {error ? (
         <div className="flex flex-col items-center justify-center py-40 px-6 space-y-8 animate-in fade-in zoom-in duration-500">
-           <div className="text-center space-y-6">
+           <div className="text-center space-y-6 max-w-xl mx-auto">
               <h1 className="text-2xl sm:text-4xl font-black text-slate-800 leading-tight tracking-tighter uppercase italic">
-                we are in truble issue <br /> we are fixing it sorry for it
+                {isFirestoreQuotaExceeded() ? "Daily Server Limit Reached" : "We are experiencing technical issues"}
               </h1>
               <div className="flex justify-center">
                  <Bot size={120} className="text-orange-500 animate-bounce" />
               </div>
-              <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Maintenance in progress</p>
+              
+              {isFirestoreQuotaExceeded() ? (
+                <div className="space-y-4">
+                  <p className="text-slate-500 text-sm font-medium">
+                    The database has reached its daily free usage limit. Data may not update in real-time. 
+                    The quota will reset automatically in approximately 24 hours.
+                  </p>
+                  <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">
+                    Project ID: genial-inn-2h7sp
+                  </p>
+                  <a 
+                    href="https://console.firebase.google.com/project/genial-inn-2h7sp/firestore/databases/ai-studio-478d8860-d347-4002-b696-209c0bb25c2e/data?openUpgradeDialog=true"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-orange-600 font-bold text-xs underline hover:text-orange-700"
+                  >
+                    View & Upgrade Quota in Firebase Console
+                  </a>
+                </div>
+              ) : (
+                <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Maintenance in progress</p>
+              )}
+
               <button 
                 onClick={() => window.location.reload()}
                 className="mt-4 bg-slate-900 text-white px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs hover:shadow-2xl hover:shadow-orange-500/20 transition-all active:scale-95 flex items-center gap-2 mx-auto"
@@ -849,10 +870,10 @@ export default function Storefront() {
              <>
         <section className="mb-10 px-4 md:px-6">
            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch">
-             <div className="rounded-l-[2rem] md:rounded-r-none overflow-hidden shadow-sm border border-slate-100">
+             <div className="rounded-[2rem] md:rounded-r-none overflow-hidden shadow-sm border border-slate-100">
                <HeroBanner banners={banners} startIndex={0} />
              </div>
-             <div className="hidden md:block rounded-r-[2rem] md:rounded-l-none overflow-hidden shadow-sm border border-slate-100 border-l-0">
+             <div className="hidden md:block rounded-[2rem] md:rounded-l-none overflow-hidden shadow-sm border border-slate-100 border-l-0">
                <HeroBanner banners={banners} startIndex={1} />
              </div>
            </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, addDoc, getDocs, query, where, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { setFirestoreQuotaExceeded } from '../lib/db-sync';
+import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { 
   ShoppingBag, Cpu, Bot, Laptop, Shirt, Utensils, Sparkles, Tv, Scissors, Dumbbell, ShoppingCart, LayoutGrid, 
   Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, LogOut, Lock, Mail, Info, Star, MessageSquare, 
