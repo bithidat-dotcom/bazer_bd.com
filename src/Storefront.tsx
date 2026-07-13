@@ -744,13 +744,16 @@ export default function Storefront() {
 
 
   const updateQuantity = (productId: string, delta: number) => {
-    setCart(prevCart => prevCart.map(item => {
-      if (item.product.id === productId) {
-        const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
-      }
-      return item;
-    }));
+    setCart(prevCart => {
+      const newCart = prevCart.map(item => {
+        if (item.product.id === productId) {
+          const newQty = item.quantity + delta;
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      }).filter(item => item.quantity > 0);
+      return newCart;
+    });
   };
 
   const removeItem = (productId: string) => {
@@ -849,6 +852,8 @@ export default function Storefront() {
                             product={product} 
                             onBuy={handleBuyNow} 
                             onAddToCart={handleAddToCart}
+                            onRemoveFromCart={removeItem}
+                            isInCart={cart.some(item => item.product.id === product.id)}
                             onClick={setSelectedProduct}
                             couponConfig={couponConfig}
                             isSearchVariant={true}
@@ -869,11 +874,11 @@ export default function Storefront() {
           ) : (
              <>
         <section className="mb-10 px-4 md:px-6">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch">
-             <div className="rounded-[2rem] md:rounded-r-none overflow-hidden shadow-sm border border-slate-100">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-0 items-stretch bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100">
+             <div className="md:border-r border-slate-100 overflow-hidden">
                <HeroBanner banners={banners} startIndex={0} />
              </div>
-             <div className="hidden md:block rounded-[2rem] md:rounded-l-none overflow-hidden shadow-sm border border-slate-100 border-l-0">
+             <div className="hidden md:block overflow-hidden">
                <HeroBanner banners={banners} startIndex={1} />
              </div>
            </div>
@@ -1008,6 +1013,8 @@ export default function Storefront() {
                     product={product} 
                     onBuy={handleBuyNow} 
                     onAddToCart={handleAddToCart}
+                    onRemoveFromCart={removeItem}
+                    isInCart={cart.some(item => item.product.id === product.id)}
                     onClick={setSelectedProduct}
                     couponConfig={couponConfig}
                   />
@@ -1073,6 +1080,8 @@ export default function Storefront() {
                     product={product} 
                     onBuy={handleBuyNow} 
                     onAddToCart={handleAddToCart}
+                    onRemoveFromCart={removeItem}
+                    isInCart={cart.some(item => item.product.id === product.id)}
                     onClick={setSelectedProduct}
                     couponConfig={couponConfig}
                   />

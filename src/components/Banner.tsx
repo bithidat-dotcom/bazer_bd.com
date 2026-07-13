@@ -4,10 +4,17 @@ import { Banner as BannerType } from '../types';
 import DotLoader from './DotLoader';
 
 export default function HeroBanner({ banners, startIndex = 0 }: { banners: BannerType[], startIndex?: number }) {
-  const [currentIndex, setCurrentIndex] = useState(startIndex % (banners.length || 1));
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
   const imgRef = React.useRef<HTMLImageElement>(null);
   
+  // Set initial index correctly when banners load
+  useEffect(() => {
+    if (banners.length > 0) {
+      setCurrentIndex(startIndex % banners.length);
+    }
+  }, [banners.length, startIndex]);
+
   useEffect(() => {
     // When index changes, ensure it starts as not loaded
     setLoadingStates(prev => ({...prev, [currentIndex]: false}));
@@ -28,7 +35,7 @@ export default function HeroBanner({ banners, startIndex = 0 }: { banners: Banne
 
   if (banners.length === 0) {
     return (
-      <div className="w-full h-40 sm:h-64 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-400 font-medium">
+      <div className="w-full h-64 sm:h-80 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-400 font-medium">
         Loading latest offers...
       </div>
     );
@@ -38,7 +45,7 @@ export default function HeroBanner({ banners, startIndex = 0 }: { banners: Banne
   if (!currentBanner) return null;
 
   return (
-    <div className="relative w-full aspect-[3/2] sm:aspect-[21/9] lg:aspect-[16/9] overflow-hidden group">
+    <div className="relative w-full aspect-square sm:aspect-[21/9] lg:aspect-[16/9] overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}

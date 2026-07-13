@@ -6,7 +6,25 @@ import { Product } from '../types';
 import LoadingImage from './LoadingImage';
 import { getProductLikesState, toggleProductLike, getProductReviews, getSellerInfoByName } from '../lib/db-sync';
 
-export default function ProductCard({ product, onBuy, onAddToCart, onClick, couponConfig, isSearchVariant }: { product: Product; onBuy: (product: Product) => void, onAddToCart?: (product: Product) => void, onClick?: (product: Product) => void, couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }, isSearchVariant?: boolean }) {
+export default function ProductCard({ 
+  product, 
+  onBuy, 
+  onAddToCart, 
+  onRemoveFromCart,
+  isInCart,
+  onClick, 
+  couponConfig, 
+  isSearchVariant 
+}: { 
+  product: Product; 
+  onBuy: (product: Product) => void, 
+  onAddToCart?: (product: Product) => void, 
+  onRemoveFromCart?: (productId: string) => void,
+  isInCart?: boolean,
+  onClick?: (product: Product) => void, 
+  couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }, 
+  isSearchVariant?: boolean 
+}) {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
@@ -249,15 +267,27 @@ export default function ProductCard({ product, onBuy, onAddToCart, onClick, coup
             </button>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:gap-3 pb-1">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddToCart && onAddToCart(product);
-                }}
-                className="flex items-center justify-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
-              >
-                Cart
-              </button>
+              {isInCart ? (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveFromCart && onRemoveFromCart(product.id);
+                  }}
+                  className="flex items-center justify-center border-2 border-red-100 text-red-600 bg-red-50 hover:bg-red-100 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
+                >
+                  Remove
+                </button>
+              ) : (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddToCart && onAddToCart(product);
+                  }}
+                  className="flex items-center justify-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
+                >
+                  Cart
+                </button>
+              )}
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
