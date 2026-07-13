@@ -150,30 +150,6 @@ export default function ProductCard({
               <Heart size={13} className={`transition-transform duration-300 sm:size-3.5 ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
               {likesCount > 0 && <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 font-mono">{likesCount}</span>}
             </button>
-
-            {/* Quick Share Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // We'll let the parent or a global share handler deal with this if needed
-                // For now, satisfy user request for "share button" on card
-                const shareUrl = `${window.location.origin}?p=${product.id}`;
-                if (navigator.share) {
-                  navigator.share({
-                    title: product.name,
-                    text: `Check out this ${product.name} on pbazar!`,
-                    url: shareUrl,
-                  }).catch(() => {});
-                } else {
-                  navigator.clipboard.writeText(shareUrl);
-                  alert('Link copied to clipboard!');
-                }
-              }}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 opacity-0 group-hover:opacity-100 transition-all shadow-md active:scale-95"
-              title="Share Product"
-            >
-              <Share2 size={14} />
-            </button>
           </div>
 
           <LoadingImage 

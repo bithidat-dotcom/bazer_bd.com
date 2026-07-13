@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, addDoc, getDocs, query, where, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { syncProductToSupabase } from '../lib/supabase';
 import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { 
   ShoppingBag, Cpu, Bot, Laptop, Shirt, Utensils, Sparkles, Tv, Scissors, Dumbbell, ShoppingCart, LayoutGrid, 
@@ -368,6 +369,7 @@ export default function SellerDashboard() {
     };
 
     try {
+      let savedProductId = '';
       if (editingProduct) {
         // Confirm ownership before edit just in case
         if (editingProduct.seller_id?.toLowerCase() !== seller.username.toLowerCase() && editingProduct.seller?.toLowerCase() !== seller.display_name.toLowerCase()) {
@@ -375,11 +377,21 @@ export default function SellerDashboard() {
           return;
         }
         await updateDoc(doc(db, 'products', editingProduct.id), payload);
+        savedProductId = editingProduct.id;
         showAlert(`"${payload.name}" updated successfully!`, 'success');
       } else {
-        await addDoc(collection(db, 'products'), payload);
+        const docRef = await addDoc(collection(db, 'products'), payload);
+        savedProductId = docRef.id;
         showAlert(`"${payload.name}" submitted & registered to catalog!`, 'success');
       }
+
+      // Sync to Supabase Backup
+      try {
+        await syncProductToSupabase({ id: savedProductId, ...payload });
+      } catch (backupErr) {
+        console.warn("Supabase backup sync failed:", backupErr);
+      }
+
       setIsProductModalOpen(false);
       setEditingProduct(null);
     } catch (err: any) {

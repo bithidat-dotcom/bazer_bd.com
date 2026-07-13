@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { syncProductToSupabase, syncBannerToSupabase } from '../lib/supabase';
 import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { Storage } from '../lib/storage';
 import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv } from 'lucide-react';
@@ -13,7 +14,7 @@ export default function AdminDashboard() {
   const [sellers, setSellers] = useState<any[]>([]);
   const [selectedAdminCategory, setSelectedAdminCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics' | 'sellers' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'users' | 'products' | 'analytics' | 'sellers' | 'settings' | 'banners'>('orders');
   const [couponForm, setCouponForm] = useState({
     isActive: false,
     minPurchase: 100,
@@ -94,6 +95,78 @@ export default function AdminDashboard() {
   const [editingSeller, setEditingSeller] = useState<any | null>(null);
   const [productSearch, setProductSearch] = useState('');
   
+  const [banners, setBanners] = useState<any[]>([]);
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<any | null>(null);
+  const [syncingToSupabase, setSyncingToSupabase] = useState(false);
+
+  const syncAllToSupabase = async () => {
+    if (products.length === 0) return;
+    setSyncingToSupabase(true);
+    let count = 0;
+    try {
+      for (const product of products) {
+        await syncProductToSupabase(product);
+        count++;
+      }
+      alert(`Successfully synced ${count} products to Supabase!`);
+    } catch (err) {
+      console.error('Error in bulk sync:', err);
+      alert('Error during sync. Some products might not have synced.');
+    } finally {
+      setSyncingToSupabase(false);
+    }
+  };
+  const [bannerForm, setBannerForm] = useState({ title: '', image: '' });
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'banners'), (snapshot) => {
+      setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return unsub;
+  }, []);
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bannerForm.image) return;
+
+    const payload = {
+      title: bannerForm.title,
+      image: bannerForm.image,
+      created_at: editingBanner?.created_at || new Date().toISOString()
+    };
+
+    try {
+      let savedId = '';
+      if (editingBanner) {
+        await updateDoc(doc(db, 'banners', editingBanner.id), payload);
+        savedId = editingBanner.id;
+      } else {
+        const docRef = await addDoc(collection(db, 'banners'), payload);
+        savedId = docRef.id;
+      }
+
+      // Sync to Supabase
+      try {
+        await syncBannerToSupabase({ id: savedId, ...payload });
+      } catch (err) {
+        console.warn("Supabase banner sync failed:", err);
+      }
+
+      setIsBannerModalOpen(false);
+      setEditingBanner(null);
+      setBannerForm({ title: '', image: '' });
+    } catch (err) {
+      console.error("Error saving banner:", err);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (window.confirm("Delete this banner?")) {
+      await deleteDoc(doc(db, 'banners', id));
+    }
+  };
+
   const [productForm, setProductForm] = useState({
     name: '',
     price: '',
@@ -463,11 +536,22 @@ export default function AdminDashboard() {
     }
 
     try {
+      let savedProductId = '';
       if (editingProduct) {
         await updateDoc(doc(db, 'products', editingProduct.id), payload);
+        savedProductId = editingProduct.id;
       } else {
-        await addDoc(collection(db, 'products'), payload);
+        const docRef = await addDoc(collection(db, 'products'), payload);
+        savedProductId = docRef.id;
       }
+
+      // Sync to Supabase Backup
+      try {
+        await syncProductToSupabase({ id: savedProductId, ...payload });
+      } catch (backupErr) {
+        console.warn("Supabase backup sync failed:", backupErr);
+      }
+
       setIsProductModalOpen(false);
       setEditingProduct(null);
     } catch (err) {
@@ -683,12 +767,21 @@ export default function AdminDashboard() {
             Sellers
           </button>
           <button 
+            onClick={() => setActiveTab('banners')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'banners' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <LayoutGrid size={18} />
+            Banners
+          </button>
+          <button 
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               activeTab === 'settings' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
             }`}
           >
-            <LayoutGrid size={18} />
+            <Tag size={18} />
             Settings
           </button>
         </div>
@@ -1054,6 +1147,60 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {activeTab === 'banners' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Home Page Banners</h2>
+            <button 
+              onClick={() => { setEditingBanner(null); setBannerForm({ title: '', image: '' }); setIsBannerModalOpen(true); }}
+              className="px-5 py-3 bg-orange-500 text-white rounded-2xl font-bold flex items-center gap-2 shadow-md"
+            >
+              <Plus size={18} />
+              Add Banner
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {banners.map((banner) => (
+              <div key={banner.id} className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <img src={banner.image} alt={banner.title} className="w-full h-48 object-cover rounded-2xl border" />
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800">{banner.title || 'Untitled Banner'}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEditingBanner(banner); setBannerForm({ title: banner.title, image: banner.image }); setIsBannerModalOpen(true); }} className="p-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100"><Edit size={16} /></button>
+                    <button onClick={() => handleDeleteBanner(banner.id)} className="p-2 text-red-600 bg-red-50 rounded-xl hover:bg-red-100"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isBannerModalOpen && (
+        <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold">{editingBanner ? 'Edit Banner' : 'Add Banner'}</h3>
+              <button onClick={() => setIsBannerModalOpen(false)}><XCircle size={24} className="text-slate-400" /></button>
+            </div>
+            <form onSubmit={handleSaveBanner} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Banner Title</label>
+                <input type="text" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} className="w-full p-3 bg-slate-50 border rounded-xl" placeholder="e.g. Summer Sale" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Image URL *</label>
+                <input type="url" required value={bannerForm.image} onChange={e => setBannerForm({...bannerForm, image: e.target.value})} className="w-full p-3 bg-slate-50 border rounded-xl" placeholder="https://..." />
+              </div>
+              <button type="submit" className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800">
+                {editingBanner ? 'Update Banner' : 'Save Banner'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'products' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1066,13 +1213,25 @@ export default function AdminDashboard() {
               </p>
             </div>
             
-            <button 
-              onClick={openAddProductModal}
-              className="px-5 py-3 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white rounded-2xl text-sm font-bold flex items-center gap-2 shadow-md shadow-orange-500/10 transition-all cursor-pointer w-fit"
-            >
-              <Plus size={18} />
-              Add Product
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button 
+                onClick={syncAllToSupabase}
+                disabled={syncingToSupabase || products.length === 0}
+                className="px-5 py-3 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 active:scale-95 text-slate-700 rounded-2xl text-sm font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
+                title="Manually sync all products to Supabase backup"
+              >
+                <TrendingUp size={18} className={syncingToSupabase ? 'animate-bounce' : ''} />
+                {syncingToSupabase ? 'Syncing...' : 'Sync All to Supabase'}
+              </button>
+
+              <button 
+                onClick={openAddProductModal}
+                className="px-5 py-3 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white rounded-2xl text-sm font-bold flex items-center gap-2 shadow-md shadow-orange-500/10 transition-all cursor-pointer w-fit"
+              >
+                <Plus size={18} />
+                Add Product
+              </button>
+            </div>
           </div>
 
           <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-3">

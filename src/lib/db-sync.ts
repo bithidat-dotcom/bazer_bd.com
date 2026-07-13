@@ -38,14 +38,30 @@ function setCached(key: string, data: any) {
 }
 
 // Track if we hit a quota limit to avoid repeated failures in the same session
-let quotaExceeded = false;
-
+// Persist in localStorage because quota resets daily
 export function setFirestoreQuotaExceeded(val: boolean) {
-    quotaExceeded = val;
+    if (val) {
+      localStorage.setItem('firestore_quota_exceeded', 'true');
+      localStorage.setItem('firestore_quota_time', Date.now().toString());
+      window.dispatchEvent(new Event('firestore-quota-changed'));
+    } else {
+      localStorage.removeItem('firestore_quota_exceeded');
+      window.dispatchEvent(new Event('firestore-quota-changed'));
+    }
 }
 
 export function isFirestoreQuotaExceeded() {
-    return quotaExceeded;
+    const exceeded = localStorage.getItem('firestore_quota_exceeded') === 'true';
+    if (!exceeded) return false;
+    
+    // Auto-reset check after 12 hours (approximate daily reset)
+    const time = localStorage.getItem('firestore_quota_time');
+    if (time && Date.now() - parseInt(time) > 12 * 60 * 60 * 1000) {
+      localStorage.removeItem('firestore_quota_exceeded');
+      return false;
+    }
+    
+    return true;
 }
 
 /**
@@ -68,7 +84,7 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
     return Math.floor(Math.abs(productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 43) + 7;
   };
 
-  if (quotaExceeded) {
+  if (isFirestoreQuotaExceeded()) {
     const result = {
       totalLikes: getFallbackCount() + (locallyLiked ? 1 : 0),
       userLiked: locallyLiked
@@ -92,7 +108,7 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
       totalLikes = snapshotCount.data().count || 0;
     } catch (countErr: any) {
       if (countErr.message?.includes('quota') || countErr.code === 'resource-exhausted') {
-        quotaExceeded = true;
+        setFirestoreQuotaExceeded(true);
       } else {
         console.warn("Could not fetch server count, using fallback:", countErr.message);
       }
@@ -108,7 +124,7 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
       }
     } catch (selfErr: any) {
        if (selfErr.message?.includes('quota') || selfErr.code === 'resource-exhausted') {
-         quotaExceeded = true;
+         setFirestoreQuotaExceeded(true);
        } else {
          console.warn("Could not fetch self-like status:", selfErr.message);
        }
@@ -119,7 +135,7 @@ export async function getProductLikesState(productId: string): Promise<{ totalLi
     return result;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.message?.includes('Quota') || err.code === 'resource-exhausted') {
-        quotaExceeded = true;
+        setFirestoreQuotaExceeded(true);
     } else if (!err.message?.includes('offline')) {
        console.error('Error fetching likes from server:', err.message || err);
     }
@@ -207,7 +223,7 @@ export async function getProductReviews(productId: string): Promise<any[]> {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  if (quotaExceeded) {
+  if (isFirestoreQuotaExceeded()) {
     const saved = await Storage.getLarge<any[]>(`reviews-${productId}`);
     return saved || [];
   }
@@ -243,7 +259,7 @@ export async function getProductReviews(productId: string): Promise<any[]> {
     return finalReviews;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.message?.includes('Quota') || err.code === 'resource-exhausted') {
-       quotaExceeded = true;
+       setFirestoreQuotaExceeded(true);
     } else {
        console.error('Error getting product reviews:', err);
     }
@@ -261,7 +277,7 @@ export async function getSellerInfoByName(sellerName: string): Promise<any | nul
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  if (quotaExceeded) {
+  if (isFirestoreQuotaExceeded()) {
     const sellers = await Storage.getLarge<any[]>('cached_sellers');
     if (sellers) {
       const found = sellers.find((s: any) => s.name === sellerName);
@@ -282,7 +298,7 @@ export async function getSellerInfoByName(sellerName: string): Promise<any | nul
     return null;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
-      quotaExceeded = true;
+      setFirestoreQuotaExceeded(true);
     } else {
       console.error('Error fetching seller info:', err);
     }
@@ -298,7 +314,7 @@ export async function getSellers(): Promise<any[]> {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  if (quotaExceeded) {
+  if (isFirestoreQuotaExceeded()) {
     const saved = await Storage.getLarge<any[]>('cached_sellers');
     return saved || [];
   }
@@ -313,7 +329,7 @@ export async function getSellers(): Promise<any[]> {
     return data;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
-      quotaExceeded = true;
+      setFirestoreQuotaExceeded(true);
     } else {
       console.error('Error fetching sellers:', err);
     }
@@ -330,7 +346,7 @@ export async function getProductsBySeller(sellerName: string): Promise<any[]> {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  if (quotaExceeded) {
+  if (isFirestoreQuotaExceeded()) {
     const allProds = await Storage.getLarge<any[]>('cached_products');
     if (allProds) {
       return allProds.filter((p: any) => p.seller === sellerName);
@@ -347,7 +363,7 @@ export async function getProductsBySeller(sellerName: string): Promise<any[]> {
     return data;
   } catch (err: any) {
     if (err.message?.includes('quota') || err.code === 'resource-exhausted') {
-      quotaExceeded = true;
+      setFirestoreQuotaExceeded(true);
     } else {
       console.error('Error fetching seller products:', err);
     }

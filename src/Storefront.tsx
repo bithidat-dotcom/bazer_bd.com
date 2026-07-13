@@ -18,6 +18,7 @@ import AuthModal from './components/AuthModal';
 import DotLoader from './components/DotLoader';
 import PopupAd from './components/PopupAd';
 import SuperSaleCard from './components/SuperSaleCard';
+import { syncProductToSupabase, syncBannerToSupabase, getBackupProducts, getBackupBanners } from './lib/supabase';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
@@ -29,6 +30,24 @@ export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const checkQuota = () => setQuotaExceeded(isFirestoreQuotaExceeded());
+    checkQuota();
+    
+    // Listen for custom event or storage changes
+    window.addEventListener('firestore-quota-changed', checkQuota);
+    window.addEventListener('storage', checkQuota);
+    
+    const interval = setInterval(checkQuota, 5000);
+    return () => {
+      window.removeEventListener('firestore-quota-changed', checkQuota);
+      window.removeEventListener('storage', checkQuota);
+      clearInterval(interval);
+    };
+  }, []);
+
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -207,11 +226,31 @@ export default function Storefront() {
     let unsubBanner = () => {};
 
     const loadFallbacks = async () => {
+      // 1. Try Supabase first (Live backup)
+      try {
+        const backupProducts = await getBackupProducts();
+        if (backupProducts && backupProducts.length > 0) {
+          setProducts(backupProducts);
+          // Update recommended & super sale from backup
+          setSuperSaleProducts(backupProducts.filter(p => p.is_super_sale));
+          setRecommendedProducts(backupProducts.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+          setLoading(false);
+        }
+        
+        const backupBanners = await getBackupBanners();
+        if (backupBanners && backupBanners.length > 0) {
+          setBanners(backupBanners);
+        }
+      } catch (err) {
+        console.warn("Supabase live backup fetch failed, falling back to local storage:", err);
+      }
+
+      // 2. Fallback to Local Storage (Offline cache)
       const savedProducts = await Storage.getLarge<Product[]>('cached_products');
       const savedBanners = await Storage.getLarge<Banner[]>('cached_banners');
       const savedSellers = await Storage.getLarge<Seller[]>('cached_sellers');
-      if (savedProducts) setProducts(savedProducts);
-      if (savedBanners) setBanners(savedBanners);
+      if (savedProducts && products.length === 0) setProducts(savedProducts);
+      if (savedBanners && banners.length === 0) setBanners(savedBanners);
       if (savedSellers) setSellers(savedSellers);
       setLoading(false);
     };
