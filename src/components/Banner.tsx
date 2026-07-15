@@ -45,7 +45,7 @@ export default function HeroBanner({ banners, startIndex = 0 }: { banners: Banne
   if (!currentBanner) return null;
 
   return (
-    <div className="relative w-full aspect-square sm:aspect-[21/9] lg:aspect-[16/9] overflow-hidden group">
+    <div className="relative w-full aspect-[2.5/1] sm:aspect-[3/1] lg:aspect-[4/1] overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}

@@ -117,3 +117,17 @@ export async function getBackupBanners() {
     return null;
   }
 }
+
+export async function checkSupabaseStatus() {
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseUrl.startsWith('http')) return false;
+  try {
+    const { error } = await supabase.from('products').select('id').limit(1);
+    if (error) {
+      if (error.code === 'PGRST116' || error.message?.includes('relation')) return true;
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

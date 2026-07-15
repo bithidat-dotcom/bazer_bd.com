@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { syncProductToSupabase, syncBannerToSupabase } from '../lib/supabase';
+import { syncProductToSupabase, syncBannerToSupabase, checkSupabaseStatus } from '../lib/supabase';
 import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { Storage } from '../lib/storage';
 import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv } from 'lucide-react';
@@ -71,18 +71,24 @@ export default function AdminDashboard() {
     }
   };
   const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [supabaseStatus, setSupabaseStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
   useEffect(() => {
     // Verify server connectivity
-    const checkConnection = () => {
-      fetch('/api/health')
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'ok') setServerStatus('connected');
-          else setServerStatus('disconnected');
-        })
-        .catch(() => setServerStatus('disconnected'));
+    const checkConnection = async () => {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        if (data.status === 'ok') setServerStatus('connected');
+        else setServerStatus('disconnected');
+      } catch {
+        setServerStatus('disconnected');
+      }
+
+      const supOk = await checkSupabaseStatus();
+      setSupabaseStatus(supOk ? 'connected' : 'disconnected');
     };
+    
     checkConnection();
     const interval = setInterval(checkConnection, 30000);
     return () => clearInterval(interval);
@@ -683,6 +689,19 @@ export default function AdminDashboard() {
                 'bg-rose-500'
               }`} />
               Central Server {serverStatus}
+            </div>
+
+            <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition-all h-fit ${
+              supabaseStatus === 'connected' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+              supabaseStatus === 'checking' ? 'bg-slate-50 text-slate-400 border-slate-100' : 
+              'bg-rose-50 text-rose-600 border-rose-100'
+            }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                supabaseStatus === 'connected' ? 'bg-blue-500 animate-pulse' : 
+                supabaseStatus === 'checking' ? 'bg-slate-300' : 
+                'bg-rose-500'
+              }`} />
+              Backup Server {supabaseStatus}
             </div>
           </div>
           <p className="text-slate-500 font-medium text-sm">Manage your business operations & partner inventory</p>

@@ -66,9 +66,7 @@ export default function Storefront() {
 
   useEffect(() => {
     const saveCart = async () => {
-      if (cart.length > 0) {
-        await Storage.setLarge('pbazar_cart', cart);
-      }
+      await Storage.setLarge('pbazar_cart', cart);
     };
     saveCart();
   }, [cart]);
@@ -108,6 +106,8 @@ export default function Storefront() {
   const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high'>('newest');
   const [couponConfig, setCouponConfig] = useState<{ isActive: boolean; minPurchase: number; discountAmount: number }>({ isActive: false, minPurchase: 100, discountAmount: 10 });
   const [user, setUser] = useState<any>(null);
+  const [showOnlyDiscounts, setShowOnlyDiscounts] = useState(false);
+  const [showSuperSale, setShowSuperSale] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupContent, setPopupContent] = useState({ imageUrl: '', title: '', link: '' });
@@ -500,10 +500,12 @@ export default function Storefront() {
         String(p.category || '').toLowerCase() === categoryFilter.toLowerCase()
       ) : true;
       
+      const matchDiscountOnly = showOnlyDiscounts ? (p.discount && p.discount > 0) : true;
+      
       const price = p.discount ? p.price * (1 - p.discount/100) : p.price;
       const matchPrice = priceFilter ? (price >= priceFilter.min && price <= priceFilter.max) : true;
       
-      return matchSearch && matchDiscount && matchCategory && matchPrice;
+      return matchSearch && matchDiscount && matchCategory && matchPrice && matchDiscountOnly;
     });
 
     // Sorting
@@ -578,9 +580,11 @@ export default function Storefront() {
     setCategoryFilter(null);
     setDiscountFilter(null);
     setPriceFilter(null);
+    setShowOnlyDiscounts(false);
     setIsSearchActive(false);
     setIsSearchLoading(false);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   async function submitOrder(customer_name: string, whatsapp: string, location: string, area: string, postCode: string): Promise<string | undefined> {
@@ -805,6 +809,9 @@ export default function Storefront() {
 
   const cartItemCount = (Array.isArray(cart)) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
 
+  const discountBtnImg = "https://lh3.googleusercontent.com/aida/AP1WRLvT-djckkierp7ao14WQqK8Cf_fV5AxHUcJ9GqoblTKfH9F-86hLgO_gYYXFqTrMeQZwuDS9Hw2wZZvzp9K7-Yc51St_Utz6bidm0QyPxUQNVJKbF5x-03JsftrREl-jATyB1sY3EaiClINR3YJv-Ynjf7uXhKbQQzbuNerGNJCepnzJij36HzdjVWGgF7H8pMurnQ9IWCqhGQKM0a-LhqFRY6s-Wcbhk_P5oPLVkgqPU5MYo1oSbwo8ixl=s1600";
+  const bagBtnImg = "https://lh3.googleusercontent.com/aida/AP1WRLu7gWgeMbkHs2ThlG_LBMsS93F6O00i4SNP7vgRdDUzaYmNBW-UXCihRnQXjTUSY_cWP3JUii_oATp8ITZsHAIfCzkDv9Zszg-T7vsMq15Hhq9vULhx7pdPHKrjBEWmkyUzy4ALsmHcFLo0GVrquKNr0meX61qrDcFyEAm1J4RPQNUfcHgBvYu6GfDcx2zDUl2qJKsjWNQVyFvTEbTZ_FL_xqDFwWxTwy9-Q7gd8iHxZ7IZKDJvmMaxCKpG=s1600";
+
   return (
     <div className="min-h-screen bg-mesh">
       <Navbar 
@@ -923,7 +930,7 @@ export default function Storefront() {
            </div>
         </section>
         {/* Super Sale Section at top - "Product in banner state" */}
-        {superSaleProducts.length > 0 && !categoryFilter && !searchQuery && (
+        {superSaleProducts.length > 0 && ((!categoryFilter && !searchQuery && !showOnlyDiscounts) || showSuperSale) && (
           <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
             <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
@@ -959,6 +966,49 @@ export default function Storefront() {
             </div>
           </section>
         )}
+
+        {/* Promotional Banner Buttons */}
+        <div className="flex justify-center gap-4 mb-8">
+          {/* Discount Banner Button */}
+          <button 
+            onClick={() => {
+              setShowOnlyDiscounts(!showOnlyDiscounts);
+              setShowSuperSale(false);
+              setCategoryFilter(null);
+              setSearchQuery('');
+              setDiscountFilter(null);
+            }}
+            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/10 border-2 border-white"
+          >
+            <img 
+              src={discountBtnImg} 
+              className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+              alt="Discounts" 
+              referrerPolicy="no-referrer"
+            />
+            <div className={`absolute inset-0 transition-colors ${showOnlyDiscounts ? 'bg-orange-600/20' : 'bg-black/10 group-hover:bg-black/20'}`} />
+          </button>
+
+          {/* Bag Logo Button (Super Sale) */}
+          <button 
+            onClick={() => {
+              setShowSuperSale(!showSuperSale);
+              setShowOnlyDiscounts(false);
+              setCategoryFilter(null);
+              setSearchQuery('');
+              setDiscountFilter(null);
+            }}
+            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/10 border-2 border-white"
+          >
+            <img 
+              src={bagBtnImg} 
+              className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+              alt="Offers" 
+              referrerPolicy="no-referrer"
+            />
+            <div className={`absolute inset-0 transition-colors ${showSuperSale ? 'bg-blue-600/20' : 'bg-black/10 group-hover:bg-black/20'}`} />
+          </button>
+        </div>
         
         {/* AI Finder */}
         <div className="mb-6 hidden">
@@ -975,14 +1025,17 @@ export default function Storefront() {
         </div>
 
         {/* Category Buttons */}
-        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hidden">
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hidden">
           {categories.map((cat) => (
             <button
               key={cat.name}
-              onClick={() => setCategoryFilter(cat.name === 'All' ? null : cat.name)}
-              className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 shadow-sm transition-all text-slate-800 min-w-[70px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All') ? 'border-orange-500 bg-orange-50' : 'bg-white border-slate-200 hover:border-orange-300'}`}
+              onClick={() => {
+                setCategoryFilter(cat.name === 'All' ? null : cat.name);
+                setShowOnlyDiscounts(false);
+              }}
+              className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 shadow-sm transition-all text-slate-800 min-w-[70px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'border-orange-500 bg-orange-50' : 'bg-white border-slate-200 hover:border-orange-300'}`}
             >
-              <cat.icon size={24} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All') ? 'text-orange-600' : 'text-orange-500'} />
+              <cat.icon size={24} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'text-orange-600' : 'text-orange-500'} />
               <span className="text-[10px] font-bold whitespace-nowrap">{cat.name}</span>
             </button>
           ))}

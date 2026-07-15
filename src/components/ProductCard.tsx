@@ -6,7 +6,18 @@ import { Product } from '../types';
 import LoadingImage from './LoadingImage';
 import { getProductLikesState, toggleProductLike, getProductReviews, getSellerInfoByName } from '../lib/db-sync';
 
-export default function ProductCard({ 
+interface ProductCardProps {
+  product: Product; 
+  onBuy: (product: Product) => void; 
+  onAddToCart?: (product: Product) => void; 
+  onRemoveFromCart?: (productId: string) => void;
+  isInCart?: boolean;
+  onClick?: (product: Product) => void; 
+  couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }; 
+  isSearchVariant?: boolean;
+}
+
+export const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   onBuy, 
   onAddToCart, 
@@ -15,16 +26,7 @@ export default function ProductCard({
   onClick, 
   couponConfig, 
   isSearchVariant 
-}: { 
-  product: Product; 
-  onBuy: (product: Product) => void, 
-  onAddToCart?: (product: Product) => void, 
-  onRemoveFromCart?: (productId: string) => void,
-  isInCart?: boolean,
-  onClick?: (product: Product) => void, 
-  couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }, 
-  isSearchVariant?: boolean 
-}) {
+}) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
@@ -278,4 +280,6 @@ export default function ProductCard({
         </div>
     </motion.div>
   );
-}
+};
+
+export default ProductCard;

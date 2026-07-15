@@ -244,23 +244,35 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
           </div>
 
           <div className="p-5 overflow-y-auto flex-1 space-y-5">
-            {/* Guest restriction view */}
-            {!user && (
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-center space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto shadow-sm">
-                  <Info size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Login Required</h4>
-                  <p className="text-[10px] text-slate-500 font-bold leading-normal mt-1">
-                    Direct tracking by WhatsApp number is disabled for privacy. Please sign in to your verified account to tracking orders.
-                  </p>
-                </div>
+            {/* Tracking Search Form */}
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Search size={16} className="text-orange-600" />
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Track by WhatsApp</h4>
               </div>
-            )}
+              <form onSubmit={fetchOrders} className="relative">
+                <input
+                  type="tel"
+                  placeholder="Enter WhatsApp Number"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  className="w-full pl-4 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !whatsappNumber.trim()}
+                  className="absolute right-1 top-1 bottom-1 px-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={14} />}
+                </button>
+              </form>
+              <p className="text-[9px] text-slate-500 font-bold leading-tight">
+                Enter the WhatsApp number used during checkout to trace your parcel progress.
+              </p>
+            </div>
 
             {/* Profile View section */}
-            {user && (
+            {user && !hasSearched && (
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute right-0 bottom-0 opacity-10 translate-x-4 translate-y-4">
                   <User size={100} />
@@ -399,25 +411,37 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                     </p>
                   </div>
                   
-                  {/* Status Badging */}
-                  <div className="text-right">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">CURRENT STEP</span>
-                    {(() => {
-                      let text = 'Pending';
-                      let style = 'bg-yellow-50 text-yellow-600 border-yellow-200';
-                      if (selectedOrder.status === 'confirmed') { text = 'Order Confirmed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
-                      else if (selectedOrder.status === 'packing') { text = 'Packing in Progress'; style = 'bg-blue-50 text-blue-600 border-blue-150'; }
-                      else if (selectedOrder.status === 'shipping') { text = 'Shipped via Carrier'; style = 'bg-purple-50 text-purple-600 border-purple-150'; }
-                      else if (selectedOrder.status === 'delivery') { text = 'Out for Courier Delivery'; style = 'bg-orange-50 text-orange-600 border-orange-200'; }
-                      else if (selectedOrder.status === 'completed') { text = 'Delivered & Completed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
-                      else if (selectedOrder.status === 'cancelled' || selectedOrder.status === 'cancelled_admin') { text = selectedOrder.status === 'cancelled_admin' ? 'Expired / Ended' : 'Cancelled'; style = 'bg-rose-50 text-rose-500 border-rose-150 font-black'; }
+                  {/* Status Badging & WhatsApp Integration */}
+                  <div className="flex flex-col items-end gap-3">
+                    <div className="text-right">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">CURRENT STEP</span>
+                      {(() => {
+                        let text = 'Pending';
+                        let style = 'bg-yellow-50 text-yellow-600 border-yellow-200';
+                        if (selectedOrder.status === 'confirmed') { text = 'Order Confirmed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
+                        else if (selectedOrder.status === 'packing') { text = 'Packing in Progress'; style = 'bg-blue-50 text-blue-600 border-blue-150'; }
+                        else if (selectedOrder.status === 'shipping') { text = 'Shipped via Carrier'; style = 'bg-purple-50 text-purple-600 border-purple-150'; }
+                        else if (selectedOrder.status === 'delivery') { text = 'Out for Courier Delivery'; style = 'bg-orange-50 text-orange-600 border-orange-200'; }
+                        else if (selectedOrder.status === 'completed') { text = 'Delivered & Completed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
+                        else if (selectedOrder.status === 'cancelled' || selectedOrder.status === 'cancelled_admin') { text = selectedOrder.status === 'cancelled_admin' ? 'Expired / Ended' : 'Cancelled'; style = 'bg-rose-50 text-rose-500 border-rose-150 font-black'; }
 
-                      return (
-                        <div className={`mt-1.5 inline-block text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border shadow-sm ${style}`}>
-                          {text}
-                        </div>
-                      );
-                    })()}
+                        return (
+                          <div className={`mt-1.5 inline-block text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border shadow-sm ${style}`}>
+                            {text}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <a 
+                      href={`https://wa.me/8801716807465?text=${encodeURIComponent(`Hello Pbazar Support, I have a question about my order #${selectedOrder.id.toUpperCase()}. Status: ${selectedOrder.status}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-1.5 bg-[#25D366] text-white rounded-lg hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/10 text-[10px] font-black uppercase tracking-tight active:scale-95 whitespace-nowrap"
+                    >
+                      <MessageCircle size={14} />
+                      <span>WhatsApp Support</span>
+                    </a>
                   </div>
                 </div>
 
