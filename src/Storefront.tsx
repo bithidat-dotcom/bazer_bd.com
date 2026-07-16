@@ -80,6 +80,7 @@ export default function Storefront() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [showFlashDealsLoading, setShowFlashDealsLoading] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSearch = (query: string) => {
@@ -184,10 +185,17 @@ export default function Storefront() {
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [superSaleProducts, setSuperSaleProducts] = useState<Product[]>([]);
 
-  // Deep Linking: Auto-open product from URL parameter ?p=ID
+  // Deep Linking: Auto-open product from URL parameter ?p=ID, or cart from ?cart=true
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const cartOpen = urlParams.get('cart');
+    if (cartOpen === 'true') {
+      setIsModalOpen(true);
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+    
     if (products.length > 0) {
-      const urlParams = new URLSearchParams(window.location.search);
       const productId = urlParams.get('p');
       if (productId) {
         const product = products.find(p => p.id === productId);
@@ -201,10 +209,10 @@ export default function Storefront() {
     }
   }, [products]);
 
-  const categories = [
+  const [dynamicCategories, setDynamicCategories] = useState<any[]>([
     { name: 'All', icon: LayoutGrid },
-    { name: 'Food', icon: Utensils },
     { name: 'Fashion', icon: Shirt },
+    { name: 'Food', icon: Utensils },
     { name: 'Electronics', icon: Tv },
     { name: 'Beauty', icon: Sparkles },
     { name: 'Gadget', icon: Cpu },
@@ -213,7 +221,29 @@ export default function Storefront() {
     { name: 'Cloth', icon: Scissors },
     { name: 'Sports', icon: Dumbbell },
     { name: 'Grocery', icon: ShoppingCart },
-  ];
+  ]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const existingNames = new Set(dynamicCategories.map(c => c.name.toLowerCase()));
+      const newCats: any[] = [];
+      products.forEach(p => {
+        if (p.category && !existingNames.has(p.category.toLowerCase())) {
+          existingNames.add(p.category.toLowerCase());
+          // Insert after Fashion
+          newCats.push({ name: p.category, icon: Sparkles });
+        }
+      });
+      if (newCats.length > 0) {
+        setDynamicCategories(prev => {
+          const base = [...prev];
+          // Insert new categories after 'Fashion' (index 1)
+          base.splice(2, 0, ...newCats);
+          return base;
+        });
+      }
+    }
+  }, [products]);
 
   useEffect(() => {
     // Cleanup: Remove old "hide" functionality data to restore all products
@@ -228,6 +258,7 @@ export default function Storefront() {
     let unsubBanner = () => {};
 
     const loadFallbacks = async () => {
+      setLoading(true);
       // 1. Try Supabase first (Live backup)
       try {
         const backupProducts = await getBackupProducts();
@@ -354,9 +385,14 @@ export default function Storefront() {
       setLoading(false);
     }
 
+    const safetyTimer = setTimeout(() => {
+        setLoading(false);
+    }, 5000);
+
     return () => {
       unsubProd();
       unsubBanner();
+      clearTimeout(safetyTimer);
     };
   }, []);
 
@@ -832,7 +868,7 @@ export default function Storefront() {
         onEditProfileClick={() => setIsAuthOpen(true)}
         onLogoClick={handleLogoClick}
         user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
-        categories={categories.map(c => c.name)}
+        categories={dynamicCategories.map(c => c.name)}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
         discountFilter={discountFilter}
@@ -937,7 +973,11 @@ export default function Storefront() {
           {/* Discount Banner Button */}
           <button 
             onClick={() => {
-              navigate('/flash-deals');
+              setShowFlashDealsLoading(true);
+              setTimeout(() => {
+                setShowFlashDealsLoading(false);
+                navigate('/flash-deals');
+              }, 2500);
             }}
             className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
           >
@@ -1045,7 +1085,7 @@ export default function Storefront() {
 
         {/* Category Buttons */}
         <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hidden">
-          {categories.map((cat) => (
+          {dynamicCategories.map((cat) => (
             <button
               key={cat.name}
               onClick={() => {
@@ -1427,6 +1467,20 @@ export default function Storefront() {
         adContent={popupContent}
       />
       
+      {showFlashDealsLoading && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="w-64 h-64 sm:w-80 sm:h-80 relative rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+            <video 
+              src="https://www.image2url.com/r2/default/videos/1784200710414-4fbffe4d-7956-4885-be6a-47088ff5d0c9.mp4"
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      )}
+
       <BottomNav 
         onHomeClick={() => {
           handleLogoClick();

@@ -16,6 +16,7 @@ interface ProductCardProps {
   couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }; 
   isSearchVariant?: boolean;
   isWholesale?: boolean;
+  theme?: 'default' | 'warm';
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ 
@@ -27,7 +28,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onClick, 
   couponConfig, 
   isSearchVariant,
-  isWholesale
+  isWholesale,
+  theme = 'default'
 }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
@@ -135,10 +137,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-md bg-white hover:shadow-2xl hover:border-orange-200 border border-slate-100 transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}
+      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-sm ${theme === 'warm' ? 'bg-white hover:shadow-xl border-white/50 shadow-orange-500/5' : 'bg-white shadow-md hover:shadow-2xl hover:border-orange-200 border-slate-100'} border transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}
       onClick={() => onClick && onClick(product)}
     >
-        <div className={`relative w-full aspect-square rounded-xl bg-white overflow-hidden ${isWholesale ? 'mb-1.5' : 'mb-3'}`}>
+        <div className={`relative w-full aspect-square rounded-xl ${theme === 'warm' ? 'bg-[#fff1eb]' : 'bg-white'} overflow-hidden ${isWholesale ? 'mb-1.5' : 'mb-3'}`}>
+          {product.is_super_sale && (
+            <div className="absolute top-2 left-2 z-30">
+              <div className="bg-orange-600 text-white text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg shadow-orange-600/30 animate-pulse">
+                <Zap size={10} className="fill-current" />
+                <span>SUPER SALE</span>
+              </div>
+            </div>
+          )}
           {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
             <div className={`absolute z-10 bg-orange-500 text-white font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tight ${isWholesale ? 'top-12 left-1.5 text-[6px]' : 'top-16 left-2 sm:top-18 sm:left-2.5 text-[7px] sm:text-[9px]'}`}>
               Get {couponConfig.discountAmount}৳ Coupon
@@ -169,7 +179,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         
         <div className="px-1 flex flex-col flex-1">
           <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-            <h3 className={`font-bold text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors ${isWholesale ? 'text-[12px] sm:text-[14px]' : 'text-[14px] sm:text-base'}`}>
+            <h3 className={`font-bold line-clamp-1 ${theme === 'warm' ? 'text-[#251913] group-hover:text-pink-500' : 'text-slate-900 group-hover:text-orange-600'} transition-colors ${isWholesale ? 'text-[12px] sm:text-[14px]' : 'text-[14px] sm:text-base'}`}>
               {product.name}
             </h3>
           </div>
@@ -181,7 +191,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             </div>
             {count > 0 && (
-              <span className={`text-slate-400 font-medium ${isWholesale ? 'text-[9px] sm:text-[11px]' : 'text-[10px] sm:text-[12px]'}`}>
+              <span className={`font-medium ${theme === 'warm' ? 'text-[#584237]/60' : 'text-slate-400'} ${isWholesale ? 'text-[9px] sm:text-[11px]' : 'text-[10px] sm:text-[12px]'}`}>
                 ({count})
               </span>
             )}
@@ -214,33 +224,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          <p className={`text-slate-500 line-clamp-2 mb-2 sm:mb-4 h-8 sm:h-10 leading-relaxed ${isWholesale ? 'text-[10px] sm:text-xs' : 'text-sm'} ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
+          <p className={`line-clamp-2 mb-2 sm:mb-4 h-8 sm:h-10 leading-relaxed ${theme === 'warm' ? 'text-[#584237]' : 'text-slate-500'} ${isWholesale ? 'text-[10px] sm:text-xs' : 'text-sm'} ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
             {product.description}
           </p>
         </div>
 
       <div className={`px-1 flex flex-col mt-auto ${isWholesale ? 'gap-2' : 'gap-3 sm:gap-4'}`}>
-        <div className={`flex items-center justify-between border-t border-slate-100 ${isWholesale ? 'pt-2' : 'pt-3 sm:pt-4'}`}>
+        <div className={`flex items-center justify-between border-t ${theme === 'warm' ? 'border-orange-500/10' : 'border-slate-100'} ${isWholesale ? 'pt-2' : 'pt-3 sm:pt-4'}`}>
           <div className="flex flex-col">
             {hasDiscount && product.price > 0 && (
-              <span className={`text-slate-400 line-through leading-none mb-0.5 ${isWholesale ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'}`}>
+              <span className={`line-through leading-none mb-0.5 ${theme === 'warm' ? 'text-[#584237]/60' : 'text-slate-400'} ${isWholesale ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'}`}>
                 {formatPrice(product.price * (isWholesale ? quantity : 1))}
               </span>
             )}
-            <span className={`font-black text-slate-900 font-display tracking-tight ${isWholesale ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'}`}>
+            <span className={`font-black font-display tracking-tight ${theme === 'warm' ? 'text-[#251913]' : 'text-slate-900'} ${isWholesale ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'}`}>
               {formatPrice(discountedPrice * (isWholesale ? quantity : 1))}
             </span>
-            {isWholesale && <span className="text-[7px] sm:text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total for {quantity}</span>}
+            {isWholesale && <span className={`text-[7px] sm:text-[9px] font-bold uppercase tracking-widest mt-0.5 ${theme === 'warm' ? 'text-[#584237]/60' : 'text-slate-400'}`}>Total for {quantity}</span>}
           </div>
           
           {product.seller && (
-             <div className={`flex items-center gap-1 bg-slate-50 rounded-lg border border-slate-100 ${isWholesale ? 'px-1 py-0.5' : 'px-1.5 py-1 sm:px-3 sm:py-1.5 sm:rounded-xl'}`}>
+             <div className={`flex items-center gap-1 rounded-lg border ${theme === 'warm' ? 'bg-white border-orange-500/10' : 'bg-slate-50 border-slate-100'} ${isWholesale ? 'px-1 py-0.5' : 'px-1.5 py-1 sm:px-3 sm:py-1.5 sm:rounded-xl'}`}>
                 {sellerLogo ? (
                   <img onContextMenu={(e) => e.preventDefault()} src={sellerLogo} alt="" className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} rounded-full object-cover select-none`} referrerPolicy="no-referrer" />
                 ) : (
-                  <div className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} bg-slate-200 rounded-full`} />
+                  <div className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} ${theme === 'warm' ? 'bg-[#fff1eb]' : 'bg-slate-200'} rounded-full`} />
                 )}
-                <span className={`font-black text-slate-500 uppercase tracking-widest truncate ${isWholesale ? 'text-[6px] max-w-[30px]' : 'text-[7px] sm:text-[9px] max-w-[40px] sm:max-w-[60px]'}`}>{product.seller}</span>
+                <span className={`font-black uppercase tracking-widest truncate ${theme === 'warm' ? 'text-[#584237]' : 'text-slate-500'} ${isWholesale ? 'text-[6px] max-w-[30px]' : 'text-[7px] sm:text-[9px] max-w-[40px] sm:max-w-[60px]'}`}>{product.seller}</span>
              </div>
           )}
         </div>
