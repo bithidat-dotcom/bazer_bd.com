@@ -8,13 +8,14 @@ import { getProductLikesState, toggleProductLike, getProductReviews, getSellerIn
 
 interface ProductCardProps {
   product: Product; 
-  onBuy: (product: Product) => void; 
+  onBuy: (product: Product, quantity?: number) => void; 
   onAddToCart?: (product: Product) => void; 
   onRemoveFromCart?: (productId: string) => void;
   isInCart?: boolean;
   onClick?: (product: Product) => void; 
   couponConfig?: { isActive: boolean; minPurchase: number; discountAmount: number }; 
   isSearchVariant?: boolean;
+  isWholesale?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ 
@@ -25,11 +26,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isInCart,
   onClick, 
   couponConfig, 
-  isSearchVariant 
+  isSearchVariant,
+  isWholesale
 }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
+  const [quantity, setQuantity] = useState(isWholesale ? 5 : 1);
 
   useEffect(() => {
     let active = true;
@@ -154,11 +157,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </button>
           </div>
 
-          <LoadingImage 
-            src={product.image} 
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-          />
+          <div onContextMenu={(e) => e.preventDefault()} className="select-none">
+            <LoadingImage 
+              src={product.image} 
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+            />
+          </div>
           {/* Badges Container Removed */}
         </div>
         
@@ -181,6 +186,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             )}
           </div>
+
+          {isWholesale && (
+            <div className="mb-4 bg-orange-50 border border-orange-100 rounded-xl p-2 sm:p-3 flex items-center justify-between">
+               <span className="text-[9px] sm:text-[11px] font-black text-orange-600 uppercase tracking-widest">Wholesale Bundle</span>
+               <div className="flex items-center gap-2 sm:gap-3 bg-white px-2 py-1 rounded-lg border border-orange-200">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setQuantity(prev => Math.max(5, prev - 1));
+                    }}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs sm:text-sm font-black text-slate-900 min-w-[20px] text-center">{quantity}</span>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setQuantity(prev => Math.min(100, prev + 1));
+                    }}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90"
+                  >
+                    +
+                  </button>
+               </div>
+            </div>
+          )}
+
           <p className={`text-sm text-slate-500 line-clamp-2 mb-4 h-10 leading-relaxed ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
             {product.description}
           </p>
@@ -191,18 +224,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex flex-col">
             {hasDiscount && product.price > 0 && (
               <span className="text-[10px] sm:text-[11px] text-slate-400 line-through leading-none mb-0.5 sm:mb-1">
-                {formatPrice(product.price)}
+                {formatPrice(product.price * (isWholesale ? quantity : 1))}
               </span>
             )}
             <span className="text-sm sm:text-xl font-black text-slate-900 font-display tracking-tight">
-              {formatPrice(discountedPrice)}
+              {formatPrice(discountedPrice * (isWholesale ? quantity : 1))}
             </span>
+            {isWholesale && <span className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total for {quantity} items</span>}
           </div>
           
           {product.seller && (
              <div className="flex items-center gap-1 sm:gap-2 bg-slate-50 px-1.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-100">
                 {sellerLogo ? (
-                  <img src={sellerLogo} alt="" className="w-3 h-3 sm:w-4 sm:h-4 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  <img onContextMenu={(e) => e.preventDefault()} src={sellerLogo} alt="" className="w-3 h-3 sm:w-4 sm:h-4 rounded-full object-cover select-none" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-3 h-3 sm:w-4 sm:h-4 bg-slate-200 rounded-full" />
                 )}
@@ -219,16 +253,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <span className="text-slate-400 font-bold uppercase tracking-widest text-[7px] sm:text-[9px]">Status</span>
           <div className="font-black">
             {product.stock !== undefined ? (
-              product.stock > 0 ? (
+              product.stock >= (isWholesale ? quantity : 1) ? (
                 <span className={`${
-                  product.stock <= 5 
+                  product.stock <= (isWholesale ? 10 : 5) 
                     ? 'text-rose-600 font-bold' 
                     : 'text-emerald-600'
                 }`}>
                   {product.stock} {product.stock <= 1 ? 'Unit' : 'Units'}
                 </span>
               ) : (
-                <span className="text-rose-600 font-extrabold uppercase tracking-wide text-[9px] sm:text-[10px]">Sold Out</span>
+                <span className="text-rose-600 font-extrabold uppercase tracking-wide text-[9px] sm:text-[10px]">Insufficient Stock</span>
               )
             ) : (
               <span className="text-slate-600">Active</span>
@@ -236,7 +270,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
           
-          {product.stock !== undefined && product.stock <= 0 ? (
+          {product.stock !== undefined && product.stock < (isWholesale ? quantity : 1) ? (
             <button 
               disabled
               className="w-full bg-slate-100 text-slate-400 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[10px] sm:text-[12px] font-bold cursor-not-allowed border border-slate-200 text-center uppercase tracking-widest"
@@ -245,7 +279,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </button>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:gap-3 pb-1">
-              {isInCart ? (
+              {isInCart && !isWholesale ? (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -259,21 +293,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    onAddToCart && onAddToCart(product);
+                    if (isWholesale) {
+                      // Wholesale items go directly to buy or a special bundle cart
+                      onBuy(product, quantity);
+                    } else {
+                      onAddToCart && onAddToCart(product);
+                    }
                   }}
                   className="flex items-center justify-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
                 >
-                  Cart
+                  {isWholesale ? 'Bundle' : 'Cart'}
                 </button>
               )}
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  onBuy(product);
+                  onBuy(product, isWholesale ? quantity : 1);
                 }}
                 className="flex items-center justify-center bg-orange-600 text-white hover:bg-orange-700 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-black shadow-lg cursor-pointer uppercase tracking-wider"
               >
-                Buy
+                Buy Now
               </button>
             </div>
           )}

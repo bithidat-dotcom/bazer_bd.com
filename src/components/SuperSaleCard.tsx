@@ -40,7 +40,7 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
 
       <div className="p-3 flex-1 flex flex-col" onClick={() => onClick(product)}>
         {/* Product Image */}
-        <div className="w-full h-32 sm:h-48 bg-slate-50 rounded-xl flex items-center justify-center mb-3 overflow-hidden relative cursor-pointer shadow-inner">
+        <div onContextMenu={(e) => e.preventDefault()} className="w-full h-32 sm:h-48 bg-slate-50 rounded-xl flex items-center justify-center mb-3 overflow-hidden relative cursor-pointer shadow-inner select-none">
           <img 
             src={product.image || 'https://placehold.co/400x400/e2e8f0/64748b?text=Premium+Product'} 
             alt={product.name} 
