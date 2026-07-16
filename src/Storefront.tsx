@@ -817,6 +817,7 @@ export default function Storefront() {
   const discountBtnImg = "https://lh3.googleusercontent.com/aida/AP1WRLvT-djckkierp7ao14WQqK8Cf_fV5AxHUcJ9GqoblTKfH9F-86hLgO_gYYXFqTrMeQZwuDS9Hw2wZZvzp9K7-Yc51St_Utz6bidm0QyPxUQNVJKbF5x-03JsftrREl-jATyB1sY3EaiClINR3YJv-Ynjf7uXhKbQQzbuNerGNJCepnzJij36HzdjVWGgF7H8pMurnQ9IWCqhGQKM0a-LhqFRY6s-Wcbhk_P5oPLVkgqPU5MYo1oSbwo8ixl=s1600";
   const bagBtnImg = "https://lh3.googleusercontent.com/aida/AP1WRLu7gWgeMbkHs2ThlG_LBMsS93F6O00i4SNP7vgRdDUzaYmNBW-UXCihRnQXjTUSY_cWP3JUii_oATp8ITZsHAIfCzkDv9Zszg-T7vsMq15Hhq9vULhx7pdPHKrjBEWmkyUzy4ALsmHcFLo0GVrquKNr0meX61qrDcFyEAm1J4RPQNUfcHgBvYu6GfDcx2zDUl2qJKsjWNQVyFvTEbTZ_FL_xqDFwWxTwy9-Q7gd8iHxZ7IZKDJvmMaxCKpG=s1600";
   const businessBtnImg = "/src/assets/images/wholesale_business_icon_1784191583205.jpg";
+  const fallbackBannerImg = "https://i.postimg.cc/vBv8bbQN/unnamed-(8).jpg";
 
   return (
     <div className="min-h-screen bg-mesh">
@@ -926,10 +927,8 @@ export default function Storefront() {
             </div>
           ) : (
              <>
-        <section className="mb-6 px-4 md:px-6">
-           <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100">
-             <HeroBanner banners={banners} startIndex={0} />
-           </div>
+        <section className="mb-6 overflow-hidden">
+             <HeroBanner banners={banners} startIndex={0} fallbackImage={fallbackBannerImg} />
         </section>
 
         {/* Promotional Banner Buttons - Moved Under Banner */}
@@ -944,7 +943,7 @@ export default function Storefront() {
               setSearchQuery('');
               setDiscountFilter(null);
             }}
-            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/10 border-2 border-white"
+            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -953,7 +952,7 @@ export default function Storefront() {
               alt="Discounts" 
               referrerPolicy="no-referrer"
             />
-            <div className={`absolute inset-0 transition-colors ${showOnlyDiscounts ? 'bg-orange-600/20' : 'bg-black/10 group-hover:bg-black/20'}`} />
+            <div className={`absolute inset-0 transition-colors ${showOnlyDiscounts ? 'bg-orange-600/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
           </button>
 
           {/* Bag Logo Button (Wholesale Business) */}
@@ -966,7 +965,7 @@ export default function Storefront() {
               setSearchQuery('');
               setDiscountFilter(null);
             }}
-            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-rose-500/10 border-2 border-white"
+            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-rose-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -975,9 +974,26 @@ export default function Storefront() {
               alt="Wholesale Business" 
               referrerPolicy="no-referrer"
             />
-            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-rose-600/20' : 'bg-black/10 group-hover:bg-black/20'}`} />
+            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-rose-600/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
           </button>
         </div>
+
+        {/* Business Hub Header */}
+        {showWholesale && (
+          <div className="px-4 md:px-6 mb-8">
+            <div className="bg-gradient-to-r from-rose-600 to-rose-500 rounded-[2rem] p-6 sm:p-10 text-white shadow-xl shadow-rose-500/20 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+               <div className="relative z-10">
+                 <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+                   <ShoppingBag size={12} />
+                   Business Hub
+                 </div>
+                 <h2 className="text-2xl sm:text-4xl font-black mb-2 font-display">Wholesale Bundles</h2>
+                 <p className="text-rose-50 text-xs sm:text-sm font-medium max-w-md">Start your business today with our verified wholesale partners. Minimum 5 pieces per order.</p>
+               </div>
+            </div>
+          </div>
+        )}
         {/* Super Sale Section at top - "Product in banner state" */}
         {superSaleProducts.length > 0 && !showWholesale && ((!categoryFilter && !searchQuery && !showOnlyDiscounts) || showSuperSale) && (
           <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
@@ -1173,7 +1189,7 @@ export default function Storefront() {
           {loading ? (
              <DotLoader />
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8">
+            <div className={`grid ${showWholesale ? 'grid-cols-2 gap-2 sm:gap-4' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8'}`}>
               {filteredProducts.map((product) => (
                 <div key={product.id}>
                   <ProductCard 

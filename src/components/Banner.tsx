@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Banner as BannerType } from '../types';
 import DotLoader from './DotLoader';
 
-export default function HeroBanner({ banners, startIndex = 0 }: { banners: BannerType[], startIndex?: number }) {
+export default function HeroBanner({ banners, startIndex = 0, fallbackImage }: { banners: BannerType[], startIndex?: number, fallbackImage?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
   const imgRef = React.useRef<HTMLImageElement>(null);
@@ -35,8 +35,19 @@ export default function HeroBanner({ banners, startIndex = 0 }: { banners: Banne
 
   if (banners.length === 0) {
     return (
-      <div className="w-full h-64 sm:h-80 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-400 font-medium">
-        Loading latest offers...
+      <div className="w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[4/1] bg-slate-100 rounded-3xl overflow-hidden relative">
+        {fallbackImage ? (
+          <img 
+            src={fallbackImage} 
+            alt="Loading Offers..." 
+            className="w-full h-full object-cover" 
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-slate-400 font-medium">
+            Loading latest offers...
+          </div>
+        )}
       </div>
     );
   }
@@ -45,7 +56,7 @@ export default function HeroBanner({ banners, startIndex = 0 }: { banners: Banne
   if (!currentBanner) return null;
 
   return (
-    <div className="relative w-full aspect-[2.5/1] sm:aspect-[3/1] lg:aspect-[4/1] overflow-hidden group">
+    <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[4/1] overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}

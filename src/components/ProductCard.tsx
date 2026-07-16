@@ -135,29 +135,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group glass-card rounded-2xl flex flex-col p-2 sm:p-4.5 relative overflow-hidden h-full shadow-md bg-white hover:shadow-2xl hover:border-orange-200 border border-slate-100 transition-all duration-500 cursor-pointer hover:-translate-y-1.5"
+      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-md bg-white hover:shadow-2xl hover:border-orange-200 border border-slate-100 transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1.5 sm:p-3' : 'p-2 sm:p-4.5'}`}
       onClick={() => onClick && onClick(product)}
     >
-        <div className="relative w-full aspect-square rounded-xl bg-white overflow-hidden mb-3">
+        <div className={`relative w-full aspect-square rounded-xl bg-white overflow-hidden ${isWholesale ? 'mb-2' : 'mb-3'}`}>
           {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
-            <div className="absolute top-16 left-2 sm:top-18 sm:left-2.5 z-10 bg-orange-500 text-white text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tight">
+            <div className={`absolute z-10 bg-orange-500 text-white font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tight ${isWholesale ? 'top-12 left-1.5 text-[6px]' : 'top-16 left-2 sm:top-18 sm:left-2.5 text-[7px] sm:text-[9px]'}`}>
               Get {couponConfig.discountAmount}৳ Coupon
             </div>
           )}
           {/* Action Buttons Layer */}
-          <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-20 flex flex-col gap-2 transition-all">
+          <div className={`absolute z-20 flex flex-col gap-2 transition-all ${isWholesale ? 'top-1.5 right-1.5' : 'top-2 right-2 sm:top-2.5 sm:right-2.5'}`}>
             {/* Like/Favorite floating button */}
             <button
               onClick={toggleLike}
-              className="px-2 h-8 sm:px-2.5 sm:h-9 rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center gap-1.5 text-slate-500 hover:text-red-500 hover:scale-110 active:scale-95 shadow-md transition-all"
+              className={`${isWholesale ? 'px-1.5 h-6' : 'px-2 h-8 sm:px-2.5 sm:h-9'} rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center gap-1.5 text-slate-500 hover:text-red-500 hover:scale-110 active:scale-95 shadow-md transition-all`}
               title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
             >
-              <Heart size={13} className={`transition-transform duration-300 sm:size-3.5 ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
-              {likesCount > 0 && <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 font-mono">{likesCount}</span>}
+              <Heart size={isWholesale ? 11 : 13} className={`transition-transform duration-300 ${!isWholesale && 'sm:size-3.5'} ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
+              {likesCount > 0 && <span className={`${isWholesale ? 'text-[8px]' : 'text-[10px] sm:text-[11px]'} font-bold text-slate-600 font-mono`}>{likesCount}</span>}
             </button>
           </div>
 
-          <div onContextMenu={(e) => e.preventDefault()} className="select-none">
+          <div onContextMenu={(e) => e.preventDefault()} className="select-none h-full">
             <LoadingImage 
               src={product.image} 
               alt={product.name}
@@ -168,45 +168,45 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
         
         <div className="px-1 flex flex-col flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-[14px] sm:text-base font-bold text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+            <h3 className={`font-bold text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors ${isWholesale ? 'text-[12px] sm:text-[14px]' : 'text-[14px] sm:text-base'}`}>
               {product.name}
             </h3>
           </div>
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className={`flex items-center gap-1.5 ${isWholesale ? 'mb-1' : 'mb-2'}`}>
             <div className="flex items-center gap-0.5">
-              <Star size={12} className="fill-amber-500 text-amber-500" />
-              <span className="text-[11px] sm:text-[13px] font-black text-amber-600">
+              <Star size={isWholesale ? 10 : 12} className="fill-amber-500 text-amber-500" />
+              <span className={`font-black text-amber-600 ${isWholesale ? 'text-[10px] sm:text-[12px]' : 'text-[11px] sm:text-[13px]'}`}>
                 {avgRating.toFixed(1)}
               </span>
             </div>
             {count > 0 && (
-              <span className="text-[10px] sm:text-[12px] text-slate-400 font-medium">
+              <span className={`text-slate-400 font-medium ${isWholesale ? 'text-[9px] sm:text-[11px]' : 'text-[10px] sm:text-[12px]'}`}>
                 ({count})
               </span>
             )}
           </div>
 
           {isWholesale && (
-            <div className="mb-4 bg-orange-50 border border-orange-100 rounded-xl p-2 sm:p-3 flex items-center justify-between">
-               <span className="text-[9px] sm:text-[11px] font-black text-orange-600 uppercase tracking-widest">Wholesale Bundle</span>
-               <div className="flex items-center gap-2 sm:gap-3 bg-white px-2 py-1 rounded-lg border border-orange-200">
+            <div className="mb-2 bg-orange-50 border border-orange-100 rounded-lg p-1.5 flex items-center justify-between">
+               <span className="text-[8px] font-black text-orange-600 uppercase tracking-widest">Min 5</span>
+               <div className="flex items-center gap-2 bg-white px-1.5 py-0.5 rounded-md border border-orange-200">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.max(5, prev - 1));
                     }}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90"
+                    className="w-4 h-4 rounded-sm bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
                   >
                     -
                   </button>
-                  <span className="text-xs sm:text-sm font-black text-slate-900 min-w-[20px] text-center">{quantity}</span>
+                  <span className="text-[10px] font-black text-slate-900 min-w-[14px] text-center">{quantity}</span>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.min(100, prev + 1));
                     }}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90"
+                    className="w-4 h-4 rounded-sm bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
                   >
                     +
                   </button>
@@ -214,36 +214,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          <p className={`text-sm text-slate-500 line-clamp-2 mb-4 h-10 leading-relaxed ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
+          <p className={`text-slate-500 line-clamp-2 mb-2 sm:mb-4 h-8 sm:h-10 leading-relaxed ${isWholesale ? 'text-[10px] sm:text-xs' : 'text-sm'} ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
             {product.description}
           </p>
         </div>
 
-      <div className="px-1 flex flex-col mt-auto gap-3 sm:gap-4">
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3 sm:pt-4">
+      <div className={`px-1 flex flex-col mt-auto ${isWholesale ? 'gap-2' : 'gap-3 sm:gap-4'}`}>
+        <div className={`flex items-center justify-between border-t border-slate-100 ${isWholesale ? 'pt-2' : 'pt-3 sm:pt-4'}`}>
           <div className="flex flex-col">
             {hasDiscount && product.price > 0 && (
-              <span className="text-[10px] sm:text-[11px] text-slate-400 line-through leading-none mb-0.5 sm:mb-1">
+              <span className={`text-slate-400 line-through leading-none mb-0.5 ${isWholesale ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'}`}>
                 {formatPrice(product.price * (isWholesale ? quantity : 1))}
               </span>
             )}
-            <span className="text-sm sm:text-xl font-black text-slate-900 font-display tracking-tight">
+            <span className={`font-black text-slate-900 font-display tracking-tight ${isWholesale ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'}`}>
               {formatPrice(discountedPrice * (isWholesale ? quantity : 1))}
             </span>
-            {isWholesale && <span className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total for {quantity} items</span>}
+            {isWholesale && <span className="text-[7px] sm:text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total for {quantity}</span>}
           </div>
           
           {product.seller && (
-             <div className="flex items-center gap-1 sm:gap-2 bg-slate-50 px-1.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-100">
+             <div className={`flex items-center gap-1 bg-slate-50 rounded-lg border border-slate-100 ${isWholesale ? 'px-1 py-0.5' : 'px-1.5 py-1 sm:px-3 sm:py-1.5 sm:rounded-xl'}`}>
                 {sellerLogo ? (
-                  <img onContextMenu={(e) => e.preventDefault()} src={sellerLogo} alt="" className="w-3 h-3 sm:w-4 sm:h-4 rounded-full object-cover select-none" referrerPolicy="no-referrer" />
+                  <img onContextMenu={(e) => e.preventDefault()} src={sellerLogo} alt="" className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} rounded-full object-cover select-none`} referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-slate-200 rounded-full" />
+                  <div className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} bg-slate-200 rounded-full`} />
                 )}
-                <span className="text-[7px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[40px] sm:max-w-[60px]">{product.seller}</span>
-                {sellerData?.is_verified && (
-                  <CheckCircle2 size={10} className="text-blue-500" />
-                )}
+                <span className={`font-black text-slate-500 uppercase tracking-widest truncate ${isWholesale ? 'text-[6px] max-w-[30px]' : 'text-[7px] sm:text-[9px] max-w-[40px] sm:max-w-[60px]'}`}>{product.seller}</span>
              </div>
           )}
         </div>
