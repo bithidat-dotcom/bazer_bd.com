@@ -135,10 +135,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-md bg-white hover:shadow-2xl hover:border-orange-200 border border-slate-100 transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1.5 sm:p-3' : 'p-2 sm:p-4.5'}`}
+      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-md bg-white hover:shadow-2xl hover:border-orange-200 border border-slate-100 transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}
       onClick={() => onClick && onClick(product)}
     >
-        <div className={`relative w-full aspect-square rounded-xl bg-white overflow-hidden ${isWholesale ? 'mb-2' : 'mb-3'}`}>
+        <div className={`relative w-full aspect-square rounded-xl bg-white overflow-hidden ${isWholesale ? 'mb-1.5' : 'mb-3'}`}>
           {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
             <div className={`absolute z-10 bg-orange-500 text-white font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tight ${isWholesale ? 'top-12 left-1.5 text-[6px]' : 'top-16 left-2 sm:top-18 sm:left-2.5 text-[7px] sm:text-[9px]'}`}>
               Get {couponConfig.discountAmount}৳ Coupon

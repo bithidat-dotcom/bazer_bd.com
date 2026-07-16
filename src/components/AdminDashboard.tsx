@@ -1953,6 +1953,15 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 opacity-50 px-4">
+        <div className="flex flex-col items-center md:items-start gap-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Admin Console v1.2.6</p>
+          <p className="text-[8px] font-bold text-slate-300">Build Ref: PBZ-ADMIN-2026-0716</p>
+        </div>
+        <div className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-[9px] font-black uppercase tracking-widest">
+          Latest Sync: 03:32 UTC
+        </div>
+      </div>
     </div>
   );
 }

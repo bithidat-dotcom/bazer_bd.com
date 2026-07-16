@@ -35,7 +35,7 @@ export default function HeroBanner({ banners, startIndex = 0, fallbackImage }: {
 
   if (banners.length === 0) {
     return (
-      <div className="w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[4/1] bg-slate-100 rounded-3xl overflow-hidden relative">
+      <div className="w-full aspect-[16/9] md:aspect-[21/9] bg-slate-100 rounded-3xl overflow-hidden relative">
         {fallbackImage ? (
           <img 
             src={fallbackImage} 
@@ -56,7 +56,7 @@ export default function HeroBanner({ banners, startIndex = 0, fallbackImage }: {
   if (!currentBanner) return null;
 
   return (
-    <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[4/1] overflow-hidden group">
+    <div className="relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}
@@ -76,7 +76,7 @@ export default function HeroBanner({ banners, startIndex = 0, fallbackImage }: {
             src={currentBanner.image} 
             alt={currentBanner.title || "Promo Banner"}
             onLoad={() => setLoadingStates(prev => ({...prev, [currentIndex]: true}))}
-            className={`relative z-10 w-full h-full object-contain transition-opacity duration-500 ${loadingStates[currentIndex] ? 'opacity-100' : 'opacity-0'}`}
+            className={`relative z-10 w-full h-full object-cover transition-opacity duration-500 ${loadingStates[currentIndex] ? 'opacity-100' : 'opacity-0'}`}
             referrerPolicy="no-referrer"
           />
         </motion.div>

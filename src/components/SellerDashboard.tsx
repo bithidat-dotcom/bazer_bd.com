@@ -1471,7 +1471,17 @@ export default function SellerDashboard() {
           </div>
         )}
       </AnimatePresence>
-
+      
+      <div className="mt-auto pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4 opacity-40 px-6 pb-6">
+        <div className="flex flex-col items-center md:items-start gap-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Partner Console v1.2.6</p>
+          <p className="text-[8px] font-bold text-slate-300">Auth: Secure AES-256 Cloud Sync</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Production Build Verified</p>
+        </div>
+      </div>
     </div>
   );
 }

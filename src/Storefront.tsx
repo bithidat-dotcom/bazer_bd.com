@@ -1,6 +1,6 @@
 import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import HeroBanner from './components/Banner';
 import Navbar from './components/Navbar';
@@ -27,6 +27,7 @@ import { formatWhatsappNumber } from './lib/utils';
 import { Storage } from './lib/storage';
 
 export default function Storefront() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -883,7 +884,7 @@ export default function Storefront() {
         </div>
       ) : (
         <>
-          <main className="max-w-7xl mx-auto px-4 py-8 sm:px-8 space-y-12 pb-24 scroll-smooth">
+          <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6 pb-24 scroll-smooth flex flex-col">
           {isSearchActive ? (
             <div className="flex flex-col space-y-6 animate-in fade-in">
                <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -927,23 +928,18 @@ export default function Storefront() {
             </div>
           ) : (
              <>
-        <section className="mb-6 overflow-hidden">
+        <section className="mb-3 overflow-hidden">
              <HeroBanner banners={banners} startIndex={0} fallbackImage={fallbackBannerImg} />
         </section>
 
         {/* Promotional Banner Buttons - Moved Under Banner */}
-        <div className="flex justify-start px-4 md:px-6 gap-4 mb-8">
+        <div className="flex items-center justify-center gap-3 sm:gap-6 mb-4 px-4">
           {/* Discount Banner Button */}
           <button 
             onClick={() => {
-              setShowOnlyDiscounts(!showOnlyDiscounts);
-              setShowSuperSale(false);
-              setShowWholesale(false);
-              setCategoryFilter(null);
-              setSearchQuery('');
-              setDiscountFilter(null);
+              navigate('/flash-deals');
             }}
-            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -952,7 +948,7 @@ export default function Storefront() {
               alt="Discounts" 
               referrerPolicy="no-referrer"
             />
-            <div className={`absolute inset-0 transition-colors ${showOnlyDiscounts ? 'bg-orange-600/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
+            <div className={`absolute inset-0 transition-colors bg-black/10 group-hover:bg-black/20`} />
           </button>
 
           {/* Bag Logo Button (Wholesale Business) */}
@@ -965,7 +961,7 @@ export default function Storefront() {
               setSearchQuery('');
               setDiscountFilter(null);
             }}
-            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-rose-500/20 border-2 border-white"
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -974,29 +970,29 @@ export default function Storefront() {
               alt="Wholesale Business" 
               referrerPolicy="no-referrer"
             />
-            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-rose-600/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
+            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-orange-600/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
           </button>
         </div>
 
         {/* Business Hub Header */}
         {showWholesale && (
-          <div className="px-4 md:px-6 mb-8">
-            <div className="bg-gradient-to-r from-rose-600 to-rose-500 rounded-[2rem] p-6 sm:p-10 text-white shadow-xl shadow-rose-500/20 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+          <div className="px-4 md:px-6 mb-2 sm:mb-4">
+            <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-xl sm:rounded-2xl p-3 sm:p-6 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 bg-white/10 blur-[40px] sm:blur-[60px] rounded-full -mr-10 -mt-10"></div>
                <div className="relative z-10">
-                 <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4">
-                   <ShoppingBag size={12} />
+                 <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-1 sm:mb-2">
+                   <ShoppingBag size={10} className="sm:size-3" />
                    Business Hub
                  </div>
-                 <h2 className="text-2xl sm:text-4xl font-black mb-2 font-display">Wholesale Bundles</h2>
-                 <p className="text-rose-50 text-xs sm:text-sm font-medium max-w-md">Start your business today with our verified wholesale partners. Minimum 5 pieces per order.</p>
+                 <h2 className="text-base sm:text-2xl font-black mb-0.5 font-display">Wholesale Bundles</h2>
+                 <p className="text-orange-50 text-[9px] sm:text-xs font-medium max-w-[220px] sm:max-w-md">Start your business with verified partners. Min 5 pieces.</p>
                </div>
             </div>
           </div>
         )}
         {/* Super Sale Section at top - "Product in banner state" */}
         {superSaleProducts.length > 0 && !showWholesale && ((!categoryFilter && !searchQuery && !showOnlyDiscounts) || showSuperSale) && (
-          <section className="mb-14 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-10 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
+          <section className="mb-8 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-6 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
             <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
             
@@ -1048,7 +1044,7 @@ export default function Storefront() {
         </div>
 
         {/* Category Buttons */}
-        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hidden">
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hidden">
           {categories.map((cat) => (
             <button
               key={cat.name}
@@ -1056,10 +1052,10 @@ export default function Storefront() {
                 setCategoryFilter(cat.name === 'All' ? null : cat.name);
                 setShowOnlyDiscounts(false);
               }}
-              className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 shadow-sm transition-all text-slate-800 min-w-[70px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'border-orange-500 bg-orange-50' : 'bg-white border-slate-200 hover:border-orange-300'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg border transition-all min-w-[56px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-white border-orange-100 text-slate-700 hover:border-orange-300 hover:bg-orange-50'}`}
             >
-              <cat.icon size={24} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'text-orange-600' : 'text-orange-500'} />
-              <span className="text-[10px] font-bold whitespace-nowrap">{cat.name}</span>
+              <cat.icon size={16} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'text-white' : 'text-orange-500'} />
+              <span className="text-[8px] font-bold whitespace-nowrap">{cat.name}</span>
             </button>
           ))}
         </div>
@@ -1242,6 +1238,10 @@ export default function Storefront() {
               <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Privacy Policy</button>
               <button onClick={() => setIsPolicyOpen(true)} className="hover:text-black transition-colors uppercase tracking-widest cursor-pointer">Terms & Conditions</button>
             </div>
+          </div>
+          <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between opacity-40">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">System v1.2.6 Build Confirmed</p>
+            <p className="text-[8px] font-bold text-slate-300 tracking-wider">Sync: 2026-07-16 03:32 UTC</p>
           </div>
         </div>
       </footer>
