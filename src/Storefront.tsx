@@ -852,8 +852,8 @@ export default function Storefront() {
 
   const cartItemCount = (Array.isArray(cart)) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
 
-  const discountBtnImg = "https://lh3.googleusercontent.com/aida/AP1WRLvT-djckkierp7ao14WQqK8Cf_fV5AxHUcJ9GqoblTKfH9F-86hLgO_gYYXFqTrMeQZwuDS9Hw2wZZvzp9K7-Yc51St_Utz6bidm0QyPxUQNVJKbF5x-03JsftrREl-jATyB1sY3EaiClINR3YJv-Ynjf7uXhKbQQzbuNerGNJCepnzJij36HzdjVWGgF7H8pMurnQ9IWCqhGQKM0a-LhqFRY6s-Wcbhk_P5oPLVkgqPU5MYo1oSbwo8ixl=s1600";
-  const bagBtnImg = "https://lh3.googleusercontent.com/aida/AP1WRLu7gWgeMbkHs2ThlG_LBMsS93F6O00i4SNP7vgRdDUzaYmNBW-UXCihRnQXjTUSY_cWP3JUii_oATp8ITZsHAIfCzkDv9Zszg-T7vsMq15Hhq9vULhx7pdPHKrjBEWmkyUzy4ALsmHcFLo0GVrquKNr0meX61qrDcFyEAm1J4RPQNUfcHgBvYu6GfDcx2zDUl2qJKsjWNQVyFvTEbTZ_FL_xqDFwWxTwy9-Q7gd8iHxZ7IZKDJvmMaxCKpG=s1600";
+  const discountBtnImg = "https://i.postimg.cc/ZRr6ymvb/unnamed-(13).jpg";
+  const bagBtnImg = "https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg";
   const businessBtnImg = "/src/assets/images/wholesale_business_icon_1784191583205.jpg";
   const fallbackBannerImg = "https://i.postimg.cc/vBv8bbQN/unnamed-(8).jpg";
 

@@ -215,10 +215,11 @@ export default function Navbar({
               key={`cart-icon-${cartCount}`}
               animate={cartCount > 0 ? { scale: [1, 1.2, 1] } : {}}
               transition={{ duration: 0.3 }}
+              className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center"
             >
-              <ShoppingBag className="w-5 h-5 text-white" />
+              <img src="https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg" alt="Bag" className="w-full h-full object-cover" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-orange-600 text-[10px] flex items-center justify-center rounded-full border-2 border-orange-500 font-black">{cartCount}</span>
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-orange-600 text-[10px] flex items-center justify-center rounded-full border-2 border-orange-500 font-black z-10">{cartCount}</span>
               )}
             </motion.div>
           </button>

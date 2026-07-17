@@ -206,10 +206,12 @@ export default function FlashDeals() {
           </div>
         </div>
         <div className="flex items-center shrink-0">
-          <button onClick={() => navigate('/?cart=true')} className="active:scale-95 transition-transform text-[#9d4300] relative p-2">
-            <ShoppingBag size={24} />
+          <button onClick={() => navigate('/?cart=true')} className="active:scale-95 transition-transform text-[#9d4300] relative p-1">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-200/50 shadow-sm bg-white flex items-center justify-center">
+              <img src="https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg" alt="Cart" className="w-full h-full object-cover" />
+            </div>
             {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{cartItemCount}</span>
+                <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold z-10">{cartItemCount}</span>
             )}
           </button>
         </div>
@@ -341,8 +343,8 @@ export default function FlashDeals() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-20 h-20 bg-pink-500/5 rounded-full flex items-center justify-center mb-4">
-                  <ShoppingBag size={40} className="text-pink-500/20" />
+                <div className="w-20 h-20 bg-pink-500/5 rounded-full flex items-center justify-center mb-4 overflow-hidden p-4">
+                  <img src="https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg" alt="Empty" className="w-full h-full object-cover opacity-20 grayscale" />
                 </div>
                 <h3 className="text-lg font-bold text-[#251913]">No deals found</h3>
                 <p className="text-sm text-[#584237]/60 max-w-xs mt-1">We couldn't find any deals in this category. Try searching for something else or check back later!</p>

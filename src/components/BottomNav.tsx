@@ -42,7 +42,9 @@ export default function BottomNav({
           transition={{ duration: 0.3 }}
           className="relative"
         >
-          <ShoppingBag className="w-5.5 h-5.5" />
+            <div className="w-5.5 h-5.5 rounded-full overflow-hidden shadow-sm border border-slate-100 flex items-center justify-center bg-white">
+            <img src="https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg" alt="Cart" className="w-full h-full object-cover" />
+          </div>
           {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-slate-950 text-white text-[8px] flex items-center justify-center rounded-full font-black border border-white leading-none">
                   {cartCount}
