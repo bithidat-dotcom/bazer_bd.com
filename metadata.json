@@ -1,6 +1,6 @@
 {
   "name": "pbazar",
-  "description": "A modern, high-performance eCommerce platform with real-time inventory management and streamlined checkout.",
+  "description": "A modern, high-performance eCommerce platform founded by Prangon Datta, a Class 9 programmer and tech enthusiast.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

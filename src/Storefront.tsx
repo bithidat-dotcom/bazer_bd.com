@@ -11,6 +11,7 @@ import TrackingModal from './components/TrackingModal';
 import WhatsappSupport from './components/WhatsappSupport';
 import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
+import { FounderSection } from './components/FounderSection';
 import SellerModal from './components/SellerModal';
 import ScrollButton from './components/ScrollButton';
 import PolicyModal from './components/PolicyModal';
@@ -1253,6 +1254,8 @@ export default function Storefront() {
              </>
           )}
       </main>
+
+      <FounderSection />
 
       <footer className="hidden md:block glass border-t border-slate-200 mt-12 mb-0 relative z-40 bg-white/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-6">
