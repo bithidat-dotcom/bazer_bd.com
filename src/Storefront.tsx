@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap, ShoppingBag } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap, ShoppingBag, Coffee, Soup } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
@@ -222,6 +222,8 @@ export default function Storefront() {
     { name: 'Cloth', icon: Scissors },
     { name: 'Sports', icon: Dumbbell },
     { name: 'Grocery', icon: ShoppingCart },
+    { name: 'Cafe', icon: Coffee },
+    { name: 'Drinks', icon: Soup },
   ]);
 
   useEffect(() => {
@@ -229,8 +231,10 @@ export default function Storefront() {
       const existingNames = new Set(dynamicCategories.map(c => c.name.toLowerCase()));
       const newCats: any[] = [];
       products.forEach(p => {
-        if (p.category && !existingNames.has(p.category.toLowerCase())) {
-          existingNames.add(p.category.toLowerCase());
+        const cat = (p.category || '').toLowerCase();
+        const isFood = cat.includes('food') || cat.includes('drink') || cat.includes('cafe') || cat.includes('snack') || cat.includes('dessert');
+        if (p.category && !existingNames.has(cat) && !isFood) {
+          existingNames.add(cat);
           // Insert after Fashion
           newCats.push({ name: p.category, icon: Sparkles });
         }
@@ -320,6 +324,9 @@ export default function Storefront() {
             super_sale_at: data.super_sale_at || null,
             order_count: Number(data.order_count || 0)
           } as Product;
+        }).filter(p => {
+          const cat = (p.category || '').toLowerCase();
+          return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
         });
         prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setProducts(prodData);
@@ -854,6 +861,7 @@ export default function Storefront() {
 
   const discountBtnImg = "https://i.postimg.cc/ZRr6ymvb/unnamed-(13).jpg";
   const bagBtnImg = "https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg";
+  const drinkCafeBtnImg = "https://i.postimg.cc/httNxF0X/c0a39348-2342-47b0-9302-5d757a66cdb2.png";
   const businessBtnImg = "/src/assets/images/wholesale_business_icon_1784191583205.jpg";
   const fallbackBannerImg = "https://i.postimg.cc/vBv8bbQN/unnamed-(8).jpg";
 
@@ -992,6 +1000,21 @@ export default function Storefront() {
             <div className={`absolute inset-0 transition-colors bg-black/10 group-hover:bg-black/20`} />
           </button>
 
+          {/* Drink Cafe Button */}
+          <button 
+            onClick={() => navigate('/drink-cafe')}
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/10 border-2 border-white"
+          >
+            <img 
+              onContextMenu={(e) => e.preventDefault()}
+              src={drinkCafeBtnImg} 
+              className="w-full h-full object-cover transition-transform group-hover:scale-105 select-none" 
+              alt="Drink Cafe" 
+              referrerPolicy="no-referrer"
+            />
+            <div className={`absolute inset-0 transition-colors bg-black/5 group-hover:bg-black/10`} />
+          </button>
+
           {/* Bag Logo Button (Wholesale Business) */}
           <button 
             onClick={() => {
@@ -1031,8 +1054,8 @@ export default function Storefront() {
             </div>
           </div>
         )}
-        {/* Super Sale Section at top - "Product in banner state" */}
-        {superSaleProducts.length > 0 && !showWholesale && ((!categoryFilter && !searchQuery && !showOnlyDiscounts) || showSuperSale) && (
+        {/* Super Sale Section at top - "Product in banner state" - Only shown on % discount page */}
+        {superSaleProducts.length > 0 && !showWholesale && showOnlyDiscounts && (
           <section className="mb-8 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-6 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
             <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
