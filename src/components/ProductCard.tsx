@@ -1,6 +1,7 @@
 import { ShoppingCart, Star, Heart, Clock, Share2, CheckCircle2, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { formatPrice } from '../lib/utils';
 import { Product } from '../types';
 import LoadingImage from './LoadingImage';
@@ -35,6 +36,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
   const [quantity, setQuantity] = useState(isWholesale ? 5 : 1);
+
+  const { ref, inView } = useInView({
+    triggerOnce: false,
+    rootMargin: '600px 0px',
+  });
 
   useEffect(() => {
     let active = true;
@@ -130,6 +136,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const sellerLogo = product.seller_logo || sellerData?.logo;
 
   return (
+    <div ref={ref} className="h-full">
+      {inView ? (
       <motion.div 
       layout
       initial={{ opacity: 0, scale: 0.9 }}
@@ -137,21 +145,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-sm ${theme === 'warm' ? 'bg-white hover:shadow-xl border-white/50 shadow-orange-500/5' : 'bg-white shadow-md hover:shadow-2xl hover:border-orange-200 border-slate-100'} border transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}
+      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-sm ${theme === 'warm' ? 'bg-white hover:shadow-xl border-white/50 shadow-orange-500/5' : 'bg-white shadow-md hover:shadow-2xl hover:border-blue-200 border-slate-100'} border transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}
       onClick={() => onClick && onClick(product)}
     >
         <div className={`relative w-full aspect-square rounded-xl ${theme === 'warm' ? 'bg-[#fff1eb]' : 'bg-white'} overflow-hidden ${isWholesale ? 'mb-1.5' : 'mb-3'}`}>
           {product.is_super_sale && (
             <div className="absolute top-2 left-2 z-30">
-              <div className="bg-orange-600 text-white text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg shadow-orange-600/30 animate-pulse">
+              <div className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg shadow-blue-600/30 animate-pulse">
                 <Zap size={10} className="fill-current" />
                 <span>SUPER SALE</span>
               </div>
-            </div>
-          )}
-          {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
-            <div className={`absolute z-10 bg-orange-500 text-white font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tight ${isWholesale ? 'top-12 left-1.5 text-[6px]' : 'top-16 left-2 sm:top-18 sm:left-2.5 text-[7px] sm:text-[9px]'}`}>
-              Get {couponConfig.discountAmount}৳ Coupon
             </div>
           )}
           {/* Action Buttons Layer */}
@@ -179,7 +182,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         
         <div className="px-1 flex flex-col flex-1">
           <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-            <h3 className={`font-bold line-clamp-1 ${theme === 'warm' ? 'text-[#251913] group-hover:text-pink-500' : 'text-slate-900 group-hover:text-orange-600'} transition-colors ${isWholesale ? 'text-[12px] sm:text-[14px]' : 'text-[14px] sm:text-base'}`}>
+            <h3 className={`font-bold line-clamp-1 ${theme === 'warm' ? 'text-[#251913] group-hover:text-pink-500' : 'text-slate-900 group-hover:text-blue-600'} transition-colors ${isWholesale ? 'text-[12px] sm:text-[14px]' : 'text-[14px] sm:text-base'}`}>
               {product.name}
             </h3>
           </div>
@@ -198,15 +201,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
 
           {isWholesale && (
-            <div className="mb-2 bg-orange-50 border border-orange-100 rounded-lg p-1.5 flex items-center justify-between">
-               <span className="text-[8px] font-black text-orange-600 uppercase tracking-widest">Min 5</span>
-               <div className="flex items-center gap-2 bg-white px-1.5 py-0.5 rounded-md border border-orange-200">
+            <div className="mb-2 bg-blue-50 border border-blue-100 rounded-lg p-1.5 flex items-center justify-between">
+               <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Min 5</span>
+               <div className="flex items-center gap-2 bg-white px-1.5 py-0.5 rounded-md border border-blue-200">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.max(5, prev - 1));
                     }}
-                    className="w-4 h-4 rounded-sm bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
+                    className="w-4 h-4 rounded-sm bg-blue-100 text-blue-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
                   >
                     -
                   </button>
@@ -216,7 +219,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       e.stopPropagation();
                       setQuantity(prev => Math.min(100, prev + 1));
                     }}
-                    className="w-4 h-4 rounded-sm bg-orange-100 text-orange-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
+                    className="w-4 h-4 rounded-sm bg-blue-100 text-blue-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
                   >
                     +
                   </button>
@@ -307,9 +310,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       onAddToCart && onAddToCart(product);
                     }
                   }}
-                  className="flex items-center justify-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
+                  className="flex items-center justify-center gap-1 border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-1 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
                 >
-                  {isWholesale ? 'Bundle' : 'Cart'}
+                  <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" />
+                  {isWholesale ? 'Bundle' : 'Add to Cart'}
                 </button>
               )}
               <button 
@@ -317,14 +321,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   e.stopPropagation();
                   onBuy(product, isWholesale ? quantity : 1);
                 }}
-                className="flex items-center justify-center bg-orange-600 text-white hover:bg-orange-700 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-black shadow-lg cursor-pointer uppercase tracking-wider"
+                className="flex items-center justify-center bg-red-600 text-white hover:bg-red-700 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-black shadow-lg shadow-red-600/20 cursor-pointer uppercase tracking-wider"
               >
                 Buy Now
               </button>
             </div>
           )}
         </div>
-    </motion.div>
+      </motion.div>
+      ) : (
+        <div className={`glass-card rounded-2xl w-full h-[280px] sm:h-[350px] bg-slate-50/50 border border-slate-100 animate-pulse ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}></div>
+      )}
+    </div>
   );
 };
 

@@ -35,7 +35,6 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
   const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string } | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [deliveryDistrict, setDeliveryDistrict] = useState<'bhola' | 'other'>('bhola');
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
@@ -129,16 +128,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
 
     return () => clearInterval(interval);
   }, [product]);
-
-  const getEstimatedDates = (minDays: number, maxDays: number) => {
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + minDays);
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + maxDays);
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', weekday: 'short' };
-    return `${minDate.toLocaleDateString('en-US', options)} - ${maxDate.toLocaleDateString('en-US', options)}`;
-  };
-
+  
   // Review State
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newUserName, setNewUserName] = useState('');
@@ -700,12 +690,6 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
 
               {/* Product Stock Indicator */}
               <div className="mb-5">
-                {couponConfig?.isActive && product.price >= couponConfig.minPurchase && (
-                  <div className="mb-4 bg-orange-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg">
-                      <Sparkles className="w-6 h-6 shrink-0" />
-                      <p className="font-bold text-sm">Buy this product and get {couponConfig.discountAmount}৳ coupon!</p>
-                  </div>
-                )}
                 {product.stock !== undefined ? (
                   product.stock >= 0 ? (
                     <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black shadow-sm border backdrop-blur-md ${
@@ -771,7 +755,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                                      valLower.includes('snapdragon 8ilight');
 
                     if (isMatch || isMatch2) {
-                      return <strong key={i} className="font-black text-slate-900 border-b-2 border-orange-500/30">{part}</strong>;
+                      return <strong key={i} className="font-black text-slate-900 border-b-2 border-blue-500/30">{part}</strong>;
                     }
                     return part;
                   }) || "No description available for this product."}
@@ -828,60 +812,33 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                   <div className="flex items-center gap-2.5">
                     <span className="p-2 bg-amber-500 text-white rounded-xl shadow-md">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </span>
                     <div>
-                      <p className="text-sm font-black text-amber-950 uppercase tracking-tight">Delivery Estimation</p>
-                      <p className="text-[10px] text-amber-700 font-bold leading-none mt-0.5">Select area for real-time timeline</p>
+                      <p className="text-sm font-black text-amber-950 uppercase tracking-tight">Express Delivery</p>
+                      <p className="text-[10px] text-amber-700 font-bold leading-none mt-0.5">Nationwide delivery available</p>
                     </div>
                   </div>
+                  <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
+                    ⚡ Priority
+                  </span>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <button 
-                    type="button"
-                    onClick={() => setDeliveryDistrict('bhola')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      deliveryDistrict === 'bhola'
-                        ? 'border-amber-500 bg-amber-500 text-white font-black shadow-lg scale-[1.02]'
-                        : 'border-amber-200 bg-white text-amber-900 hover:border-amber-400 font-bold'
-                    }`}
-                  >
-                    <p className={`text-[9px] font-black uppercase tracking-wider ${deliveryDistrict === 'bhola' ? 'text-amber-100' : 'text-amber-500'}`}>Local Area</p>
-                    <p className="text-sm mt-0.5">Bhola</p>
-                  </button>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => setDeliveryDistrict('other')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      deliveryDistrict === 'other'
-                        ? 'border-amber-500 bg-amber-500 text-white font-black shadow-lg scale-[1.02]'
-                        : 'border-amber-200 bg-white text-amber-900 hover:border-amber-400 font-bold'
-                    }`}
-                  >
-                    <p className={`text-[9px] font-black uppercase tracking-wider ${deliveryDistrict === 'other' ? 'text-amber-100' : 'text-amber-500'}`}>Remote Area</p>
-                    <p className="text-sm mt-0.5">Other Dist.</p>
-                  </button>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
-                  <div>
-                    <p className="text-[10px] text-amber-600 font-black uppercase tracking-wider">Estimated Arrival</p>
-                    <p className="text-lg font-black text-amber-950 mt-0.5">
-                      {deliveryDistrict === 'bhola' ? '1 - 2 Days' : '3 - 5 Days'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-bold mt-1">
-                      Est: {deliveryDistrict === 'bhola' ? getEstimatedDates(1, 2) : getEstimatedDates(3, 5)}
-                    </p>
+                <div className="bg-white p-3 sm:p-4 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://cdn.chinaparcels.com/cdn/images/carriers/thumbnails/0737-steadfast-courier.png" 
+                      alt="Steadfast Courier" 
+                      className="h-8 w-8 object-contain rounded-md border border-slate-100 bg-slate-50"
+                    />
+                    <div>
+                      <p className="text-[10px] text-amber-600 font-black uppercase tracking-wider">Delivery By</p>
+                      <p className="text-sm font-black text-amber-950">Steadfast Courier</p>
+                    </div>
                   </div>
-                  <span className={`text-[10px] font-black px-3 py-2 rounded-full uppercase tracking-wider shadow-sm transition-colors ${
-                    deliveryDistrict === 'bhola' 
-                      ? 'bg-amber-100 text-amber-700' 
-                      : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {deliveryDistrict === 'bhola' ? '⚡ Priority' : 'Standard'}
+                  <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-1 rounded text-right whitespace-nowrap">
+                    Live Tracking
                   </span>
                 </div>
               </div>
@@ -906,8 +863,8 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                       )}
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-orange-500 transition-colors">Product Seller</p>
-                      <p className="text-sm font-black text-slate-900 group-hover:text-orange-500 transition-colors">{product.seller || 'Verified Seller'}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-blue-500 transition-colors">Product Seller</p>
+                      <p className="text-sm font-black text-slate-900 group-hover:text-blue-500 transition-colors">{product.seller || 'Verified Seller'}</p>
                     </div>
                   </div>
                   
@@ -989,7 +946,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                                 className={`flex-1 font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center text-sm sm:text-base tracking-tight uppercase ${
                                   product.stock !== undefined && product.stock <= 0
                                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-100'
-                                    : 'bg-orange-600 hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20 active:scale-[0.98] cursor-pointer'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20 active:scale-[0.98] cursor-pointer'
                                 }`}
                               >
                                 Buy Now

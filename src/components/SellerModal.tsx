@@ -165,7 +165,7 @@ export default function SellerModal({
                         placeholder={`Search in ${seller.name}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-orange-500 focus:bg-white rounded-2xl text-slate-900 font-bold transition-all outline-none"
+                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl text-slate-900 font-bold transition-all outline-none"
                       />
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
@@ -177,7 +177,7 @@ export default function SellerModal({
                 {!searchTerm && bestProducts.length > 0 && (
                   <section className="space-y-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                         <ShoppingBag size={20} />
                       </div>
                       <div>

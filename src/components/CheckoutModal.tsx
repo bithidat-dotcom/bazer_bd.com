@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
-import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle } from 'lucide-react';
+import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle, Sparkles } from 'lucide-react';
 import { formatWhatsappNumber } from '../lib/utils';
 
 import { UserProfile } from '../types';
@@ -389,9 +389,30 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                         </div>
                       </div>
                     </div>
-
-
-
+                    
+                    {couponConfig?.isActive && (
+                      <div className="mt-6 mb-2 relative bg-blue-600 text-white p-4 rounded-2xl flex items-center justify-between overflow-hidden shadow-lg shadow-blue-600/20 group">
+                        <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full"></div>
+                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full"></div>
+                        
+                        <div className="flex items-center gap-3 relative z-10 ml-2">
+                          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 shadow-inner">
+                            <Sparkles className="w-5 h-5 text-blue-100" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-blue-200 font-black uppercase tracking-widest leading-tight">Special Offer</p>
+                            <p className="font-bold text-sm leading-tight mt-0.5">Get <span className="text-white font-black">{couponConfig.discountAmount}৳</span> off eligible items</p>
+                          </div>
+                        </div>
+                        
+                        <div className="relative z-10 border-l border-dashed border-white/40 pl-4 mr-2 h-10 flex items-center justify-center">
+                          <span className="bg-white/20 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider block text-center">
+                            Applied
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
                     <button
                       type="submit"
                       className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-colors group mt-4 active:scale-95"

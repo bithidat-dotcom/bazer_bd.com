@@ -4,7 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, collection } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query } from "firebase/firestore";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import fs from "fs";
@@ -19,6 +19,18 @@ const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
+// Second Firebase Connection for Speed & Fast Specialty Food Catalog
+const secondFirebaseConfig = {
+  apiKey: "AIzaSyD9FxCHyk-l8QUQ-2Rzbif-XjYWGC5cRog",
+  authDomain: "genial-inn-2h7sp.firebaseapp.com",
+  projectId: "genial-inn-2h7sp",
+  storageBucket: "genial-inn-2h7sp.firebasestorage.app",
+  messagingSenderId: "295815579779",
+  appId: "1:295815579779:web:585000cb89c55959cc33b6"
+};
+const secondFirebaseApp = initializeApp(secondFirebaseConfig, "secondApp");
+const db2 = getFirestore(secondFirebaseApp);
+
 const JWT_SECRET = process.env.JWT_SECRET || "pbazar-partner-secret-key-2024";
 
 async function startServer() {
@@ -30,6 +42,48 @@ async function startServer() {
   // API Routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", message: "Pbazar Partner Server is live" });
+  });
+
+  // Food Specialties Catalog API (Powered by high-speed second Firebase connection)
+  app.get("/api/foods", async (req, res) => {
+    try {
+      // Fetch directly from fast second database first
+      const snap = await getDocs(query(collection(db2, "products")));
+      let productsList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // If second database is empty, seamlessly fall back to primary database products
+      if (productsList.length === 0) {
+        console.log("Second DB empty, falling back to primary DB");
+        const primarySnap = await getDocs(query(collection(db, "products")));
+        productsList = primarySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      }
+      
+      const nonFoodCategories = [
+        "electronics", "fashion", "clothing", "shoes", "bags", "phones", "laptops", "gadgets", "home", "furniture", "books", "beauty", "cosmetics", "accessories", "jewelry", "watches", "sports", "fitness", "automotive", "toys"
+      ];
+      
+      const foods = productsList.filter((p: any) => 
+        p.category && !nonFoodCategories.includes(p.category.toLowerCase().trim())
+      );
+      
+      res.json({ foods });
+    } catch (error: any) {
+      console.error("Failed to fetch foods in server API:", error);
+      // Failover fallback to primary DB on query errors
+      try {
+        const primarySnap = await getDocs(query(collection(db, "products")));
+        const productsList = primarySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const nonFoodCategories = [
+          "electronics", "fashion", "clothing", "shoes", "bags", "phones", "laptops", "gadgets", "home", "furniture", "books", "beauty", "cosmetics", "accessories", "jewelry", "watches", "sports", "fitness", "automotive", "toys"
+        ];
+        const foods = productsList.filter((p: any) => 
+          p.category && !nonFoodCategories.includes(p.category.toLowerCase().trim())
+        );
+        res.json({ foods });
+      } catch (innerErr) {
+        res.status(500).json({ error: "Failed to load foods from database" });
+      }
+    }
   });
 
   // Seller Signup - Move to server for better security

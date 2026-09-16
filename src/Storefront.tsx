@@ -27,6 +27,14 @@ import { getSellers, isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from 
 import { formatWhatsappNumber } from './lib/utils';
 import { Storage } from './lib/storage';
 
+const parseFirestoreDateMs = (dateVal: any): number => {
+  if (!dateVal) return 0;
+  if (typeof dateVal === 'object' && dateVal.seconds) return dateVal.seconds * 1000;
+  if (typeof dateVal === 'object' && dateVal.toMillis) return dateVal.toMillis();
+  const d = new Date(dateVal).getTime();
+  return isNaN(d) ? 0 : d;
+};
+
 export default function Storefront() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
@@ -293,105 +301,163 @@ export default function Storefront() {
       setLoading(false);
     };
 
+    const API_BASE_URL = 'https://ais-dev-aezy5reak7ggvywam2hech-33482117147.asia-southeast1.run.app';
+
+    const loadFromAPI = async () => {
+      try {
+        const prodRes = await fetch(`${API_BASE_URL}/api/products`);
+        if (!prodRes.ok) throw new Error('API server returned error state');
+        const prodData = await prodRes.json();
+        const loadedProds = prodData.products || [];
+        if (loadedProds.length > 0) {
+          const normalized = loadedProds.map((p: any) => ({
+            id: p.id || String(Math.random()),
+            name: p.name || '',
+            description: p.description || '',
+            price: Number(p.price || 0),
+            image: p.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+            rating: Number(p.rating || 4.5),
+            discount: Number(p.discount || 0),
+            category: p.category || '',
+            stock: p.stock !== undefined ? Number(p.stock) : 20,
+            total_stock: p.total_stock !== undefined ? Number(p.total_stock) : 30,
+            created_at: p.created_at || new Date().toISOString(),
+            images: p.images || [],
+            flashSaleEnd: p.flashSaleEnd || null,
+            seller: p.seller || '',
+            seller_whatsapp: p.seller_whatsapp || '',
+            seller_logo: p.seller_logo || '',
+            is_new: p.is_new !== undefined ? !!p.is_new : true,
+            is_super_sale: !!p.is_super_sale,
+            super_sale_at: p.super_sale_at || null,
+            order_count: Number(p.order_count || 0)
+          } as Product)).filter((p: Product) => {
+            const cat = (p.category || '').toLowerCase();
+            return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
+          });
+          
+          normalized.sort((a: Product, b: Product) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
+          setProducts(normalized);
+          setSuperSaleProducts(normalized.filter(p => p.is_super_sale));
+          setRecommendedProducts(normalized.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+          Storage.setLarge('cached_products', normalized);
+          setLoading(false);
+          return true;
+        }
+      } catch (err) {
+        console.warn('API fetch failed, falling back to live Firestore:', err);
+      }
+      return false;
+    };
+
     if (isFirestoreQuotaExceeded()) {
       loadFallbacks();
       return;
     }
 
-    try {
-      unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
-        const prodData = snapshot.docs.map(doc => {
-          const data = doc.data() || {};
-          return {
-            id: doc.id,
-            name: data.name || '',
-            description: data.description || '',
-            price: Number(data.price || 0),
-            image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
-            rating: Number(data.rating || 4.5),
-            discount: Number(data.discount || 0),
-            category: data.category || '',
-            stock: data.stock !== undefined ? Number(data.stock) : 20,
-            total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
-            created_at: data.created_at || new Date().toISOString(),
-            images: data.images || [],
-            flashSaleEnd: data.flashSaleEnd || null,
-            seller: data.seller || '',
-            seller_whatsapp: data.seller_whatsapp || '',
-            seller_logo: data.seller_logo || '',
-            is_new: data.is_new !== undefined ? !!data.is_new : true,
-            is_super_sale: !!data.is_super_sale,
-            super_sale_at: data.super_sale_at || null,
-            order_count: Number(data.order_count || 0)
-          } as Product;
-        }).filter(p => {
-          const cat = (p.category || '').toLowerCase();
-          return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
-        });
-        prodData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-        setProducts(prodData);
-        
-        // Filter Super Sale Products: Strictly marked by admin
-        const superSale = prodData.filter(p => p.is_super_sale);
-        setSuperSaleProducts(superSale);
-
-        // Recommended: High rating or high order count
-        const recommended = prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8);
-        setRecommendedProducts(recommended);
-
-        Storage.setLarge('cached_products', prodData);
-        setLoading(false);
-      }, (error: any) => {
-        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
-          setFirestoreQuotaExceeded(true);
-          loadFallbacks();
-        } else {
-          console.error('Firebase product error', error);
-          setError(error.message);
-          setLoading(false);
-        }
-      });
-
-      unsubBanner = onSnapshot(query(collection(db, 'banners')), (snapshot) => {
-        const bannerData = snapshot.docs.map(doc => {
-          const data = doc.data() || {};
-          return {
-            id: doc.id,
-            title: data.title || '',
-            image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
-            created_at: data.created_at || new Date().toISOString()
-          } as Banner;
-        });
-        bannerData.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-        setBanners(bannerData);
-        Storage.setLarge('cached_banners', bannerData);
-      }, (error: any) => {
-        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
-          setFirestoreQuotaExceeded(true);
-          loadFallbacks();
-        } else {
-          console.error('Firebase banner error', error);
-        }
-      });
-
-      // Fetch sellers
-      const fetchSellers = async () => {
+    const initData = async () => {
+      const success = await loadFromAPI();
+      
+      // If API fetch fails, fallback to Firestore for products
+      if (!success) {
         try {
-          const data = await getSellers();
-          if (data && data.length > 0) {
-            setSellers(data);
-            Storage.setLarge('cached_sellers', data);
-          }
-        } catch (err) {
-          console.warn('Silent seller fetch error:', err);
+          unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
+            const prodData = snapshot.docs.map(doc => {
+              const data = doc.data() || {};
+              return {
+                id: doc.id,
+                name: data.name || '',
+                description: data.description || '',
+                price: Number(data.price || 0),
+                image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+                rating: Number(data.rating || 4.5),
+                discount: Number(data.discount || 0),
+                category: data.category || '',
+                stock: data.stock !== undefined ? Number(data.stock) : 20,
+                total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
+                created_at: data.created_at || new Date().toISOString(),
+                images: data.images || [],
+                flashSaleEnd: data.flashSaleEnd || null,
+                seller: data.seller || '',
+                seller_whatsapp: data.seller_whatsapp || '',
+                seller_logo: data.seller_logo || '',
+                is_new: data.is_new !== undefined ? !!data.is_new : true,
+                is_super_sale: !!data.is_super_sale,
+                super_sale_at: data.super_sale_at || null,
+                order_count: Number(data.order_count || 0)
+              } as Product;
+            }).filter(p => {
+              const cat = (p.category || '').toLowerCase();
+              return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
+            });
+            prodData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
+            setProducts(prodData);
+            
+            const superSale = prodData.filter(p => p.is_super_sale);
+            setSuperSaleProducts(superSale);
+
+            const recommended = prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8);
+            setRecommendedProducts(recommended);
+
+            Storage.setLarge('cached_products', prodData);
+            setLoading(false);
+          }, (error: any) => {
+            if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+              setFirestoreQuotaExceeded(true);
+              loadFallbacks();
+            } else {
+              console.error('Firebase product error', error);
+              setError(error.message);
+              setLoading(false);
+            }
+          });
+        } catch (err: any) {
+          console.error("Firestore onSnapshot setup error", err);
         }
-      };
-      fetchSellers();
-    } catch (err: any) {
-      console.error('Fetch error:', err);
-      setError(err.message || 'Failed to load store data');
-      setLoading(false);
-    }
+      }
+
+      // Always setup banners and sellers regardless of product API success
+      try {
+        unsubBanner = onSnapshot(query(collection(db, 'banners')), (snapshot) => {
+          const bannerData = snapshot.docs.map(doc => {
+            const data = doc.data() || {};
+            return {
+              id: doc.id,
+              title: data.title || '',
+              image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+              created_at: data.created_at || new Date().toISOString()
+            } as Banner;
+          });
+          bannerData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
+          setBanners(bannerData);
+          Storage.setLarge('cached_banners', bannerData);
+        }, (error: any) => {
+          if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+            setFirestoreQuotaExceeded(true);
+            loadFallbacks();
+          } else {
+            console.error('Firebase banner error', error);
+          }
+        });
+
+        const fetchSellers = async () => {
+          try {
+            const data = await getSellers();
+            if (data && data.length > 0) {
+              setSellers(data);
+              Storage.setLarge('cached_sellers', data);
+            }
+          } catch (err) {
+            console.warn('Silent seller fetch error:', err);
+          }
+        };
+        fetchSellers();
+      } catch (err: any) {
+        console.error('Banners/Sellers setup error:', err);
+      }
+    };
+
+    initData();
 
     const safetyTimer = setTimeout(() => {
         setLoading(false);
@@ -558,13 +624,37 @@ export default function Storefront() {
     });
 
     // Sorting
+    const favIds = Storage.getSmall<string[]>('favorites') || [];
     const sorted = [...filtered].sort((a, b) => {
       const priceA = a.discount ? a.price * (1 - a.discount/100) : a.price;
       const priceB = b.discount ? b.price * (1 - b.discount/100) : b.price;
       
       if (sortBy === 'price-low') return priceA - priceB;
       if (sortBy === 'price-high') return priceB - priceA;
-      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      
+      // Smart Algorithmic Sorting Default
+      const aLiked = favIds.includes(a.id) ? 1 : 0;
+      const bLiked = favIds.includes(b.id) ? 1 : 0;
+      
+      // 1. Liked items first
+      if (aLiked !== bLiked) return bLiked - aLiked;
+      
+      // 2. Best Sellers
+      const aOrders = a.order_count || 0;
+      const bOrders = b.order_count || 0;
+      if (aOrders !== bOrders) return bOrders - aOrders;
+      
+      // 3. Fallback to newest with slight randomness
+      const timeA = parseFirestoreDateMs(a.created_at);
+      const timeB = parseFirestoreDateMs(b.created_at);
+      const timeDiff = timeB - timeA;
+      
+      // Add slight randomness to products created around the same time or with 0 sales
+      if (aOrders === 0 && bOrders === 0 && Math.abs(timeDiff) < 1000 * 60) { // within 1 minute
+        return Math.random() - 0.5;
+      }
+      
+      return timeDiff;
     });
 
     setFilteredProducts(sorted);
@@ -576,7 +666,7 @@ export default function Storefront() {
         if (!p.is_super_sale) return false;
         if (!p.super_sale_at) return true; // Legacy manual ones stay
         
-        const saleTime = new Date(p.super_sale_at).getTime();
+        const saleTime = parseFirestoreDateMs(p.super_sale_at);
         const now = new Date().getTime();
         return (now - saleTime) < (24 * 60 * 60 * 1000); // 24 hours
       });
@@ -894,7 +984,7 @@ export default function Storefront() {
                 {isFirestoreQuotaExceeded() ? "Daily Server Limit Reached" : "We are experiencing technical issues"}
               </h1>
               <div className="flex justify-center">
-                 <Bot size={120} className="text-orange-500 animate-bounce" />
+                 <Bot size={120} className="text-blue-500 animate-bounce" />
               </div>
               
               {isFirestoreQuotaExceeded() ? (
@@ -910,7 +1000,7 @@ export default function Storefront() {
                     href="https://console.firebase.google.com/project/genial-inn-2h7sp/firestore/databases/ai-studio-478d8860-d347-4002-b696-209c0bb25c2e/data?openUpgradeDialog=true"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block text-orange-600 font-bold text-xs underline hover:text-orange-700"
+                    className="inline-block text-blue-600 font-bold text-xs underline hover:text-blue-700"
                   >
                     View & Upgrade Quota in Firebase Console
                   </a>
@@ -921,7 +1011,7 @@ export default function Storefront() {
 
               <button 
                 onClick={() => window.location.reload()}
-                className="mt-4 bg-slate-900 text-white px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs hover:shadow-2xl hover:shadow-orange-500/20 transition-all active:scale-95 flex items-center gap-2 mx-auto"
+                className="mt-4 bg-slate-900 text-white px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs hover:shadow-2xl hover:shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 mx-auto"
               >
                 Retry Connection
               </button>
@@ -943,7 +1033,7 @@ export default function Storefront() {
                      <p className="text-sm font-bold text-slate-500 uppercase tracking-widest animate-pulse">Searching...</p>
                   </div>
                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-8">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-6 lg:gap-8">
                     {filteredProducts.length > 0 ? (
                       filteredProducts.map(product => (
                         <div key={product.id}>
@@ -988,7 +1078,7 @@ export default function Storefront() {
                 navigate('/flash-deals');
               }, 2500);
             }}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -1003,7 +1093,7 @@ export default function Storefront() {
           {/* Drink Cafe Button */}
           <button 
             onClick={() => navigate('/drink-cafe')}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/10 border-2 border-white"
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/10 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -1025,7 +1115,7 @@ export default function Storefront() {
               setSearchQuery('');
               setDiscountFilter(null);
             }}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
@@ -1034,14 +1124,14 @@ export default function Storefront() {
               alt="Wholesale Business" 
               referrerPolicy="no-referrer"
             />
-            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-orange-600/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
+            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-blue-650/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
           </button>
         </div>
 
         {/* Business Hub Header */}
         {showWholesale && (
           <div className="px-4 md:px-6 mb-2 sm:mb-4">
-            <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-xl sm:rounded-2xl p-3 sm:p-6 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl sm:rounded-2xl p-3 sm:p-6 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 bg-white/10 blur-[40px] sm:blur-[60px] rounded-full -mr-10 -mt-10"></div>
                <div className="relative z-10">
                  <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-1 sm:mb-2">
@@ -1049,25 +1139,25 @@ export default function Storefront() {
                    Business Hub
                  </div>
                  <h2 className="text-base sm:text-2xl font-black mb-0.5 font-display">Wholesale Bundles</h2>
-                 <p className="text-orange-50 text-[9px] sm:text-xs font-medium max-w-[220px] sm:max-w-md">Start your business with verified partners. Min 5 pieces.</p>
+                 <p className="text-blue-50 text-[9px] sm:text-xs font-medium max-w-[220px] sm:max-w-md">Start your business with verified partners. Min 5 pieces.</p>
                </div>
             </div>
           </div>
         )}
         {/* Super Sale Section at top - "Product in banner state" - Only shown on % discount page */}
         {superSaleProducts.length > 0 && !showWholesale && showOnlyDiscounts && (
-          <section className="mb-8 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-6 bg-gradient-to-br from-orange-500/5 to-red-600/5 border-y border-orange-100">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 blur-[100px] -z-10 rounded-full"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-200/20 blur-[100px] -z-10 rounded-full"></div>
+          <section className="mb-8 relative overflow-hidden -mx-4 px-4 sm:-mx-8 sm:px-8 py-6 bg-gradient-to-br from-blue-500/5 to-indigo-600/5 border-y border-blue-100">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-200/20 blur-[100px] -z-10 rounded-full"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-200/20 blur-[100px] -z-10 rounded-full"></div>
             
             <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto px-4 sm:px-0">
                <div className="flex items-center gap-3">
-                 <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/40 border-2 border-white">
+                 <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/40 border-2 border-white">
                     <Zap className="text-white fill-white" size={24} />
                  </div>
                  <div>
                     <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Super Sale</h2>
-                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] animate-pulse">Limited Hot Deals • Active Now</p>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] animate-pulse">Limited Hot Deals • Active Now</p>
                  </div>
                </div>
                <div className="hidden sm:flex items-center gap-2">
@@ -1101,9 +1191,9 @@ export default function Storefront() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="🤖 AI Finder: What are you looking for today? (e.g., 'fresh food', 'fashion')"
-              className="w-full pl-4 pr-4 py-4 rounded-full border-2 border-orange-200 focus:border-orange-500 outline-none text-sm font-medium shadow-sm transition-all"
+              className="w-full pl-4 pr-4 py-4 rounded-full border-2 border-blue-200 focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-500 font-bold text-xs bg-orange-100 px-3 py-1 rounded-full">AI Active</div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-xs bg-blue-100 px-3 py-1 rounded-full">AI Active</div>
           </div>
         </div>
 
@@ -1116,9 +1206,9 @@ export default function Storefront() {
                 setCategoryFilter(cat.name === 'All' ? null : cat.name);
                 setShowOnlyDiscounts(false);
               }}
-              className={`flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg border transition-all min-w-[56px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-white border-orange-100 text-slate-700 hover:border-orange-300 hover:bg-orange-50'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg border transition-all min-w-[56px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20' : 'bg-white border-blue-100 text-slate-700 hover:border-blue-300 hover:bg-blue-50'}`}
             >
-              <cat.icon size={16} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'text-white' : 'text-orange-500'} />
+              <cat.icon size={16} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'text-white' : 'text-blue-500'} />
               <span className="text-[8px] font-bold whitespace-nowrap">{cat.name}</span>
             </button>
           ))}
@@ -1154,7 +1244,7 @@ export default function Storefront() {
                     <button
                       key={price.label}
                       onClick={() => setPriceFilter(priceFilter?.label === price.label ? null : price as any)}
-                      className={`px-4 py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap ${priceFilter?.label === price.label ? 'border-orange-500 bg-orange-50 text-orange-600' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap ${priceFilter?.label === price.label ? 'border-blue-500 bg-blue-50 text-blue-600' : 'bg-white border-slate-105 text-slate-500 hover:border-slate-200'}`}
                     >
                         {price.label}
                     </button>
@@ -1175,8 +1265,8 @@ export default function Storefront() {
           <section className="mb-10">
             <div className="flex items-center justify-between mb-5">
                <div className="flex items-center gap-2">
-                 <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <Sparkles className="text-orange-600" size={18} />
+                 <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Sparkles className="text-blue-600" size={18} />
                  </div>
                  <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Recommended For You</h2>
                </div>
@@ -1205,8 +1295,8 @@ export default function Storefront() {
           <section className="mb-8">
             <div className="flex items-center justify-between mb-5">
                <div className="flex items-center gap-2">
-                 <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <User2 className="text-orange-600" size={18} />
+                 <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <User2 className="text-blue-600" size={18} />
                  </div>
                  <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Top Sellers</h2>
                </div>
@@ -1218,7 +1308,7 @@ export default function Storefront() {
                    onClick={() => setSelectedSeller(seller)}
                    className="flex flex-col items-center gap-2 group shrink-0 relative"
                  >
-                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] bg-white border border-slate-200 shadow-sm overflow-hidden p-2 group-hover:border-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/10 transition-all active:scale-95 relative flex items-center justify-center">
+                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] bg-white border border-slate-200 shadow-sm overflow-hidden p-2 group-hover:border-blue-500 group-hover:shadow-lg group-hover:shadow-blue-500/10 transition-all active:scale-95 relative flex items-center justify-center">
                       {seller.logo ? (
                         <img src={seller.logo} alt={seller.name} className="w-full h-full object-contain rounded-[1.75rem]" referrerPolicy="no-referrer" />
                       ) : (
@@ -1249,7 +1339,7 @@ export default function Storefront() {
           {loading ? (
              <DotLoader />
           ) : filteredProducts.length > 0 ? (
-            <div className={`grid ${showWholesale ? 'grid-cols-2 gap-2 sm:gap-4' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-8'}`}>
+            <div className={`grid ${showWholesale ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-6 lg:gap-8'}`}>
               {filteredProducts.map((product) => (
                 <div key={product.id}>
                   <ProductCard 
@@ -1295,8 +1385,8 @@ export default function Storefront() {
               Orders Live ({Array.isArray(products) ? (products.reduce((acc, p) => acc + (Number(p.stock) || 0), 0) > 0 ? products.length * 2 + 5 : products.length) : 0} Active)
             </span>
             <div className="flex gap-6 items-center flex-wrap">
-              <a href="https://admin4565.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:bg-orange-600 hover:text-white text-orange-600 transition-colors uppercase tracking-widest bg-orange-50/70 border border-orange-200/50 px-3 py-1.5 rounded-xl font-black text-[9px] flex items-center gap-1.5 shadow-sm active:scale-95">
-                <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></span>
+              <a href="https://admin4565.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:bg-blue-600 hover:text-white text-blue-600 transition-colors uppercase tracking-widest bg-blue-50/70 border border-blue-200/50 px-3 py-1.5 rounded-xl font-black text-[9px] flex items-center gap-1.5 shadow-sm active:scale-95">
+                <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
                 Become a Seller
               </a>
               <a href="#" className="hover:text-black transition-colors">Instagram: @pbazar.bd</a>
@@ -1396,7 +1486,7 @@ export default function Storefront() {
                 transition={{ type: 'spring', damping: 12, delay: 0.1 }}
                 className="w-12 h-12 bg-white/10 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
               >
-                <AlertCircle className="w-6 h-6 text-orange-400" />
+                <AlertCircle className="w-6 h-6 text-blue-400" />
               </motion.div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold tracking-tight">{alertMessage}</p>
@@ -1414,7 +1504,7 @@ export default function Storefront() {
                 initial={{ width: "100%" }}
                 animate={{ width: "0%" }}
                 transition={{ duration: 4, ease: "linear" }}
-                className="absolute bottom-0 left-0 h-1 bg-orange-400"
+                className="absolute bottom-0 left-0 h-1 bg-blue-400"
               />
             </div>
           </motion.div>
@@ -1466,7 +1556,7 @@ export default function Storefront() {
             exit={{ opacity: 0, y: -100, x: '-50%', scale: 0.8 }}
             className="fixed top-0 left-1/2 z-[110] w-[calc(100%-2rem)] max-w-sm pointer-events-none"
           >
-            <div className="bg-orange-600 text-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(249,115,22,0.4)] border border-orange-500 flex items-center gap-4 overflow-hidden relative text-left pointer-events-auto">
+            <div className="bg-blue-600 text-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(30,94,243,0.4)] border border-blue-500 flex items-center gap-4 overflow-hidden relative text-left pointer-events-auto">
               <motion.div 
                 initial={{ scale: 0, rotate: -45 }}
                 animate={{ scale: 1, rotate: 0 }}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, deleteDoc, addDoc, increment, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, db2 } from '../lib/firebase';
 import { syncProductToSupabase, syncBannerToSupabase, checkSupabaseStatus } from '../lib/supabase';
 import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { Storage } from '../lib/storage';
@@ -546,9 +546,23 @@ export default function AdminDashboard() {
       if (editingProduct) {
         await updateDoc(doc(db, 'products', editingProduct.id), payload);
         savedProductId = editingProduct.id;
+        
+        // Sync to Second Speedy Database
+        try {
+          await setDoc(doc(db2, 'products', savedProductId), payload, { merge: true });
+        } catch (db2Err) {
+          console.warn("db2 sync failed during update:", db2Err);
+        }
       } else {
         const docRef = await addDoc(collection(db, 'products'), payload);
         savedProductId = docRef.id;
+        
+        // Sync to Second Speedy Database using the same identical ID
+        try {
+          await setDoc(doc(db2, 'products', savedProductId), payload);
+        } catch (db2Err) {
+          console.warn("db2 sync failed during add:", db2Err);
+        }
       }
 
       // Sync to Supabase Backup
@@ -570,6 +584,13 @@ export default function AdminDashboard() {
     if (window.confirm(`Are you sure you want to delete the product "${name}"?`)) {
       try {
         await deleteDoc(doc(db, 'products', id));
+        
+        // Sync delete to Second Speedy Database
+        try {
+          await deleteDoc(doc(db2, 'products', id));
+        } catch (db2Err) {
+          console.warn("db2 sync failed during delete:", db2Err);
+        }
       } catch (err) {
         console.error("Error deleting product: ", err);
         alert("Failed to delete product.");

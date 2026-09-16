@@ -66,12 +66,12 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              onAddToCart(product);
+              onBuy(product);
             }}
-            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95 flex items-center justify-center gap-2"
           >
             <ShoppingCart size={14} className="group-hover:rotate-12 transition-transform" />
-            Add to Cart
+            Buy Now
           </button>
         </div>
       </div>

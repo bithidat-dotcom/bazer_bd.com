@@ -1,4 +1,4 @@
-import { Home, User, Package, ShoppingBag, MessageCircle } from 'lucide-react';
+import { Home, User, Package, ShoppingBag, ShoppingCart, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface BottomNavProps {
@@ -42,11 +42,9 @@ export default function BottomNav({
           transition={{ duration: 0.3 }}
           className="relative"
         >
-            <div className="w-5.5 h-5.5 rounded-full overflow-hidden shadow-sm border border-slate-100 flex items-center justify-center bg-white">
-            <img src="https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg" alt="Cart" className="w-full h-full object-cover" />
-          </div>
+          <ShoppingCart className="w-5.5 h-5.5" />
           {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-slate-950 text-white text-[8px] flex items-center justify-center rounded-full font-black border border-white leading-none">
+              <span className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 bg-red-600 text-white text-[8px] flex items-center justify-center rounded-full font-black border border-white leading-none shadow-sm">
                   {cartCount}
               </span>
           )}

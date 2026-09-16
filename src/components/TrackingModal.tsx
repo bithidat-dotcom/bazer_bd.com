@@ -227,7 +227,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
           {/* Header Title */}
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <Package size={18} className="animate-pulse" />
               </div>
               <div>
@@ -247,7 +247,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
             {/* Tracking Search Form */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
               <div className="flex items-center gap-2 mb-1">
-                <Search size={16} className="text-orange-600" />
+                <Search size={16} className="text-blue-600" />
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Track by WhatsApp</h4>
               </div>
               <form onSubmit={fetchOrders} className="relative">
@@ -256,12 +256,12 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                   placeholder="Enter WhatsApp Number"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
-                  className="w-full pl-4 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                  className="w-full pl-4 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
                 <button
                   type="submit"
                   disabled={loading || !whatsappNumber.trim()}
-                  className="absolute right-1 top-1 bottom-1 px-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                  className="absolute right-1 top-1 bottom-1 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
                   {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={14} />}
                 </button>
@@ -278,7 +278,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                   <User size={100} />
                 </div>
                 <div className="flex items-center gap-3 relative z-10">
-                  <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500/50 bg-slate-700 shrink-0">
+                  <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-blue-500/50 bg-slate-700 shrink-0">
                     {user.profileImage ? (
                       <img src={user.profileImage} alt={user.username} className="w-full h-full object-cover" />
                     ) : (
@@ -290,7 +290,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                   <div className="min-w-0">
                     <h3 className="font-extrabold text-xs tracking-tight text-white capitalize truncate">{user.username || 'Subscriber'}</h3>
                     <p className="text-[10px] text-slate-350 tracking-wider">Verified Buyer Account</p>
-                    {user.whatsapp && <p className="text-[9px] text-orange-400 font-mono mt-0.5">{user.whatsapp}</p>}
+                    {user.whatsapp && <p className="text-[9px] text-blue-400 font-mono mt-0.5">{user.whatsapp}</p>}
                   </div>
                 </div>
               </div>
@@ -303,7 +303,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Purchase History ({orders.length})
                   </h4>
-                  {loading && <div className="w-3.5 h-3.5 border-2 border-orange-505 border-t-transparent rounded-full animate-spin border-orange-500" />}
+                  {loading && <div className="w-3.5 h-3.5 border-2 border-blue-505 border-t-transparent rounded-full animate-spin border-blue-500" />}
                 </div>
                 
                 <div className="space-y-1.5 max-h-[35vh] md:max-h-[45vh] overflow-y-auto no-scrollbar">
@@ -315,10 +315,10 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                       <button
                         key={ord.id}
                         onClick={() => setSelectedOrder(ord)}
-                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between gap-3 ${isSelected ? 'bg-orange-500/5 border-orange-400/30 ring-1 ring-orange-500/10' : 'bg-slate-50 border-slate-105 hover:bg-slate-100'}`}
+                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between gap-3 ${isSelected ? 'bg-blue-500/5 border-blue-400/30 ring-1 ring-blue-500/10' : 'bg-slate-50 border-slate-105 hover:bg-slate-100'}`}
                       >
                         <div className="min-w-0">
-                          <span className={`${isSelected ? 'text-orange-600 font-black' : 'text-slate-400 font-bold'} font-mono text-[9px] uppercase tracking-wider block`}>
+                          <span className={`${isSelected ? 'text-blue-600 font-black' : 'text-slate-400 font-bold'} font-mono text-[9px] uppercase tracking-wider block`}>
                             ORDER #{ord.id.slice(-6).toUpperCase()}
                           </span>
                           <span className="font-extrabold text-slate-805 block truncate mt-0.5 tracking-tight text-slate-700">
@@ -376,13 +376,13 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
             {/* Content states */}
             {loading && orders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-orange-650 rounded-full animate-spin mb-4" />
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4" />
                 <p className="text-sm font-black text-slate-800">Synchronizing database servers...</p>
                 <p className="text-xs text-slate-400 mt-1">Downloading registered parcels</p>
               </div>
             ) : !selectedOrder ? (
               <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-slate-200/60 rounded-[1.5rem] p-6 shadow-sm">
-                <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-4 border border-orange-100 shadow-inner">
+                <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 border border-blue-100 shadow-inner">
                   <Search size={22} className="animate-bounce" />
                 </div>
                 <h3 className="font-extrabold text-slate-800 text-sm">No active tracking selected</h3>
@@ -397,9 +397,9 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                 
                 {/* 1. Parcel Meta info layout */}
                 <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4.5 rounded-[1.25rem] border border-slate-200/50 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-orange-600" />
+                  <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-600" />
                   <div>
-                    <span className="text-[9px] font-black font-mono text-orange-600 uppercase tracking-widest block">
+                    <span className="text-[9px] font-black font-mono text-blue-600 uppercase tracking-widest block">
                       PARCEL UNIQUE IDENTIFIER
                     </span>
                     <h4 className="text-sm font-black text-slate-800 tracking-tight uppercase mt-0.5">
@@ -421,7 +421,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                         if (selectedOrder.status === 'confirmed') { text = 'Order Confirmed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
                         else if (selectedOrder.status === 'packing') { text = 'Packing in Progress'; style = 'bg-blue-50 text-blue-600 border-blue-150'; }
                         else if (selectedOrder.status === 'shipping') { text = 'Shipped via Carrier'; style = 'bg-purple-50 text-purple-600 border-purple-150'; }
-                        else if (selectedOrder.status === 'delivery') { text = 'Out for Courier Delivery'; style = 'bg-orange-50 text-orange-600 border-orange-200'; }
+                        else if (selectedOrder.status === 'delivery') { text = 'Out for Courier Delivery'; style = 'bg-blue-50 text-blue-600 border-blue-200'; }
                         else if (selectedOrder.status === 'completed') { text = 'Delivered & Completed'; style = 'bg-emerald-50 text-emerald-600 border-emerald-150 font-bold'; }
                         else if (selectedOrder.status === 'cancelled' || selectedOrder.status === 'cancelled_admin') { text = selectedOrder.status === 'cancelled_admin' ? 'Expired / Ended' : 'Cancelled'; style = 'bg-rose-50 text-rose-500 border-rose-150 font-black'; }
 
@@ -503,12 +503,12 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                                       ? 'border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                                       : 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20')
                                   : 'border-slate-200 bg-white text-slate-350'
-                              } ${isCurrent ? 'ring-4 ring-orange-500/20 scale-110' : ''}`}
+                              } ${isCurrent ? 'ring-4 ring-blue-500/20 scale-110' : ''}`}
                             >
                               {renderIcon()}
                             </div>
                             <span className={`text-[9px] font-black mt-2 uppercase tracking-tight text-center ${
-                              isCurrent ? 'text-orange-605 font-black' : isPassed ? 'text-slate-800' : 'text-slate-400 font-bold'
+                              isCurrent ? 'text-blue-600 font-black' : isPassed ? 'text-slate-800' : 'text-slate-400 font-bold'
                             }`}>
                               {labels[st]}
                             </span>
@@ -591,7 +591,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                         <div className="flex-1 min-w-0">
                           <h5 className="text-xs font-black text-slate-800 truncate tracking-tight">{item.name}</h5>
                           <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-[10px] font-black text-orange-650 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
                               {item.quantity} Qty
                             </span>
                             <span className="text-[11px] font-bold text-slate-500 font-mono">
@@ -625,7 +625,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                               <span className="font-bold">Original Item Total:</span>
                               <span className="font-extrabold font-mono line-through">{((selectedOrder.original_price || (finalSubtotal + selectedOrder.coupon_discount))).toLocaleString()}৳</span>
                             </div>
-                            <div className="flex justify-between items-center text-orange-600 font-bold">
+                            <div className="flex justify-between items-center text-blue-600 font-bold">
                               <span>Coupon Discount:</span>
                               <span className="font-mono">-{selectedOrder.coupon_discount.toLocaleString()}৳</span>
                             </div>
@@ -658,7 +658,7 @@ export default function TrackingModal({ isOpen, onClose, user, products = [] }: 
                             <span className="text-slate-900 font-black uppercase text-[10px] tracking-wide block">Price with Delivery (COD)</span>
                             <p className="text-[9px] text-slate-400 font-medium">Cash on Delivery - Pay upon receiving parcel</p>
                           </div>
-                          <span className="text-base font-black text-orange-600 font-mono">
+                          <span className="text-base font-black text-blue-600 font-mono">
                             {grandTotal.toLocaleString()}৳
                           </span>
                         </div>

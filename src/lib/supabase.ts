@@ -33,9 +33,13 @@ export async function syncProductToSupabase(product: any) {
         updated_at: new Date().toISOString()
       });
     
-    if (error) throw error;
+    if (error) {
+       if (error.message?.includes('Failed to fetch')) return { success: false };
+       throw error;
+    }
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.message?.includes('Failed to fetch')) return { success: false };
     console.error('Supabase Sync Error (Product):', err);
     return { success: false, error: err };
   }
@@ -53,9 +57,13 @@ export async function syncBannerToSupabase(banner: any) {
         created_at: new Date().toISOString()
       });
     
-    if (error) throw error;
+    if (error) {
+       if (error.message?.includes('Failed to fetch')) return { success: false };
+       throw error;
+    }
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.message?.includes('Failed to fetch')) return { success: false };
     console.error('Supabase Sync Error (Banner):', err);
     return { success: false, error: err };
   }
@@ -73,6 +81,10 @@ export async function getBackupProducts() {
       .order('updated_at', { ascending: false });
     
     if (error) {
+      if (error.message?.includes('Failed to fetch')) {
+         // Silently handle fetch failures
+         return null;
+      }
       if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
         console.warn('Supabase: "products" table not found. Please create it in your Supabase dashboard to enable live backups.');
       } else {
@@ -81,10 +93,9 @@ export async function getBackupProducts() {
       throw error;
     }
     return data;
-  } catch (err) {
-    // If it's a TypeError (Network error/Failed to fetch), don't spam the console too hard
-    if (err instanceof TypeError && err.message === 'Failed to fetch') {
-      console.warn('Supabase: Network error (Failed to fetch). Project might be paused or endpoint unreachable.');
+  } catch (err: any) {
+    if (err instanceof TypeError && err.message === 'Failed to fetch' || err?.message?.includes('Failed to fetch')) {
+      // Silently handle
     } else {
       console.error('Supabase Fetch Error (Products):', err);
     }
@@ -100,6 +111,9 @@ export async function getBackupBanners() {
       .select('*');
     
     if (error) {
+      if (error.message?.includes('Failed to fetch')) {
+         return null;
+      }
       if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
         console.warn('Supabase: "banners" table not found. Please create it in your Supabase dashboard to enable live backups.');
       } else {
@@ -108,9 +122,9 @@ export async function getBackupBanners() {
       throw error;
     }
     return data;
-  } catch (err) {
-    if (err instanceof TypeError && err.message === 'Failed to fetch') {
-      console.warn('Supabase: Network error (Failed to fetch) for banners.');
+  } catch (err: any) {
+    if (err instanceof TypeError && err.message === 'Failed to fetch' || err?.message?.includes('Failed to fetch')) {
+      // Silently handle
     } else {
       console.error('Supabase Fetch Error (Banners):', err);
     }

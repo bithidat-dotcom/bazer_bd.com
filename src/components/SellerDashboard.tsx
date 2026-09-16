@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, updateDoc, doc, addDoc, getDocs, query, where, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, db2 } from '../lib/firebase';
 import { syncProductToSupabase } from '../lib/supabase';
 import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { 
@@ -378,10 +378,26 @@ export default function SellerDashboard() {
         }
         await updateDoc(doc(db, 'products', editingProduct.id), payload);
         savedProductId = editingProduct.id;
+        
+        // Sync to Second Speedy Database
+        try {
+          await setDoc(doc(db2, 'products', savedProductId), payload, { merge: true });
+        } catch (db2Err) {
+          console.warn("db2 sync failed during update:", db2Err);
+        }
+        
         showAlert(`"${payload.name}" updated successfully!`, 'success');
       } else {
         const docRef = await addDoc(collection(db, 'products'), payload);
         savedProductId = docRef.id;
+        
+        // Sync to Second Speedy Database using the same identical ID
+        try {
+          await setDoc(doc(db2, 'products', savedProductId), payload);
+        } catch (db2Err) {
+          console.warn("db2 sync failed during add:", db2Err);
+        }
+        
         showAlert(`"${payload.name}" submitted & registered to catalog!`, 'success');
       }
 
@@ -391,6 +407,7 @@ export default function SellerDashboard() {
       } catch (backupErr) {
         console.warn("Supabase backup sync failed:", backupErr);
       }
+
 
       setIsProductModalOpen(false);
       setEditingProduct(null);
