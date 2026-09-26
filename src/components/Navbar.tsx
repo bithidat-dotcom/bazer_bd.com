@@ -185,7 +185,7 @@ export default function Navbar({
             )}
           </div>
           
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 flex items-center gap-1">
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)} 
               className={`h-full px-2 md:px-4 flex items-center gap-1 md:gap-2 rounded-xl md:rounded-full border transition-colors text-xs md:text-sm font-medium ${
@@ -200,6 +200,31 @@ export default function Navbar({
                 <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-white shadow-[0_0_0_1px_blue] -mt-0.5 -mr-0.5"></span>
               )}
             </button>
+            
+            {/* Mobile Profile Icon */}
+            <button 
+              onClick={() => {
+                if (user) {
+                  if (onEditProfileClick) onEditProfileClick();
+                } else {
+                  if (onLoginClick) onLoginClick();
+                }
+              }}
+              className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
+            >
+              {user ? (
+                <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/20">
+                  {user.profileImage ? (
+                    <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4 m-1.5" />
+                  )}
+                </div>
+              ) : (
+                <User size={18} />
+              )}
+            </button>
+
             {isFilterOpen && <FilterDropdown />}
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ChevronLeft, ShoppingBag, Search, SlidersHorizontal, Plus, Star, Heart, Flame
+  ChevronLeft, ShoppingBag, Search, SlidersHorizontal, Plus, Star, Heart, Flame, User
 } from 'lucide-react';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db, db2 } from '../lib/firebase';
@@ -60,8 +60,13 @@ export default function FoodPage() {
           <ChevronLeft size={24} />
         </button>
         <h1 className="text-xl font-black uppercase tracking-widest">Food Menu</h1>
-        <div className="p-2 bg-blue-800 rounded-full">
-          <ShoppingBag size={20} />
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/profile')} className="p-2 bg-blue-800 rounded-full">
+            <User size={20} />
+          </button>
+          <button onClick={() => navigate('/checkout')} className="p-2 bg-blue-800 rounded-full">
+            <ShoppingBag size={20} />
+          </button>
         </div>
       </header>
 

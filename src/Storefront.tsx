@@ -11,7 +11,7 @@ import TrackingModal from './components/TrackingModal';
 import WhatsappSupport from './components/WhatsappSupport';
 import BottomNav from './components/BottomNav';
 import CategoryScroller from './components/CategoryScroller';
-import { FounderSection } from './components/FounderSection';
+// import { FounderSection } from './components/FounderSection';
 import SellerModal from './components/SellerModal';
 import ScrollButton from './components/ScrollButton';
 import PolicyModal from './components/PolicyModal';
@@ -428,6 +428,14 @@ export default function Storefront() {
               created_at: data.created_at || new Date().toISOString()
             } as Banner;
           });
+          // Add hardcoded new banners if needed, but we'll trust the user to add them in admin
+          // For now, let's ensure the fallback includes a "Seller" and "Office" vibe if empty
+          if (bannerData.length === 0) {
+            bannerData.push(
+              { id: 'office', title: 'Our Office', image: 'https://i.postimg.cc/vBv8bbQN/unnamed-8.jpg', created_at: new Date().toISOString() },
+              { id: 'seller', title: 'New Seller', image: 'https://i.postimg.cc/WbN1N7Z0/unnamed-15.jpg', created_at: new Date().toISOString() }
+            );
+          }
           bannerData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
           setBanners(bannerData);
           Storage.setLarge('cached_banners', bannerData);
@@ -921,7 +929,7 @@ export default function Storefront() {
       return [...prevCart, { product, quantity }];
     });
     
-    setIsModalOpen(true);
+    navigate('/checkout');
   };
 
 
@@ -944,16 +952,16 @@ export default function Storefront() {
   };
 
   const handleOpenCart = () => {
-    setIsModalOpen(true);
+    navigate('/checkout');
   };
 
   const cartItemCount = (Array.isArray(cart)) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
 
   const discountBtnImg = "https://i.postimg.cc/ZRr6ymvb/unnamed-(13).jpg";
   const bagBtnImg = "https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg";
-  const drinkCafeBtnImg = "https://i.postimg.cc/httNxF0X/c0a39348-2342-47b0-9302-5d757a66cdb2.png";
-  const businessBtnImg = "/src/assets/images/wholesale_business_icon_1784191583205.jpg";
-  const fallbackBannerImg = "https://i.postimg.cc/vBv8bbQN/unnamed-(8).jpg";
+  const sellerBannerImg = "https://i.postimg.cc/WbN1N7Z0/unnamed-15.jpg"; // New seller banner placeholder
+  const officeBannerImg = "https://i.postimg.cc/vBv8bbQN/unnamed-8.jpg"; // Office banner
+  const fallbackBannerImg = officeBannerImg;
 
   return (
     <div className="min-h-screen bg-mesh">
@@ -964,7 +972,10 @@ export default function Storefront() {
         onTrackOrderClick={() => setIsTrackingOpen(true)}
         onLoginClick={() => setIsAuthOpen(true)}
         onLogoutClick={handleLogout}
-        onEditProfileClick={() => setIsAuthOpen(true)}
+        onEditProfileClick={() => {
+          if (user) navigate('/profile');
+          else setIsAuthOpen(true);
+        }}
         onLogoClick={handleLogoClick}
         user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
         categories={dynamicCategories.map(c => c.name)}
@@ -1067,66 +1078,25 @@ export default function Storefront() {
              <HeroBanner banners={banners} startIndex={0} fallbackImage={fallbackBannerImg} />
         </section>
 
-        {/* Promotional Banner Buttons - Moved Under Banner */}
+        {/* Promotional Banner Buttons */}
         <div className="flex items-center justify-center gap-3 sm:gap-6 mb-4 px-4">
-          {/* Discount Banner Button */}
+          {/* Seller Banner Button */}
           <button 
-            onClick={() => {
-              setShowFlashDealsLoading(true);
-              setTimeout(() => {
-                setShowFlashDealsLoading(false);
-                navigate('/flash-deals');
-              }, 2500);
-            }}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/20 border-2 border-white"
+            onClick={() => setIsModalOpen(true)}
+            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
           >
             <img 
               onContextMenu={(e) => e.preventDefault()}
-              src={discountBtnImg} 
+              src={sellerBannerImg} 
               className="w-full h-full object-cover transition-transform group-hover:scale-105 select-none" 
-              alt="Discounts" 
+              alt="Sellers" 
               referrerPolicy="no-referrer"
             />
             <div className={`absolute inset-0 transition-colors bg-black/10 group-hover:bg-black/20`} />
           </button>
-
-          {/* Drink Cafe Button */}
-          <button 
-            onClick={() => navigate('/drink-cafe')}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/10 border-2 border-white"
-          >
-            <img 
-              onContextMenu={(e) => e.preventDefault()}
-              src={drinkCafeBtnImg} 
-              className="w-full h-full object-cover transition-transform group-hover:scale-105 select-none" 
-              alt="Drink Cafe" 
-              referrerPolicy="no-referrer"
-            />
-            <div className={`absolute inset-0 transition-colors bg-black/5 group-hover:bg-black/10`} />
-          </button>
-
-          {/* Bag Logo Button (Wholesale Business) */}
-          <button 
-            onClick={() => {
-              setShowWholesale(!showWholesale);
-              setShowOnlyDiscounts(false);
-              setShowSuperSale(false);
-              setCategoryFilter(null);
-              setSearchQuery('');
-              setDiscountFilter(null);
-            }}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/20 border-2 border-white"
-          >
-            <img 
-              onContextMenu={(e) => e.preventDefault()}
-              src={bagBtnImg} 
-              className="w-full h-full object-cover transition-transform group-hover:scale-105 select-none" 
-              alt="Wholesale Business" 
-              referrerPolicy="no-referrer"
-            />
-            <div className={`absolute inset-0 transition-colors ${showWholesale ? 'bg-blue-650/40' : 'bg-black/10 group-hover:bg-black/20'}`} />
-          </button>
         </div>
+
+
 
         {/* Business Hub Header */}
         {showWholesale && (
@@ -1367,8 +1337,9 @@ export default function Storefront() {
              </>
           )}
       </main>
-
-      <FounderSection />
+      
+      {/* Founder details hidden as requested */}
+      {/* <FounderSection /> */}
 
       <footer className="hidden md:block glass border-t border-slate-200 mt-12 mb-0 relative z-40 bg-white/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-6">
@@ -1602,7 +1573,10 @@ export default function Storefront() {
           handleLogoClick();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        onProfileClick={() => setIsAuthOpen(true)}
+        onProfileClick={() => {
+          if (user) navigate('/profile');
+          else setIsAuthOpen(true);
+        }}
         onOrdersClick={() => setIsTrackingOpen(true)}
         onCartClick={handleOpenCart}
         onSupportClick={() => window.open('https://wa.me/8801716807465', '_blank', 'noopener,noreferrer')}

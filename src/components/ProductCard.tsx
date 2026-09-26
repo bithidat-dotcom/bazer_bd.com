@@ -43,6 +43,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   });
 
   useEffect(() => {
+    if (!inView) return;
     let active = true;
     const fetchLikes = async () => {
       const state = await getProductLikesState(product.id);
@@ -58,10 +59,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       active = false;
       window.removeEventListener('favorites-updated', fetchLikes);
     };
-  }, [product.id]);
+  }, [product.id, inView]);
 
   // Fallback seller info logic
   useEffect(() => {
+    if (!inView) return;
     let active = true;
     const fetchSellerFallback = async () => {
       if (!product.seller_whatsapp && product.seller) {
@@ -77,7 +79,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     };
     fetchSellerFallback();
     return () => { active = false; };
-  }, [product.seller, product.seller_whatsapp]);
+  }, [product.seller, product.seller_whatsapp, inView]);
 
   const toggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -101,6 +103,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [count, setCount] = useState(product.reviewCount || 12);
 
   useEffect(() => {
+    if (!inView) return;
     let active = true;
     const handleReviewsUpdate = async () => {
       const { isFirestoreQuotaExceeded } = await import('../lib/db-sync');
@@ -131,7 +134,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       active = false;
       window.removeEventListener(eventName, handleReviewsUpdate);
     };
-  }, [product.id, product.rating, product.reviewCount]);
+  }, [product.id, product.rating, product.reviewCount, inView]);
 
   const sellerLogo = product.seller_logo || sellerData?.logo;
 

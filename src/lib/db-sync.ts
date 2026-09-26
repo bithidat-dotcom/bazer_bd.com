@@ -23,7 +23,7 @@ export function getDeviceId(): string {
 
 // Memory cache to reduce hits to Firestore
 const memoryCache: Record<string, { data: any; timestamp: number }> = {};
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 15 * 60 * 1000; // Increased to 15 minutes
 
 function getCached(key: string) {
   const entry = memoryCache[key];
@@ -44,6 +44,7 @@ export function setFirestoreQuotaExceeded(val: boolean) {
       localStorage.setItem('firestore_quota_exceeded', 'true');
       localStorage.setItem('firestore_quota_time', Date.now().toString());
       window.dispatchEvent(new Event('firestore-quota-changed'));
+      console.warn("Firestore Quota Exceeded. Entering restricted mode.");
     } else {
       localStorage.removeItem('firestore_quota_exceeded');
       window.dispatchEvent(new Event('firestore-quota-changed'));
@@ -54,9 +55,9 @@ export function isFirestoreQuotaExceeded() {
     const exceeded = localStorage.getItem('firestore_quota_exceeded') === 'true';
     if (!exceeded) return false;
     
-    // Auto-reset check after 12 hours (approximate daily reset)
+    // Auto-reset check after 8 hours (approximate reset cycle often happens every 24h but we check sooner)
     const time = localStorage.getItem('firestore_quota_time');
-    if (time && Date.now() - parseInt(time) > 12 * 60 * 60 * 1000) {
+    if (time && Date.now() - parseInt(time) > 8 * 60 * 60 * 1000) {
       localStorage.removeItem('firestore_quota_exceeded');
       return false;
     }
