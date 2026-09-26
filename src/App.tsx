@@ -14,13 +14,27 @@ import CheckoutPage from './components/CheckoutPage';
 
 function MainAppLayout() {
   const location = useLocation();
+  const path = location.pathname;
   
-  if (location.pathname === '/flash-deals') return <FlashDeals />;
-  if (location.pathname === '/food') return <FoodPage />;
-  if (location.pathname === '/profile') return <ProfilePage />;
-  if (location.pathname === '/checkout') return <CheckoutPage />;
-  
-  return <Storefront />;
+  return (
+    <div className="relative w-full h-full">
+      <div className={path === '/' || path === '' ? 'contents' : 'hidden'}>
+        <Storefront />
+      </div>
+      <div className={path === '/flash-deals' ? 'contents' : 'hidden'}>
+        <FlashDeals />
+      </div>
+      <div className={path === '/food' ? 'contents' : 'hidden'}>
+        <FoodPage />
+      </div>
+      <div className={path === '/profile' ? 'contents' : 'hidden'}>
+        <ProfilePage />
+      </div>
+      <div className={path === '/checkout' ? 'contents' : 'hidden'}>
+        <CheckoutPage />
+      </div>
+    </div>
+  );
 }
 
 export default function App() {

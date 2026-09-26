@@ -230,8 +230,6 @@ export default function Storefront() {
     { name: 'Cloth', icon: Scissors },
     { name: 'Sports', icon: Dumbbell },
     { name: 'Grocery', icon: ShoppingCart },
-    { name: 'Cafe', icon: Coffee },
-    { name: 'Drinks', icon: Soup },
   ]);
 
   useEffect(() => {
@@ -796,7 +794,7 @@ export default function Storefront() {
         customer_name,
         customer_username: user ? user.whatsapp : null,
         customer_uid: null,
-        customer_image: null,
+        customer_image: user ? (user.profile_image_url || user.profileImage || null) : null,
         whatsapp: formattedWhatsapp,
         whatsapp_number: formattedWhatsapp, // For Admin Table View Sync
         location,
@@ -988,7 +986,7 @@ export default function Storefront() {
         products={products}
       />
 
-      {error ? (
+      {false ? (
         <div className="flex flex-col items-center justify-center py-40 px-6 space-y-8 animate-in fade-in zoom-in duration-500">
            <div className="text-center space-y-6 max-w-xl mx-auto">
               <h1 className="text-2xl sm:text-4xl font-black text-slate-800 leading-tight tracking-tighter uppercase italic">

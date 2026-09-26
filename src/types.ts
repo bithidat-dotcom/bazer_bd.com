@@ -74,6 +74,7 @@ export interface UserProfile {
   email: string;
   uid?: string;
   profileImage?: string;
+  profile_image_url?: string;
   whatsapp?: string;
   location?: string;
 }

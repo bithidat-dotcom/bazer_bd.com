@@ -301,8 +301,8 @@ export default function AdminDashboard() {
       setLoading(false);
     });
 
-    // Listener for users (register_people collection)
-    const unsubscribeUsers = onSnapshot(collection(db, 'register_people'), (snapshot) => {
+    // Listener for users (users collection)
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const usersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setUsers(usersData);
       Storage.setLarge('admin_cached_users', usersData);
@@ -850,8 +850,8 @@ export default function AdminDashboard() {
                     <td className="p-5">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden shrink-0">
-                          {order.customer_image ? (
-                            <img src={order.customer_image} className="w-full h-full object-cover" />
+                          {order.customer_image || order.customer_profile_image ? (
+                            <img src={order.customer_image || order.customer_profile_image} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold truncate">
                               {order.customer_name?.charAt(0)}
@@ -984,8 +984,8 @@ export default function AdminDashboard() {
                 <div key={user.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 transition-all hover:shadow-md flex flex-col">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 bg-slate-100 rounded-3xl flex-shrink-0 overflow-hidden border border-slate-100 shadow-inner">
-                      {user.profileImage ? (
-                        <img src={user.profileImage} alt={user.username || 'user'} className="w-full h-full object-cover" />
+                      {user.profile_image_url || user.profileImage ? (
+                        <img src={user.profile_image_url || user.profileImage} alt={user.username || 'user'} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-2xl bg-slate-50 uppercase">
                           {(user.username || 'U').charAt(0)}
@@ -1011,8 +1011,8 @@ export default function AdminDashboard() {
                         <span className="font-black text-slate-900">{user.whatsapp || 'N/A'}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-400 uppercase tracking-wider">Location</span>
-                        <span className="font-bold text-slate-600 truncate ml-4 max-w-[150px]" title={user.location}>{user.location || 'N/A'}</span>
+                        <span className="font-bold text-slate-400 uppercase tracking-wider">Address</span>
+                        <span className="font-bold text-slate-600 truncate ml-4 max-w-[150px]" title={user.address || user.location}>{user.address || user.location || 'N/A'}</span>
                       </div>
                     </div>
 
