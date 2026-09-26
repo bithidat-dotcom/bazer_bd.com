@@ -29,7 +29,7 @@ import {
   Sparkles,
   CheckCircle2
 } from 'lucide-react';
-import { collection, query, onSnapshot, orderBy, addDoc, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, limit, addDoc, getDocs } from 'firebase/firestore';
 import { db, db2 } from '../lib/firebase';
 import { Product } from '../types';
 
@@ -107,7 +107,7 @@ export default function DrinkCafe() {
     setLoading(true);
     
     // Listen directly to the speedy second products collection in real-time
-    const qProducts2 = query(collection(db2, 'products'), orderBy('created_at', 'desc'));
+    const qProducts2 = query(collection(db2, 'products'), orderBy('created_at', 'desc'), limit(50));
     const unsubProducts = onSnapshot(qProducts2, (snapshot) => {
       const prodData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any;
       
@@ -126,7 +126,7 @@ export default function DrinkCafe() {
       } else {
         // If the 2nd fast database is empty or still initializing, fall back to the primary database
         console.log("Second database empty or initializing; connecting primary database...");
-        const qProducts1 = query(collection(db, 'products'), orderBy('created_at', 'desc'));
+        const qProducts1 = query(collection(db, 'products'), orderBy('created_at', 'desc'), limit(50));
         const unsubBackup = onSnapshot(qProducts1, (snapshot1) => {
           const prodData1 = snapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any;
           const foodsListBackup = prodData1.filter((p: any) => 
@@ -670,16 +670,21 @@ export default function DrinkCafe() {
           </button>
         </div>
 
+        {/* Profile link */}
+        <button onClick={() => navigate('/profile')} className="p-2 bg-blue-100 rounded-full text-blue-800">
+          <User size={20} />
+        </button>
+
         {/* Checkout basket indicator button */}
         <button 
           id="cart-drawer-btn"
-          onClick={() => setShowCartDrawer(true)}
-          className="w-11 h-11 rounded-2xl bg-emerald-800 hover:bg-emerald-900 flex items-center justify-center text-white shadow-lg shadow-emerald-800/10 active:scale-95 transition-all relative"
-          title="Open basket drawer"
+          onClick={() => navigate('/checkout')}
+          className="w-11 h-11 rounded-2xl bg-blue-800 hover:bg-blue-900 flex items-center justify-center text-white shadow-lg shadow-blue-800/10 active:scale-95 transition-all relative"
+          title="Go to checkout"
         >
           <ShoppingBag size={20} />
           {totalCartItemCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-[10px] font-black text-white animate-scale-in">
+            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[10px] font-black text-white animate-scale-in">
               {totalCartItemCount}
             </span>
           )}

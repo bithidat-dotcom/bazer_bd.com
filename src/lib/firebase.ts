@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Original Firebase App
@@ -22,6 +23,7 @@ const secondApp = initializeApp(secondFirebaseConfig, "secondApp");
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
 export const db2 = getFirestore(secondApp); // Fast food specialty database
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 export async function testConnection() {
   try {
