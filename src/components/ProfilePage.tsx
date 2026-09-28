@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const [editAddress, setEditAddress] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
+  const [regUsername, setRegUsername] = useState('');
 
   useEffect(() => {
     if (!phone) return;
@@ -44,33 +46,62 @@ export default function ProfilePage() {
     return () => unsubOrders();
   }, [phone]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const userDocRef = doc(db, 'users', phone);
+      const cleanPhone = phone.trim();
+      if (!cleanPhone) {
+        setError("Please enter a valid phone number");
+        setLoading(false);
+        return;
+      }
+
+      const userDocRef = doc(db, 'users', cleanPhone);
       const userDoc = await getDoc(userDocRef);
-      
-      if (!userDoc.exists() || !userDoc.data()?.password) {
-          setError("User not found or password not set. Please register in the home page.");
+
+      if (isRegister) {
+        if (userDoc.exists() && userDoc.data()?.password) {
+          setError("User already registered with this number. Please Sign In.");
           setLoading(false);
           return;
-      }
-      
-      const userData = userDoc.data();
-      if (userData?.password !== password) {
+        }
+        const userData = {
+          whatsapp: cleanPhone,
+          password: password,
+          username: regUsername || cleanPhone,
+          name: regUsername || cleanPhone,
+          profile_image_url: '',
+          address: '',
+          points: 0,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(userDocRef, userData, { merge: true });
+        localStorage.setItem('customer_phone', cleanPhone);
+        Storage.setSmall('pbazar_user', userData);
+        setProfile(userData);
+        window.location.reload();
+      } else {
+        if (!userDoc.exists() || !userDoc.data()?.password) {
+          setError("User not found or password not set. Please Register.");
+          setLoading(false);
+          return;
+        }
+        const userData = userDoc.data();
+        if (userData?.password !== password) {
           setError("Incorrect password");
           setLoading(false);
           return;
+        }
+        localStorage.setItem('customer_phone', cleanPhone);
+        Storage.setSmall('pbazar_user', userData);
+        setProfile(userData);
+        window.location.reload();
       }
-
-      localStorage.setItem('customer_phone', phone);
-      Storage.setSmall('pbazar_user', userData);
-      window.location.reload();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
@@ -125,17 +156,56 @@ export default function ProfilePage() {
 
   if (!localStorage.getItem('customer_phone')) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 border border-slate-100">
-          <div className="text-center mb-8">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 font-sans">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-6 sm:p-10 border border-slate-100">
+          <div className="text-center mb-6">
             <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/20">
               <Lock size={32} className="text-white" />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight italic">Profile Access</h1>
-            <p className="text-slate-500 font-medium mt-2">Sign in to manage your gourmet account.</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight italic">
+              {isRegister ? 'Create Account' : 'Profile Access'}
+            </h1>
+            <p className="text-slate-500 font-medium text-xs sm:text-sm mt-1">
+              {isRegister ? 'Register your account to earn points & order fast' : 'Sign in to manage your account'}
+            </p>
+          </div>
+
+          {/* Toggle Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
+            <button
+              type="button"
+              onClick={() => { setIsRegister(false); setError(''); }}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${!isRegister ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsRegister(true); setError(''); }}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isRegister ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Register
+            </button>
           </div>
           
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {isRegister && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
+                <div className="relative">
+                  <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={regUsername} 
+                    onChange={e => setRegUsername(e.target.value)} 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-6 py-3.5 font-bold text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all" 
+                    placeholder="Enter your name" 
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
               <div className="relative">
@@ -144,7 +214,7 @@ export default function ProfilePage() {
                   type="text" 
                   value={phone} 
                   onChange={e => setPhone(e.target.value)} 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-6 py-4 font-bold text-lg outline-none focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all" 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-6 py-3.5 font-bold text-sm sm:text-base outline-none focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all" 
                   placeholder="01XXXXXXXXX" 
                   required
                 />
@@ -159,7 +229,7 @@ export default function ProfilePage() {
                   type="password" 
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-6 py-4 font-bold text-lg outline-none focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all tracking-widest" 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-6 py-3.5 font-bold text-sm sm:text-base outline-none focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all tracking-widest" 
                   placeholder="••••••••" 
                   required
                 />
@@ -175,19 +245,27 @@ export default function ProfilePage() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-50 text-xs sm:text-sm uppercase tracking-widest"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? 'Processing...' : (isRegister ? 'Register Now' : 'Sign In')}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center space-y-3">
              <button 
-               onClick={() => navigate('/')} 
-               className="text-[10px] text-slate-400 font-black uppercase tracking-widest hover:text-blue-600 transition-colors"
+               onClick={() => setIsRegister(!isRegister)} 
+               className="text-[11px] text-blue-600 font-bold uppercase tracking-wider hover:underline"
              >
-               Go Back Home
+               {isRegister ? 'Already have an account? Sign In' : 'New customer? Create an Account'}
              </button>
+             <div>
+               <button 
+                 onClick={() => navigate('/')} 
+                 className="text-[10px] text-slate-400 font-black uppercase tracking-widest hover:text-slate-600 transition-colors"
+               >
+                 Go Back Home
+               </button>
+             </div>
           </div>
         </div>
       </div>

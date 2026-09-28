@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Storage } from '../lib/storage';
-import { ChevronLeft, ShoppingBag, MapPin, Phone, User, CheckCircle2, AlertCircle, Sparkles, CreditCard } from 'lucide-react';
+import { ChevronLeft, ShoppingBag, MapPin, Phone, User, CheckCircle2, AlertCircle, Sparkles, CreditCard, Minus, Plus, Trash2 } from 'lucide-react';
 import { CartItem } from '../types';
 import { formatWhatsappNumber } from '../lib/utils';
 
@@ -20,13 +20,14 @@ export default function CheckoutPage() {
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [address, setAddress] = useState('');
+  const [bkashTrxId, setBkashTrxId] = useState('');
 
   const phone = localStorage.getItem('customer_phone') || '';
 
   useEffect(() => {
     const loadData = async () => {
-      const savedCart = await Storage.getLarge<CartItem[]>('pbazar_cart');
-      if (savedCart) setCart(savedCart);
+      const savedCart = await Storage.getAny<CartItem[]>('pbazar_cart');
+      if (savedCart && Array.isArray(savedCart)) setCart(savedCart);
       
       if (phone) {
         setWhatsapp(phone);
@@ -44,6 +45,26 @@ export default function CheckoutPage() {
     loadData();
   }, [phone]);
 
+  const updateQuantity = async (productId: string, delta: number) => {
+    const newCart = cart.map(item => {
+      if (item.product.id === productId) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : null;
+      }
+      return item;
+    }).filter(Boolean) as CartItem[];
+    setCart(newCart);
+    await Storage.setLarge('pbazar_cart', newCart);
+    Storage.setSmall('pbazar_cart', newCart);
+  };
+
+  const removeItem = async (productId: string) => {
+    const newCart = cart.filter(item => item.product.id !== productId);
+    setCart(newCart);
+    await Storage.setLarge('pbazar_cart', newCart);
+    Storage.setSmall('pbazar_cart', newCart);
+  };
+
   const subtotal = cart.reduce((sum, item) => {
     const hasDiscount = item.product.discount && item.product.discount > 0;
     const price = hasDiscount 
@@ -59,8 +80,8 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
-    if (!customerName || !whatsapp || !address) {
-      setError("Please fill in all buyer details.");
+    if (!customerName || !whatsapp || !address || !bkashTrxId) {
+      setError("Please fill in all buyer details and enter bKash Transaction ID (৳170 Advance to 01337892800).");
       return;
     }
 
@@ -86,6 +107,7 @@ export default function CheckoutPage() {
         customer_username: phone,
         whatsapp: formattedWhatsapp,
         location: address,
+        bkash_trx_id: bkashTrxId,
         status: 'pending',
         created_at: new Date().toISOString(),
         items: cart.map(item => {
@@ -154,47 +176,112 @@ export default function CheckoutPage() {
         <div className="w-10 h-10" />
       </header>
 
-      <main className="max-w-xl mx-auto p-6 space-y-6">
+      <main className="max-w-xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Order Summary */}
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-            <ShoppingBag size={14} className="text-blue-600" />
-            Order Summary
-          </h2>
-          <div className="space-y-4 mb-6">
-            {cart.map((item, idx) => {
-               const hasDiscount = item.product.discount && item.product.discount > 0;
-               const finalPrice = hasDiscount 
-                 ? item.product.price * (1 - (item.product.discount || 0) / 100) 
-                 : item.product.price;
-               return (
-                <div key={idx} className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="font-black text-blue-600">{item.quantity}x</span>
-                    <span className="font-bold text-slate-700 truncate max-w-[200px]">{item.product.name}</span>
-                  </div>
-                  <span className="font-black text-slate-900">{finalPrice * item.quantity} ৳</span>
-                </div>
-               );
-            })}
-          </div>
-          <div className="h-px bg-slate-100 my-6" />
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm font-medium text-slate-500">
-              <span>Subtotal</span>
-              <span>{subtotal} ৳</span>
-            </div>
-            {useCoupon && (
-              <div className="flex justify-between text-sm font-bold text-emerald-600">
-                <span>Coupon Applied</span>
-                <span>-{discount} ৳</span>
-              </div>
+        <div className="bg-white p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <ShoppingBag size={14} className="text-blue-600" />
+              Order Summary ({cart.length} {cart.length === 1 ? 'item' : 'items'})
+            </h2>
+            {cart.length > 0 && (
+              <button 
+                onClick={() => navigate('/')} 
+                className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-wider"
+              >
+                + Add More
+              </button>
             )}
-            <div className="flex justify-between text-xl font-black text-slate-900 pt-2">
-              <span>Total</span>
-              <span>{total} ৳</span>
-            </div>
           </div>
+
+          {cart.length > 0 ? (
+            <div className="space-y-3 mb-6">
+              {cart.map((item) => {
+                 const hasDiscount = item.product.discount && item.product.discount > 0;
+                 const unitPrice = hasDiscount 
+                   ? item.product.price * (1 - (item.product.discount || 0) / 100) 
+                   : item.product.price;
+                 return (
+                  <div key={item.product.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100/80 shadow-xs">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white overflow-hidden shrink-0 border border-slate-200/60">
+                      <img 
+                        src={item.product.image} 
+                        alt={item.product.name} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{item.product.name}</p>
+                      <p className="text-[10px] font-black text-blue-600 mt-0.5">{(unitPrice * item.quantity).toFixed(0)} ৳ ({item.quantity}x)</p>
+                      {item.product.seller && (
+                        <p className="text-[9px] text-slate-400 font-medium truncate">Seller: {item.product.seller}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200 shadow-2xs">
+                        <button 
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, -1)}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-all active:scale-95"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="text-xs font-black w-4 text-center">{item.quantity}</span>
+                        <button 
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, 1)}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-all active:scale-95"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => removeItem(item.product.id)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                 );
+              })}
+            </div>
+          ) : (
+            <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 mb-6 space-y-3">
+              <ShoppingBag size={32} className="mx-auto text-slate-300" />
+              <p className="text-xs font-bold text-slate-500">Your cart is currently empty</p>
+              <button 
+                onClick={() => navigate('/')} 
+                className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all active:scale-95"
+              >
+                Browse Products
+              </button>
+            </div>
+          )}
+
+          {cart.length > 0 && (
+            <>
+              <div className="h-px bg-slate-100 my-4" />
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <span>Subtotal</span>
+                  <span>{subtotal.toFixed(0)} ৳</span>
+                </div>
+                {useCoupon && (
+                  <div className="flex justify-between text-xs font-bold text-emerald-600">
+                    <span>Coupon Applied</span>
+                    <span>-{discount.toFixed(0)} ৳</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-base sm:text-lg font-black text-slate-900 pt-1">
+                  <span>Total</span>
+                  <span>{total.toFixed(0)} ৳</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Loyalty Section */}
@@ -273,6 +360,48 @@ export default function CheckoutPage() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* bKash Advance Payment Section (170 BDT) - STRICTLY MANDATORY */}
+        <div className="bg-gradient-to-br from-pink-600 via-rose-600 to-pink-700 text-white rounded-[2.5rem] p-6 sm:p-8 space-y-4 shadow-xl shadow-pink-500/20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[40px] rounded-full -mr-10 -mt-10"></div>
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center p-1.5 shadow-md shrink-0 border border-pink-200">
+                <img 
+                  src="https://i.postimg.cc/8cjDDQjx/1701670291b-Kash-App-Logo-PNG.png" 
+                  alt="bKash" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-200">Mandatory Payment</p>
+                <p className="text-sm font-black tracking-tight">bKash Advance ৳170 Required</p>
+              </div>
+            </div>
+            <span className="bg-white text-pink-700 font-black text-[9px] px-3.5 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+              Required
+            </span>
+          </div>
+
+          <div className="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-xs space-y-1">
+            <p className="font-semibold text-pink-50">Send <span className="font-black text-white underline">৳170</span> to bKash Personal:</p>
+            <p className="font-mono font-black text-base tracking-wider text-white">01337892800 <span className="text-[10px] font-normal text-pink-200">(Cash Out / Send Money)</span></p>
+            <p className="text-[10px] text-pink-100 italic pt-0.5">* Without bKash ৳170 advance to 01337892800, orders cannot be processed.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-pink-200 ml-1">bKash Transaction ID (TrxID) *</label>
+            <input
+              type="text"
+              required
+              value={bkashTrxId}
+              onChange={(e) => setBkashTrxId(e.target.value)}
+              placeholder="Enter TrxID (e.g. 9G87H65F43)"
+              className="w-full bg-white text-slate-900 border-2 border-white/40 rounded-2xl px-5 py-4 text-xs font-black placeholder:text-slate-400 focus:outline-none focus:border-white shadow-inner"
+            />
           </div>
         </div>
 

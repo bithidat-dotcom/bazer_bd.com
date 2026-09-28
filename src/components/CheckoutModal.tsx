@@ -28,6 +28,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   const [isConfirming, setIsConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [cartSnapshot, setCartSnapshot] = useState<CartItem[]>([]);
+  const [bkashTrxId, setBkashTrxId] = useState('');
 
   React.useEffect(() => {
     if (isOpen) {
@@ -175,8 +176,8 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerName || !whatsapp || !location || !area) {
-      alert("Please fill all mandatory fields (Name, WhatsApp, Address, Area)");
+    if (!customerName || !whatsapp || !location || !area || !bkashTrxId) {
+      alert("Please fill all mandatory fields including bKash Transaction ID (৳170 Advance)");
       return;
     }
 
@@ -257,7 +258,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
             <div className="overflow-y-auto overflow-x-hidden flex-1 scroll-container">
               <AnimatePresence mode="wait">
                 {!isConfirming ? (
-                  <motion.form
+                   <motion.form
                     key="form"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -265,8 +266,8 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                     onSubmit={handleSubmit}
                     className="p-6 space-y-4"
                   >
-                    <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 max-h-64 overflow-y-auto no-scrollbar">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cart Summary</p>
+                    <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 max-h-72 overflow-y-auto no-scrollbar">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cart Summary & Details</p>
                       {cartItems.map((item, idx) => {
                         const hasDiscount = item.product.discount && item.product.discount > 0;
                         const price = hasDiscount 
@@ -274,45 +275,59 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                           : item.product.price;
                           
                         return (
-                          <div key={idx} className="flex gap-3 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                            <div className="w-16 h-16 rounded-lg bg-slate-50 overflow-hidden shrink-0">
-                                <img 
-                                  src={item.product.image} 
-                                  alt={item.product.name} 
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                            </div>
-                            <div className="flex-1 min-w-0 pr-4">
-                              <p className="text-sm font-bold text-slate-800 truncate">{item.product.name}</p>
-                              <p className="text-xs font-black text-slate-900 mt-0.5">{price.toFixed(0)} ৳</p>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-1 border border-slate-100">
+                          <div key={idx} className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-xs space-y-2">
+                            <div className="flex gap-3 items-center">
+                              <div className="w-16 h-16 rounded-xl bg-slate-50 overflow-hidden shrink-0 border border-slate-100">
+                                  <img 
+                                    src={item.product.image} 
+                                    alt={item.product.name} 
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                              </div>
+                              <div className="flex-1 min-w-0 pr-2">
+                                <p className="text-sm font-black text-slate-900 truncate">{item.product.name}</p>
+                                <p className="text-xs font-black text-blue-600 mt-0.5">{price.toFixed(0)} ৳ <span className="text-[10px] text-slate-400 font-normal">({item.quantity} pcs)</span></p>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-0.5 border border-slate-100">
+                                  <button 
+                                    type="button"
+                                    onClick={() => onUpdateQuantity(item.product.id, -1)}
+                                    className="w-5 h-5 flex items-center justify-center rounded hover:bg-white text-slate-600 text-xs"
+                                  >
+                                    <Minus size={12} />
+                                  </button>
+                                  <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                                  <button 
+                                    type="button"
+                                    onClick={() => onUpdateQuantity(item.product.id, 1)}
+                                    className="w-5 h-5 flex items-center justify-center rounded hover:bg-white text-slate-600 text-xs"
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                </div>
                                 <button 
                                   type="button"
-                                  onClick={() => onUpdateQuantity(item.product.id, -1)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600 transition-all"
+                                  onClick={() => onRemoveItem(item.product.id)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                                 >
-                                  <Minus size={14} />
-                                </button>
-                                <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                                <button 
-                                  type="button"
-                                  onClick={() => onUpdateQuantity(item.product.id, 1)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600 transition-all"
-                                >
-                                  <Plus size={14} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
-                              <button 
-                                type="button"
-                                onClick={() => onRemoveItem(item.product.id)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                            </div>
+                            
+                            {/* Full Product, Seller, and Delivery Details */}
+                            <div className="bg-slate-50 rounded-xl p-2.5 text-[11px] space-y-1 border border-slate-100">
+                              <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-semibold">Seller:</span>
+                                <span className="font-bold text-slate-900">{item.product.seller || 'Pbazar Verified Store'}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-semibold">Delivery by:</span>
+                                <span className="font-bold text-emerald-600">Pbazar Express (2-3 Days)</span>
+                              </div>
                             </div>
                           </div>
                         );
@@ -389,6 +404,48 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                         </div>
                       </div>
                     </div>
+
+                    {/* bKash Advance Payment Section (170 BDT) - STRICTLY MANDATORY */}
+                    <div className="bg-gradient-to-br from-pink-600 via-rose-600 to-pink-700 text-white rounded-3xl p-5 space-y-3.5 shadow-xl shadow-pink-500/25 relative overflow-hidden mt-4">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[40px] rounded-full -mr-10 -mt-10"></div>
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center p-1.5 shadow-md shrink-0 border border-pink-200">
+                            <img 
+                              src="https://i.postimg.cc/8cjDDQjx/1701670291b-Kash-App-Logo-PNG.png" 
+                              alt="bKash" 
+                              className="w-full h-full object-contain"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-200">Mandatory Payment</p>
+                            <p className="text-sm font-black tracking-tight">bKash Advance ৳170 Required</p>
+                          </div>
+                        </div>
+                        <span className="bg-white text-pink-700 font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                          Required
+                        </span>
+                      </div>
+
+                      <div className="bg-white/15 backdrop-blur-md p-3 rounded-2xl border border-white/20 text-xs space-y-1">
+                        <p className="font-semibold text-pink-50">Send <span className="font-black text-white underline">৳170</span> to bKash Personal:</p>
+                        <p className="font-mono font-black text-sm tracking-wider text-white">01337892800 <span className="text-[10px] font-normal text-pink-200">(Cash Out / Send Money)</span></p>
+                        <p className="text-[10px] text-pink-100 italic pt-0.5">* Without bKash ৳170 advance, orders cannot be processed.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-pink-200 px-1">bKash Transaction ID (TrxID) *</label>
+                        <input
+                          type="text"
+                          required
+                          value={bkashTrxId}
+                          onChange={(e) => setBkashTrxId(e.target.value)}
+                          placeholder="Enter TrxID (e.g. 9G87H65F43)"
+                          className="w-full px-4 py-3 bg-white text-slate-900 border-2 border-white/40 rounded-2xl text-xs font-black placeholder:text-slate-400 focus:outline-none focus:border-white shadow-inner"
+                        />
+                      </div>
+                    </div>
                     
                     {couponConfig?.isActive && (
                       <div className="mt-6 mb-2 relative bg-blue-600 text-white p-4 rounded-2xl flex items-center justify-between overflow-hidden shadow-lg shadow-blue-600/20 group">
@@ -421,7 +478,7 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                       <Send size={18} className="translate-y-0 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                     <p className="text-center text-[10px] text-slate-400 font-medium pb-8 md:pb-0">
-                      Payment on delivery available.
+                      bKash ৳170 Advance + Remaining on Delivery.
                     </p>
                   </motion.form>
                 ) : (
@@ -462,6 +519,10 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
                       <div className="flex justify-between"><span className="text-slate-400">Area:</span> <span className="font-bold text-slate-900 ml-2">{area}</span></div>
                       {postCode && <div className="flex justify-between"><span className="text-slate-400">Post Code:</span> <span className="font-bold text-slate-900 ml-2">{postCode}</span></div>}
                       <div className="flex justify-between"><span className="text-slate-400">WhatsApp:</span> <span className="font-bold text-slate-900">{whatsapp}</span></div>
+                      <div className="flex justify-between items-center text-pink-600 font-bold bg-pink-50 p-2 rounded-xl mt-1 border border-pink-100">
+                        <span className="text-xs">bKash Advance (৳170):</span>
+                        <span className="text-xs font-mono font-black">{bkashTrxId}</span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0">

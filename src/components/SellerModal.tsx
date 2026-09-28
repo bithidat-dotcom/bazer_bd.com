@@ -63,7 +63,7 @@ export default function SellerModal({
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 5);
 
-  const bannerImg = "https://lh3.googleusercontent.com/aida/AP1WRLtLQwvZYVo_OImJvdG12DX3vbXg6-oI_fd9kauU3jfchhUS1zE_WPbN-xccgtOpERtG7FKGMkDN7Eorp_pwdxdod3xuIVZ8AJojXGkX-8UXkCiUKDjg3mqNXDvTpfUfp5eIHGmtuvEUCKSkSIfrs7gL5fpbAZH-IyTKl3PXOpf2yIaKUkuFKayHJG7VjbC4_ZUAmdNQYIAOjitgF3HkaD-enMKboOyS3vl3amFwZYSFObiw9HqYmmXefdbY=s1600";
+  const bannerImg = "https://i.pinimg.com/1200x/73/cd/5a/73cd5ad2380a1a131f07f4b49793b111.jpg";
 
   return (
     <AnimatePresence>

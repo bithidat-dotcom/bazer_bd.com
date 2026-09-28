@@ -1,4 +1,4 @@
-import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap, ShoppingBag, Coffee, Soup } from 'lucide-react';
+import { Filter, LayoutGrid, AlertCircle, CheckCircle2, X, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, User2, Sparkles, Tv, Volume, Volume1, Volume2, VolumeX, Zap, ShoppingBag, Coffee, Soup, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
@@ -67,7 +67,7 @@ export default function Storefront() {
   
   useEffect(() => {
     const loadCart = async () => {
-      const savedCart = await Storage.getLarge<CartItem[]>('pbazar_cart');
+      const savedCart = await Storage.getAny<CartItem[]>('pbazar_cart');
       if (savedCart && Array.isArray(savedCart)) {
         setCart(savedCart);
       }
@@ -78,6 +78,7 @@ export default function Storefront() {
   useEffect(() => {
     const saveCart = async () => {
       await Storage.setLarge('pbazar_cart', cart);
+      Storage.setSmall('pbazar_cart', cart);
     };
     saveCart();
   }, [cart]);
@@ -219,43 +220,13 @@ export default function Storefront() {
     }
   }, [products]);
 
-  const [dynamicCategories, setDynamicCategories] = useState<any[]>([
-    { name: 'All', icon: LayoutGrid },
-    { name: 'Fashion', icon: Shirt },
-    { name: 'Food', icon: Utensils },
+  const [dynamicCategories] = useState<any[]>([
+    { name: 'all', icon: LayoutGrid },
+    { name: 'glosery', icon: ShoppingCart },
+    { name: 'fashion', icon: Shirt },
     { name: 'Electronics', icon: Tv },
-    { name: 'Beauty', icon: Sparkles },
-    { name: 'Gadget', icon: Cpu },
-    { name: 'Robotic', icon: Bot },
-    { name: 'PC', icon: Laptop },
-    { name: 'Cloth', icon: Scissors },
-    { name: 'Sports', icon: Dumbbell },
-    { name: 'Grocery', icon: ShoppingCart },
+    { name: 'buty', icon: Sparkles },
   ]);
-
-  useEffect(() => {
-    if (products.length > 0) {
-      const existingNames = new Set(dynamicCategories.map(c => c.name.toLowerCase()));
-      const newCats: any[] = [];
-      products.forEach(p => {
-        const cat = (p.category || '').toLowerCase();
-        const isFood = cat.includes('food') || cat.includes('drink') || cat.includes('cafe') || cat.includes('snack') || cat.includes('dessert');
-        if (p.category && !existingNames.has(cat) && !isFood) {
-          existingNames.add(cat);
-          // Insert after Fashion
-          newCats.push({ name: p.category, icon: Sparkles });
-        }
-      });
-      if (newCats.length > 0) {
-        setDynamicCategories(prev => {
-          const base = [...prev];
-          // Insert new categories after 'Fashion' (index 1)
-          base.splice(2, 0, ...newCats);
-          return base;
-        });
-      }
-    }
-  }, [products]);
 
   useEffect(() => {
     // Cleanup: Remove old "hide" functionality data to restore all products
@@ -928,7 +899,7 @@ export default function Storefront() {
       return [...prevCart, { product, quantity }];
     });
     
-    navigate('/checkout');
+    setIsModalOpen(true);
   };
 
 
@@ -951,7 +922,7 @@ export default function Storefront() {
   };
 
   const handleOpenCart = () => {
-    navigate('/checkout');
+    setIsModalOpen(true);
   };
 
   const cartItemCount = (Array.isArray(cart)) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
@@ -1039,23 +1010,7 @@ export default function Storefront() {
              <HeroBanner banners={banners} startIndex={0} fallbackImage={fallbackBannerImg} />
         </section>
 
-        {/* Promotional Banner Buttons */}
-        <div className="flex items-center justify-center gap-3 sm:gap-6 mb-4 px-4">
-          {/* Seller Banner Button */}
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden group active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 border-2 border-white"
-          >
-            <img 
-              onContextMenu={(e) => e.preventDefault()}
-              src={sellerBannerImg} 
-              className="w-full h-full object-cover transition-transform group-hover:scale-105 select-none" 
-              alt="Sellers" 
-              referrerPolicy="no-referrer"
-            />
-            <div className={`absolute inset-0 transition-colors bg-black/10 group-hover:bg-black/20`} />
-          </button>
-        </div>
+
 
 
 
@@ -1134,13 +1089,13 @@ export default function Storefront() {
             <button
               key={cat.name}
               onClick={() => {
-                setCategoryFilter(cat.name === 'All' ? null : cat.name);
+                setCategoryFilter(cat.name.toLowerCase() === 'all' ? null : cat.name);
                 setShowOnlyDiscounts(false);
               }}
-              className={`flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg border transition-all min-w-[56px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20' : 'bg-white border-blue-100 text-slate-700 hover:border-blue-300 hover:bg-blue-50'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg border transition-all min-w-[56px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts) ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20' : 'bg-white border-blue-100 text-slate-700 hover:border-blue-300 hover:bg-blue-50'}`}
             >
-              <cat.icon size={16} className={categoryFilter === cat.name || (categoryFilter === null && cat.name === 'All' && !showOnlyDiscounts) ? 'text-white' : 'text-blue-500'} />
-              <span className="text-[8px] font-bold whitespace-nowrap">{cat.name}</span>
+              <cat.icon size={16} className={categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts) ? 'text-white' : 'text-blue-500'} />
+              <span className="text-[8px] font-bold whitespace-nowrap capitalize">{cat.name}</span>
             </button>
           ))}
         </div>

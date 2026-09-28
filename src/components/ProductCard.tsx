@@ -148,7 +148,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className={`group glass-card rounded-2xl flex flex-col relative overflow-hidden h-full shadow-sm ${theme === 'warm' ? 'bg-white hover:shadow-xl border-white/50 shadow-orange-500/5' : 'bg-white shadow-md hover:shadow-2xl hover:border-blue-200 border-slate-100'} border transition-all duration-500 cursor-pointer hover:-translate-y-1.5 ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}
+      className={`group glass-card rounded-3xl flex flex-col relative overflow-hidden h-full shadow-md ${theme === 'warm' ? 'bg-white hover:shadow-2xl border-white/60 shadow-orange-500/10' : 'bg-white shadow-lg hover:shadow-2xl hover:border-blue-300 border-slate-100'} border transition-all duration-500 cursor-pointer hover:-translate-y-2 ${isWholesale ? 'p-1.5 sm:p-3' : 'p-3 sm:p-5'}`}
       onClick={() => onClick && onClick(product)}
     >
         <div className={`relative w-full aspect-square rounded-xl ${theme === 'warm' ? 'bg-[#fff1eb]' : 'bg-white'} overflow-hidden ${isWholesale ? 'mb-1.5' : 'mb-3'}`}>
