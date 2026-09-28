@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
+import { Storage } from '../lib/storage';
 import { ChevronLeft, User, Award, Camera, MapPin, Save, LogOut, Lock, Phone } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -29,6 +30,8 @@ export default function ProfilePage() {
         setProfile(data);
         setEditName(data.name || data.username || '');
         setEditAddress(data.address || '');
+        // Sync local storage profile
+        Storage.setSmall('pbazar_user', data);
       }
     });
 
@@ -64,6 +67,7 @@ export default function ProfilePage() {
       }
 
       localStorage.setItem('customer_phone', phone);
+      Storage.setSmall('pbazar_user', userData);
       window.location.reload();
     } catch (err: any) {
       setError(err.message);
@@ -74,6 +78,7 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     localStorage.removeItem('customer_phone');
+    Storage.removeSmall('pbazar_user');
     window.location.reload();
   };
 
@@ -85,7 +90,9 @@ export default function ProfilePage() {
         name: editName,
         address: editAddress
       });
-      setProfile({ ...profile, name: editName, address: editAddress });
+      const updated = { ...profile, name: editName, address: editAddress };
+      setProfile(updated);
+      Storage.setSmall('pbazar_user', updated);
       setIsEditing(false);
     } catch (error) {
       console.error("Update error:", error);
@@ -106,7 +113,9 @@ export default function ProfilePage() {
       const userRef = doc(db, 'users', phone);
       await updateDoc(userRef, { profile_image_url: url });
       
-      setProfile({ ...profile, profile_image_url: url });
+      const updated = { ...profile, profile_image_url: url };
+      setProfile(updated);
+      Storage.setSmall('pbazar_user', updated);
     } catch (error) {
       console.error("Upload error:", error);
     } finally {

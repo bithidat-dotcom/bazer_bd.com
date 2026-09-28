@@ -114,7 +114,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, onLogout, us
           </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="mb-8 text-center">
+            <div className="mb-6 text-center">
               <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/20">
                 <Sparkles size={24} className="text-white" />
               </div>
@@ -124,6 +124,24 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, onLogout, us
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
                 {isRegister ? 'Create your gourmet account' : 'Sign in to your account'}
               </p>
+            </div>
+
+            {/* Obvious tab selectors for Sign In vs Register */}
+            <div className="flex bg-slate-100 p-1 rounded-2xl mb-6 border border-slate-200/50">
+              <button
+                type="button"
+                onClick={() => setIsRegister(false)}
+                className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${!isRegister ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsRegister(true)}
+                className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${isRegister ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Sign Up
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

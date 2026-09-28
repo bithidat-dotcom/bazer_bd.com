@@ -20,6 +20,7 @@ import DotLoader from './components/DotLoader';
 import PopupAd from './components/PopupAd';
 import SuperSaleCard from './components/SuperSaleCard';
 import { syncProductToSupabase, syncBannerToSupabase, getBackupProducts, getBackupBanners } from './lib/supabase';
+import Error404Page from './components/Error404Page';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
@@ -959,7 +960,7 @@ export default function Storefront() {
   const bagBtnImg = "https://i.postimg.cc/h4LHK7jZ/unnamed-(14).jpg";
   const sellerBannerImg = "https://i.postimg.cc/WbN1N7Z0/unnamed-15.jpg"; // New seller banner placeholder
   const officeBannerImg = "https://i.postimg.cc/vBv8bbQN/unnamed-8.jpg"; // Office banner
-  const fallbackBannerImg = officeBannerImg;
+  const fallbackBannerImg = "https://i.pinimg.com/1200x/73/cd/5a/73cd5ad2380a1a131f07f4b49793b111.jpg";
 
   return (
     <div className="min-h-screen bg-mesh">
@@ -975,7 +976,7 @@ export default function Storefront() {
           else setIsAuthOpen(true);
         }}
         onLogoClick={handleLogoClick}
-        user={user ? { username: user.whatsapp || 'User', email: user.whatsapp || '' } : null}
+        user={user ? { ...user, username: user.username || user.whatsapp || 'User', email: user.email || user.whatsapp || '', profileImage: user.profile_image_url || user.profileImage } : null}
         categories={dynamicCategories.map(c => c.name)}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
@@ -986,46 +987,8 @@ export default function Storefront() {
         products={products}
       />
 
-      {false ? (
-        <div className="flex flex-col items-center justify-center py-40 px-6 space-y-8 animate-in fade-in zoom-in duration-500">
-           <div className="text-center space-y-6 max-w-xl mx-auto">
-              <h1 className="text-2xl sm:text-4xl font-black text-slate-800 leading-tight tracking-tighter uppercase italic">
-                {isFirestoreQuotaExceeded() ? "Daily Server Limit Reached" : "We are experiencing technical issues"}
-              </h1>
-              <div className="flex justify-center">
-                 <Bot size={120} className="text-blue-500 animate-bounce" />
-              </div>
-              
-              {isFirestoreQuotaExceeded() ? (
-                <div className="space-y-4">
-                  <p className="text-slate-500 text-sm font-medium">
-                    The database has reached its daily free usage limit. Data may not update in real-time. 
-                    The quota will reset automatically in approximately 24 hours.
-                  </p>
-                  <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">
-                    Project ID: genial-inn-2h7sp
-                  </p>
-                  <a 
-                    href="https://console.firebase.google.com/project/genial-inn-2h7sp/firestore/databases/ai-studio-478d8860-d347-4002-b696-209c0bb25c2e/data?openUpgradeDialog=true"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block text-blue-600 font-bold text-xs underline hover:text-blue-700"
-                  >
-                    View & Upgrade Quota in Firebase Console
-                  </a>
-                </div>
-              ) : (
-                <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Maintenance in progress</p>
-              )}
-
-              <button 
-                onClick={() => window.location.reload()}
-                className="mt-4 bg-slate-900 text-white px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs hover:shadow-2xl hover:shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 mx-auto"
-              >
-                Retry Connection
-              </button>
-           </div>
-        </div>
+      {error && products.length === 0 ? (
+        <Error404Page mode="offline" errorMessage={error} />
       ) : (
         <>
           <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6 pb-24 scroll-smooth flex flex-col">

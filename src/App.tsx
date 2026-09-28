@@ -11,10 +11,18 @@ import FlashDeals from './components/FlashDeals';
 import FoodPage from './components/FoodPage';
 import ProfilePage from './components/ProfilePage';
 import CheckoutPage from './components/CheckoutPage';
+import Error404Page from './components/Error404Page';
 
 function MainAppLayout() {
   const location = useLocation();
   const path = location.pathname;
+  
+  const validPaths = ['/', '/flash-deals', '/food', '/profile', '/checkout'];
+  const isMatched = validPaths.includes(path);
+  
+  if (!isMatched) {
+    return <Error404Page mode="404" />;
+  }
   
   return (
     <div className="relative w-full h-full">
