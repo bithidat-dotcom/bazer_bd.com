@@ -1091,7 +1091,7 @@ export default function Storefront() {
         </div>
 
         {/* Category Buttons */}
-        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hidden">
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3.5 mb-5 overflow-x-auto pb-1 scrollbar-hidden">
           {dynamicCategories.map((cat) => {
             const isActive = categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts);
             return (
@@ -1101,23 +1101,22 @@ export default function Storefront() {
                   setCategoryFilter(cat.name.toLowerCase() === 'all' ? null : cat.name);
                   setShowOnlyDiscounts(false);
                 }}
-                className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl border transition-all min-w-[64px] ${isActive ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50/50'}`}
+                className={`relative flex items-center justify-center rounded-2xl overflow-hidden transition-all duration-300 ${cat.iconUrl ? 'w-14 h-14 sm:w-16 sm:h-16 shadow-md' : 'w-12 h-12 shadow-xs'} shrink-0 ${isActive ? 'scale-110 ring-4 ring-blue-500 ring-offset-2 z-10' : 'hover:scale-105 opacity-90 hover:opacity-100'}`}
               >
                 {cat.iconUrl ? (
-                  <div className={`w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center transition-all ${isActive ? 'bg-white/20 shadow-inner' : 'bg-slate-50'}`}>
-                    <img 
-                      src={cat.iconUrl} 
-                      alt={cat.name} 
-                      className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-300"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
+                  <img 
+                    src={cat.iconUrl} 
+                    alt={cat.name} 
+                    className="w-full h-full object-cover select-none pointer-events-none"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-white/20' : 'bg-blue-50/50'}`}>
-                    <cat.icon size={16} className={isActive ? 'text-white' : 'text-blue-500'} />
+                  <div className={`w-full h-full flex items-center justify-center ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                    <cat.icon size={20} className="select-none pointer-events-none" />
                   </div>
                 )}
-                <span className="text-[9px] font-black tracking-wide capitalize">{cat.name}</span>
               </button>
             );
           })}
