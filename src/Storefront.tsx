@@ -174,21 +174,28 @@ export default function Storefront() {
   };
 
   useEffect(() => {
+    if (isFirestoreQuotaExceeded()) return;
+
     // Listener for settings
-    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'coupon'), (snapshot) => {
-      if (snapshot.exists()) {
-        setCouponConfig(snapshot.data() as any);
-      }
-    }, (error: any) => {
-      console.error("Settings snapshot error:", error);
-      if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+    try {
+      const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'coupon'), (snapshot) => {
+        if (snapshot.exists()) {
+          setCouponConfig(snapshot.data() as any);
+        }
+      }, (error: any) => {
+        if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+          setFirestoreQuotaExceeded(true);
+        }
+      });
+
+      return () => {
+          unsubscribeSettings();
+      };
+    } catch (err: any) {
+      if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
         setFirestoreQuotaExceeded(true);
       }
-    });
-
-    return () => {
-        unsubscribeSettings();
-    };
+    }
   }, []);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [cartNotification, setCartNotification] = useState<{productName: string} | null>(null);
@@ -222,10 +229,10 @@ export default function Storefront() {
 
   const [dynamicCategories] = useState<any[]>([
     { name: 'all', icon: LayoutGrid },
-    { name: 'glosery', icon: ShoppingCart },
-    { name: 'fashion', icon: Shirt },
-    { name: 'Electronics', icon: Tv },
-    { name: 'buty', icon: Sparkles },
+    { name: 'glosery', iconUrl: 'https://i.postimg.cc/fR2WzWVk/generate-the-cute-3d-clay-style-craft-paper-shopping-bag-filled-with-cartoon.png' },
+    { name: 'fashion', iconUrl: 'https://i.postimg.cc/wx0Gb1ZT/a-cute-3d-clay-plastic-style-hawaiian-short-sleeve-button-down-shirt-inspired.png' },
+    { name: 'Electronics', iconUrl: 'https://i.postimg.cc/05WV0LKY/a-cute-3d-clay-style-isometric-microcontroller-development-board-like-arduino.png' },
+    { name: 'buty', iconUrl: 'https://i.postimg.cc/N0k49VwH/on-the-pink-shopping-bag-illustration-from-data-image-image-3-add-the-exact.png' },
   ]);
 
   useEffect(() => {
@@ -1085,19 +1092,35 @@ export default function Storefront() {
 
         {/* Category Buttons */}
         <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hidden">
-          {dynamicCategories.map((cat) => (
-            <button
-              key={cat.name}
-              onClick={() => {
-                setCategoryFilter(cat.name.toLowerCase() === 'all' ? null : cat.name);
-                setShowOnlyDiscounts(false);
-              }}
-              className={`flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg border transition-all min-w-[56px] ${categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts) ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20' : 'bg-white border-blue-100 text-slate-700 hover:border-blue-300 hover:bg-blue-50'}`}
-            >
-              <cat.icon size={16} className={categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts) ? 'text-white' : 'text-blue-500'} />
-              <span className="text-[8px] font-bold whitespace-nowrap capitalize">{cat.name}</span>
-            </button>
-          ))}
+          {dynamicCategories.map((cat) => {
+            const isActive = categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts);
+            return (
+              <button
+                key={cat.name}
+                onClick={() => {
+                  setCategoryFilter(cat.name.toLowerCase() === 'all' ? null : cat.name);
+                  setShowOnlyDiscounts(false);
+                }}
+                className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl border transition-all min-w-[64px] ${isActive ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50/50'}`}
+              >
+                {cat.iconUrl ? (
+                  <div className={`w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center transition-all ${isActive ? 'bg-white/20 shadow-inner' : 'bg-slate-50'}`}>
+                    <img 
+                      src={cat.iconUrl} 
+                      alt={cat.name} 
+                      className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                ) : (
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-white/20' : 'bg-blue-50/50'}`}>
+                    <cat.icon size={16} className={isActive ? 'text-white' : 'text-blue-500'} />
+                  </div>
+                )}
+                <span className="text-[9px] font-black tracking-wide capitalize">{cat.name}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Quick Filters Row */}
