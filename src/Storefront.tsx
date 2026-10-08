@@ -229,9 +229,9 @@ export default function Storefront() {
 
   const [dynamicCategories] = useState<any[]>([
     { name: 'all', icon: LayoutGrid },
-    { name: 'glosery', iconUrl: 'https://i.postimg.cc/fR2WzWVk/generate-the-cute-3d-clay-style-craft-paper-shopping-bag-filled-with-cartoon.png' },
-    { name: 'fashion', iconUrl: 'https://i.postimg.cc/wx0Gb1ZT/a-cute-3d-clay-plastic-style-hawaiian-short-sleeve-button-down-shirt-inspired.png' },
-    { name: 'Electronics', iconUrl: 'https://i.postimg.cc/05WV0LKY/a-cute-3d-clay-style-isometric-microcontroller-development-board-like-arduino.png' },
+    { name: 'glosery', iconUrl: 'https://i.postimg.cc/59S32jVW/modify-the-background-of-data-image-image-8-to-be-a-seamless-100-pure-solid.png' },
+    { name: 'fashion', iconUrl: 'https://i.postimg.cc/YCnDq0Qp/unnamed-(2).jpg' },
+    { name: 'Electronics', iconUrl: 'https://i.postimg.cc/HxCwp1vG/modify-the-background-of-data-image-image-3-to-be-a-seamless-100-pure-solid.png' },
     { name: 'buty', iconUrl: 'https://i.postimg.cc/N0k49VwH/on-the-pink-shopping-bag-illustration-from-data-image-image-3-add-the-exact.png' },
   ]);
 
@@ -381,6 +381,8 @@ export default function Storefront() {
           }, (error: any) => {
             if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
               setFirestoreQuotaExceeded(true);
+              try { unsubProd(); } catch (e) {}
+              try { unsubBanner(); } catch (e) {}
               loadFallbacks();
             } else {
               console.error('Firebase product error', error);
@@ -419,6 +421,8 @@ export default function Storefront() {
         }, (error: any) => {
           if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
             setFirestoreQuotaExceeded(true);
+            try { unsubProd(); } catch (e) {}
+            try { unsubBanner(); } catch (e) {}
             loadFallbacks();
           } else {
             console.error('Firebase banner error', error);
@@ -1090,8 +1094,8 @@ export default function Storefront() {
           </div>
         </div>
 
-        {/* Category Buttons */}
-        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3.5 mb-5 overflow-x-auto pb-1 scrollbar-hidden">
+        {/* Category Buttons with safe top spacing to prevent overlapping */}
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3 mb-6 overflow-x-auto pb-1 scrollbar-hidden mt-3">
           {dynamicCategories.map((cat) => {
             const isActive = categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts);
             return (
@@ -1101,7 +1105,7 @@ export default function Storefront() {
                   setCategoryFilter(cat.name.toLowerCase() === 'all' ? null : cat.name);
                   setShowOnlyDiscounts(false);
                 }}
-                className={`relative flex items-center justify-center rounded-2xl overflow-hidden transition-all duration-300 ${cat.iconUrl ? 'w-14 h-14 sm:w-16 sm:h-16 shadow-md' : 'w-12 h-12 shadow-xs'} shrink-0 ${isActive ? 'scale-110 ring-4 ring-blue-500 ring-offset-2 z-10' : 'hover:scale-105 opacity-90 hover:opacity-100'}`}
+                className={`relative flex items-center justify-center rounded-xl overflow-hidden transition-all duration-300 w-11 h-11 sm:w-12 sm:h-12 shadow-xs shrink-0 ${isActive ? 'scale-105 ring-2 ring-blue-500 ring-offset-1 z-10' : 'hover:scale-102 opacity-95 hover:opacity-100'}`}
               >
                 {cat.iconUrl ? (
                   <img 
@@ -1114,7 +1118,7 @@ export default function Storefront() {
                   />
                 ) : (
                   <div className={`w-full h-full flex items-center justify-center ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                    <cat.icon size={20} className="select-none pointer-events-none" />
+                    <cat.icon size={16} className="select-none pointer-events-none" />
                   </div>
                 )}
               </button>

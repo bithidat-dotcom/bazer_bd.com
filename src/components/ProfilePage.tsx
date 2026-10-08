@@ -37,10 +37,23 @@ export default function ProfilePage() {
       }
     });
 
-    // Load orders
-    const qOrders = query(collection(db, 'orders'), where('whatsapp', '==', phone));
+    // Load orders with robust multi-condition matching (prefix matching, raw matching, formatted matching)
+    const qOrders = query(collection(db, 'orders'));
     const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const userOrders = allOrders.filter((o: any) => {
+        const orderUsername = String(o.customer_username || '').trim();
+        const orderWhatsapp = String(o.whatsapp || '').trim();
+        const cleanPhone = phone.replace(/\D/g, '');
+        
+        return (
+          orderUsername === phone ||
+          orderWhatsapp === phone ||
+          orderWhatsapp.replace(/\D/g, '').endsWith(cleanPhone) ||
+          cleanPhone.endsWith(orderWhatsapp.replace(/\D/g, ''))
+        );
+      });
+      setOrders(userOrders);
     });
 
     return () => unsubOrders();
@@ -135,23 +148,31 @@ export default function ProfilePage() {
     
     setUploading(true);
     const file = e.target.files[0];
-    const storageRef = ref(storage, `profile_images/${phone}`);
     
-    try {
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      
-      const userRef = doc(db, 'users', phone);
-      await updateDoc(userRef, { profile_image_url: url });
-      
-      const updated = { ...profile, profile_image_url: url };
-      setProfile(updated);
-      Storage.setSmall('pbazar_user', updated);
-    } catch (error) {
-      console.error("Upload error:", error);
-    } finally {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      try {
+        const userRef = doc(db, 'users', phone);
+        await updateDoc(userRef, { profile_image_url: base64String });
+        
+        const updated = { ...profile, profile_image_url: base64String };
+        setProfile(updated);
+        Storage.setSmall('pbazar_user', updated);
+      } catch (error) {
+        console.error("Save image error:", error);
+        // Fallback to local cache if Firestore write fails
+        const updated = { ...profile, profile_image_url: base64String };
+        setProfile(updated);
+        Storage.setSmall('pbazar_user', updated);
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.onerror = () => {
       setUploading(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   if (!localStorage.getItem('customer_phone')) {
@@ -383,26 +404,65 @@ export default function ProfilePage() {
 
         {/* Orders Card */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Recent Orders</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Purchase History & Orders</h3>
           {orders.length > 0 ? (
-            <div className="space-y-3">
-              {orders.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(o => (
-                <div key={o.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-blue-200 transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
-                      <Award size={24} />
-                    </div>
+            <div className="space-y-4">
+              {orders.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map(o => (
+                <div key={o.id} className="bg-white p-6 rounded-3xl shadow-xs border border-slate-100 space-y-4 hover:border-blue-200 transition-all text-left">
+                  <div className="flex items-center justify-between border-b border-slate-50 pb-3">
                     <div>
-                      <p className="text-sm font-black text-slate-900">{o.price || o.total} ৳</p>
-                      <p className="text-[10px] font-bold text-slate-400">{new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Order ID: {o.id.substring(0, 8).toUpperCase()}</p>
+                      <p className="text-[10px] font-bold text-slate-500 mt-0.5">
+                        {o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Date not set'}
+                      </p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${
                       o.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
                     }`}>
                       {o.status || 'pending'}
                     </span>
+                  </div>
+
+                  {/* Bought Products List */}
+                  <div className="space-y-2.5">
+                    {o.items && Array.isArray(o.items) && o.items.length > 0 ? (
+                      o.items.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-3 bg-slate-50/50 p-2.5 rounded-2xl border border-slate-100">
+                          <div className="w-10 h-10 rounded-xl bg-white overflow-hidden shrink-0 border border-slate-200/50">
+                            {item.image ? (
+                              <img src={item.image} className="w-full h-full object-cover" alt={item.name} referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <User size={16} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-slate-800 truncate">{item.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">Quantity: {item.quantity}x • Price: {item.price || item.unitPrice} ৳</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs font-bold text-slate-700 bg-slate-50 p-3 rounded-2xl">
+                        {o.product_name || 'Pbazar Purchased Items'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                    <div className="text-left">
+                      {o.coupon_discount > 0 && (
+                        <p className="text-[10px] font-bold text-emerald-600">Discount: -{o.coupon_discount} ৳</p>
+                      )}
+                      {o.bkash_trx_id && (
+                        <p className="text-[10px] font-bold text-pink-600">bKash TrxID: {o.bkash_trx_id}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Total paid:</span>
+                      <span className="text-base font-black text-slate-900">{(o.price || o.total || 0).toFixed(0)} ৳</span>
+                    </div>
                   </div>
                 </div>
               ))}
