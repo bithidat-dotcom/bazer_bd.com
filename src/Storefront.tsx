@@ -1094,8 +1094,8 @@ export default function Storefront() {
           </div>
         </div>
 
-        {/* Category Buttons with safe top spacing to prevent overlapping */}
-        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3 mb-6 overflow-x-auto pb-1 scrollbar-hidden mt-3">
+        {/* Category Buttons with safe layout padding to prevent border cutoff on iOS/browsers */}
+        <div className="-mx-4 px-4 sm:-mx-8 sm:px-8 flex gap-3.5 mb-5 overflow-x-auto pb-2 pt-1.5 scrollbar-hidden mt-2">
           {dynamicCategories.map((cat) => {
             const isActive = categoryFilter === cat.name || (categoryFilter === null && cat.name.toLowerCase() === 'all' && !showOnlyDiscounts);
             return (
@@ -1105,7 +1105,7 @@ export default function Storefront() {
                   setCategoryFilter(cat.name.toLowerCase() === 'all' ? null : cat.name);
                   setShowOnlyDiscounts(false);
                 }}
-                className={`relative flex items-center justify-center rounded-xl overflow-hidden transition-all duration-300 w-11 h-11 sm:w-12 sm:h-12 shadow-xs shrink-0 ${isActive ? 'scale-105 ring-2 ring-blue-500 ring-offset-1 z-10' : 'hover:scale-102 opacity-95 hover:opacity-100'}`}
+                className={`relative flex items-center justify-center rounded-xl overflow-hidden transition-all duration-300 w-11 h-11 md:w-16 md:h-16 shrink-0 ${isActive ? 'border-[3px] border-blue-600 scale-105 shadow-md shadow-blue-500/15 z-10' : 'border border-slate-200/40 hover:border-slate-300 opacity-95 hover:opacity-100 bg-white'}`}
               >
                 {cat.iconUrl ? (
                   <img 
@@ -1117,8 +1117,8 @@ export default function Storefront() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className={`w-full h-full flex items-center justify-center ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                    <cat.icon size={16} className="select-none pointer-events-none" />
+                  <div className={`w-full h-full flex items-center justify-center ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500'}`}>
+                    <cat.icon size={18} className="select-none pointer-events-none" />
                   </div>
                 )}
               </button>
