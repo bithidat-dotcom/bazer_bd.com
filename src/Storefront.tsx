@@ -1054,7 +1054,7 @@ export default function Storefront() {
                     <Zap className="text-white fill-white" size={24} />
                  </div>
                  <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Super Sale</h2>
+                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Hot Deals</h2>
                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] animate-pulse">Limited Hot Deals • Active Now</p>
                  </div>
                </div>

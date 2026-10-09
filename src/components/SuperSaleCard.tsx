@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../lib/utils';
 import { motion } from 'motion/react';
@@ -55,9 +55,6 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
           
           <div className="flex items-center justify-center gap-2">
             <span className="text-lg sm:text-2xl font-black text-red-600 tabular-nums drop-shadow-sm">{formatPrice(discountedPrice)}</span>
-            {hasDiscount && (
-              <span className="text-slate-400 line-through text-[10px] sm:text-xs font-bold tabular-nums">{formatPrice(product.price)}</span>
-            )}
           </div>
         </div>
 
@@ -70,7 +67,6 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
             }}
             className="w-full py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95 flex items-center justify-center gap-2"
           >
-            <ShoppingCart size={14} className="group-hover:rotate-12 transition-transform" />
             Buy Now
           </button>
         </div>

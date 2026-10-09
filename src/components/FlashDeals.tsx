@@ -283,7 +283,7 @@ export default function FlashDeals() {
                     <Bolt size={20} className="fill-current" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Super Sale</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Hot Deals</h2>
                     <p className="text-[10px] text-[#584237]/60 font-bold uppercase tracking-[0.2em]">Extreme Discounts</p>
                   </div>
                 </div>
