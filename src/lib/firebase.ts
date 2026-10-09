@@ -1,8 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, setLogLevel } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
+
+// Suppress internal gRPC idle stream cancellation noise
+try {
+  setLogLevel('error');
+} catch (e) {
+  // Ignore in case setLogLevel behaves differently across environments
+}
 
 // Original Firebase App
 const app = initializeApp(firebaseConfig);

@@ -59,13 +59,13 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
         </div>
 
         {/* Action Button */}
-        <div className="mt-3">
+        <div className="mt-2.5">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               onBuy(product);
             }}
-            className="w-full py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-red-600/20 active:scale-95 flex items-center justify-center gap-1.5"
           >
             Buy Now
           </button>

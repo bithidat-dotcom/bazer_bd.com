@@ -21,6 +21,7 @@ import PopupAd from './components/PopupAd';
 import SuperSaleCard from './components/SuperSaleCard';
 import { syncProductToSupabase, syncBannerToSupabase, getBackupProducts, getBackupBanners } from './lib/supabase';
 import Error404Page from './components/Error404Page';
+import { INITIAL_PRODUCTS } from './data/initialProducts';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, query, addDoc, where, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { Banner, Product, CartItem, Seller } from './types';
@@ -241,163 +242,173 @@ export default function Storefront() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     setError(null);
-    
     let unsubProd = () => {};
     let unsubBanner = () => {};
 
-    const loadFallbacks = async () => {
-      setLoading(true);
-      // 1. Try Supabase first (Live backup)
+    // 1. Instant local/host bootstrap: Never show a blank screen or long loader!
+    const initInstantProducts = async () => {
       try {
-        const backupProducts = await getBackupProducts();
-        if (backupProducts && backupProducts.length > 0) {
-          setProducts(backupProducts);
-          // Update recommended & super sale from backup
-          setSuperSaleProducts(backupProducts.filter(p => p.is_super_sale));
-          setRecommendedProducts(backupProducts.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+        const savedProducts = await Storage.getLarge<Product[]>('cached_products');
+        if (savedProducts && savedProducts.length > 0) {
+          setProducts(savedProducts);
+          setSuperSaleProducts(savedProducts.filter(p => p.is_super_sale));
+          setRecommendedProducts(savedProducts.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+          setLoading(false);
+        } else {
+          // Bundled host fallback
+          setProducts(INITIAL_PRODUCTS);
+          setSuperSaleProducts(INITIAL_PRODUCTS.filter(p => p.is_super_sale));
+          setRecommendedProducts(INITIAL_PRODUCTS.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
           setLoading(false);
         }
-        
-        const backupBanners = await getBackupBanners();
-        if (backupBanners && backupBanners.length > 0) {
-          setBanners(backupBanners);
-        }
-      } catch (err) {
-        console.warn("Supabase live backup fetch failed, falling back to local storage:", err);
-      }
 
-      // 2. Fallback to Local Storage (Offline cache)
-      const savedProducts = await Storage.getLarge<Product[]>('cached_products');
-      const savedBanners = await Storage.getLarge<Banner[]>('cached_banners');
-      const savedSellers = await Storage.getLarge<Seller[]>('cached_sellers');
-      if (savedProducts && products.length === 0) setProducts(savedProducts);
-      if (savedBanners && banners.length === 0) setBanners(savedBanners);
-      if (savedSellers) setSellers(savedSellers);
-      setLoading(false);
+        const savedBanners = await Storage.getLarge<Banner[]>('cached_banners');
+        if (savedBanners && savedBanners.length > 0) {
+          setBanners(savedBanners);
+        } else {
+          setBanners([
+            { id: 'office', title: 'Our Office', image: 'https://i.postimg.cc/vBv8bbQN/unnamed-8.jpg', created_at: new Date().toISOString() },
+            { id: 'seller', title: 'New Seller', image: 'https://i.postimg.cc/WbN1N7Z0/unnamed-15.jpg', created_at: new Date().toISOString() }
+          ]);
+        }
+
+        const savedSellers = await Storage.getLarge<Seller[]>('cached_sellers');
+        if (savedSellers && savedSellers.length > 0) setSellers(savedSellers);
+      } catch (err) {
+        setProducts(INITIAL_PRODUCTS);
+        setLoading(false);
+      }
     };
 
-    const loadFromAPI = async () => {
+    initInstantProducts();
+
+    // 2. Load latest products from Hosting Server (/api/products)
+    const loadFromHostingAPI = async () => {
       try {
         let prodRes = await fetch('/api/products').catch(() => null);
         if (!prodRes || !prodRes.ok) {
           prodRes = await fetch(`${window.location.origin}/api/products`).catch(() => null);
         }
-        if (!prodRes || !prodRes.ok) throw new Error('API server returned error state');
-        const prodData = await prodRes.json();
-        const loadedProds = prodData.products || [];
-        if (loadedProds.length > 0) {
-          const normalized = loadedProds.map((p: any) => ({
-            id: p.id || String(Math.random()),
-            name: p.name || '',
-            description: p.description || '',
-            price: Number(p.price || 0),
-            image: p.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
-            rating: Number(p.rating || 4.5),
-            discount: Number(p.discount || 0),
-            category: p.category || '',
-            stock: p.stock !== undefined ? Number(p.stock) : 20,
-            total_stock: p.total_stock !== undefined ? Number(p.total_stock) : 30,
-            created_at: p.created_at || new Date().toISOString(),
-            images: p.images || [],
-            flashSaleEnd: p.flashSaleEnd || null,
-            seller: p.seller || '',
-            seller_whatsapp: p.seller_whatsapp || '',
-            seller_logo: p.seller_logo || '',
-            is_new: p.is_new !== undefined ? !!p.is_new : true,
-            is_super_sale: !!p.is_super_sale,
-            super_sale_at: p.super_sale_at || null,
-            order_count: Number(p.order_count || 0)
-          } as Product)).filter((p: Product) => {
-            const cat = (p.category || '').toLowerCase();
-            return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
-          });
-          
-          normalized.sort((a: Product, b: Product) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
-          setProducts(normalized);
-          setSuperSaleProducts(normalized.filter(p => p.is_super_sale));
-          setRecommendedProducts(normalized.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
-          Storage.setLarge('cached_products', normalized);
-          setLoading(false);
-          return true;
+        if (prodRes && prodRes.ok) {
+          const prodData = await prodRes.json();
+          const loadedProds = prodData.products || [];
+          if (loadedProds.length > 0) {
+            const normalized = loadedProds.map((p: any) => ({
+              id: p.id || String(Math.random()),
+              name: p.name || '',
+              description: p.description || '',
+              price: Number(p.price || 0),
+              image: p.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+              rating: Number(p.rating || 4.5),
+              discount: Number(p.discount || 0),
+              category: p.category || '',
+              stock: p.stock !== undefined ? Number(p.stock) : 20,
+              total_stock: p.total_stock !== undefined ? Number(p.total_stock) : 30,
+              created_at: p.created_at || new Date().toISOString(),
+              images: p.images || [],
+              flashSaleEnd: p.flashSaleEnd || null,
+              seller: p.seller || '',
+              seller_whatsapp: p.seller_whatsapp || '',
+              seller_logo: p.seller_logo || '',
+              is_new: p.is_new !== undefined ? !!p.is_new : true,
+              is_super_sale: !!p.is_super_sale,
+              super_sale_at: p.super_sale_at || null,
+              order_count: Number(p.order_count || 0)
+            } as Product)).filter((p: Product) => {
+              const cat = (p.category || '').toLowerCase();
+              return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
+            });
+            
+            normalized.sort((a: Product, b: Product) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
+            setProducts(normalized);
+            setSuperSaleProducts(normalized.filter(p => p.is_super_sale));
+            setRecommendedProducts(normalized.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+            Storage.setLarge('cached_products', normalized);
+            setLoading(false);
+            return true;
+          }
         }
       } catch (err) {
-        console.warn('API fetch failed, falling back to live Firestore:', err);
+        console.warn('Hosting server API fetch finished with fallback intact:', err);
       }
       return false;
     };
 
-    if (isFirestoreQuotaExceeded()) {
-      loadFallbacks();
-      return;
-    }
+    loadFromHostingAPI();
 
-    const initData = async () => {
-      const success = await loadFromAPI();
-      
-      // If API fetch fails, fallback to Firestore for products
-      if (!success) {
-        try {
-          unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
-            const prodData = snapshot.docs.map(doc => {
-              const data = doc.data() || {};
-              return {
-                id: doc.id,
-                name: data.name || '',
-                description: data.description || '',
-                price: Number(data.price || 0),
-                image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
-                rating: Number(data.rating || 4.5),
-                discount: Number(data.discount || 0),
-                category: data.category || '',
-                stock: data.stock !== undefined ? Number(data.stock) : 20,
-                total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
-                created_at: data.created_at || new Date().toISOString(),
-                images: data.images || [],
-                flashSaleEnd: data.flashSaleEnd || null,
-                seller: data.seller || '',
-                seller_whatsapp: data.seller_whatsapp || '',
-                seller_logo: data.seller_logo || '',
-                is_new: data.is_new !== undefined ? !!data.is_new : true,
-                is_super_sale: !!data.is_super_sale,
-                super_sale_at: data.super_sale_at || null,
-                order_count: Number(data.order_count || 0)
-              } as Product;
-            }).filter(p => {
-              const cat = (p.category || '').toLowerCase();
-              return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
-            });
+    // 3. Listen for product changes dispatched from Admin or Seller modals
+    const handleProductSaved = (event: any) => {
+      const savedProd = event.detail;
+      if (savedProd && savedProd.id) {
+        setProducts(prev => {
+          const idx = prev.findIndex(p => p.id === savedProd.id);
+          let updated: Product[];
+          if (idx >= 0) {
+            updated = [...prev];
+            updated[idx] = { ...updated[idx], ...savedProd };
+          } else {
+            updated = [savedProd, ...prev];
+          }
+          Storage.setLarge('cached_products', updated);
+          setSuperSaleProducts(updated.filter(p => p.is_super_sale));
+          setRecommendedProducts(updated.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+          return updated;
+        });
+      }
+    };
+    window.addEventListener('product-saved', handleProductSaved);
+
+    // 4. Background Firestore live sync (if not quota exceeded)
+    if (!isFirestoreQuotaExceeded()) {
+      try {
+        unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
+          const prodData = snapshot.docs.map(doc => {
+            const data = doc.data() || {};
+            return {
+              id: doc.id,
+              name: data.name || '',
+              description: data.description || '',
+              price: Number(data.price || 0),
+              image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+              rating: Number(data.rating || 4.5),
+              discount: Number(data.discount || 0),
+              category: data.category || '',
+              stock: data.stock !== undefined ? Number(data.stock) : 20,
+              total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
+              created_at: data.created_at || new Date().toISOString(),
+              images: data.images || [],
+              flashSaleEnd: data.flashSaleEnd || null,
+              seller: data.seller || '',
+              seller_whatsapp: data.seller_whatsapp || '',
+              seller_logo: data.seller_logo || '',
+              is_new: data.is_new !== undefined ? !!data.is_new : true,
+              is_super_sale: !!data.is_super_sale,
+              super_sale_at: data.super_sale_at || null,
+              order_count: Number(data.order_count || 0)
+            } as Product;
+          }).filter(p => {
+            const cat = (p.category || '').toLowerCase();
+            return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
+          });
+
+          if (prodData.length > 0) {
             prodData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
             setProducts(prodData);
-            
-            const superSale = prodData.filter(p => p.is_super_sale);
-            setSuperSaleProducts(superSale);
-
-            const recommended = prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8);
-            setRecommendedProducts(recommended);
-
+            setSuperSaleProducts(prodData.filter(p => p.is_super_sale));
+            setRecommendedProducts(prodData.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
             Storage.setLarge('cached_products', prodData);
-            setLoading(false);
-          }, (error: any) => {
-            if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
-              setFirestoreQuotaExceeded(true);
-              try { unsubProd(); } catch (e) {}
-              try { unsubBanner(); } catch (e) {}
-              loadFallbacks();
-            } else {
-              console.error('Firebase product error', error);
-              setError(error.message);
-              setLoading(false);
-            }
-          });
-        } catch (err: any) {
-          console.error("Firestore onSnapshot setup error", err);
-        }
-      }
+          }
+          setLoading(false);
+        }, (error: any) => {
+          if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+            setFirestoreQuotaExceeded(true);
+          }
+          // Do not overwrite local/hosting products on Firestore errors
+          console.warn('Firestore live listener switched to host cache mode:', error.message);
+          setLoading(false);
+        });
 
-      // Always setup banners and sellers regardless of product API success
-      try {
         unsubBanner = onSnapshot(query(collection(db, 'banners')), (snapshot) => {
           const bannerData = snapshot.docs.map(doc => {
             const data = doc.data() || {};
@@ -408,54 +419,42 @@ export default function Storefront() {
               created_at: data.created_at || new Date().toISOString()
             } as Banner;
           });
-          // Add hardcoded new banners if needed, but we'll trust the user to add them in admin
-          // For now, let's ensure the fallback includes a "Seller" and "Office" vibe if empty
-          if (bannerData.length === 0) {
-            bannerData.push(
-              { id: 'office', title: 'Our Office', image: 'https://i.postimg.cc/vBv8bbQN/unnamed-8.jpg', created_at: new Date().toISOString() },
-              { id: 'seller', title: 'New Seller', image: 'https://i.postimg.cc/WbN1N7Z0/unnamed-15.jpg', created_at: new Date().toISOString() }
-            );
+          if (bannerData.length > 0) {
+            bannerData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
+            setBanners(bannerData);
+            Storage.setLarge('cached_banners', bannerData);
           }
-          bannerData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
-          setBanners(bannerData);
-          Storage.setLarge('cached_banners', bannerData);
         }, (error: any) => {
           if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
             setFirestoreQuotaExceeded(true);
-            try { unsubProd(); } catch (e) {}
-            try { unsubBanner(); } catch (e) {}
-            loadFallbacks();
-          } else {
-            console.error('Firebase banner error', error);
           }
         });
+      } catch (e) {
+        console.warn('Silent Firestore setup bypass, hosting server active');
+      }
+    }
 
-        const fetchSellers = async () => {
-          try {
-            const data = await getSellers();
-            if (data && data.length > 0) {
-              setSellers(data);
-              Storage.setLarge('cached_sellers', data);
-            }
-          } catch (err) {
-            console.warn('Silent seller fetch error:', err);
-          }
-        };
-        fetchSellers();
-      } catch (err: any) {
-        console.error('Banners/Sellers setup error:', err);
+    const fetchSellers = async () => {
+      try {
+        const data = await getSellers();
+        if (data && data.length > 0) {
+          setSellers(data);
+          Storage.setLarge('cached_sellers', data);
+        }
+      } catch (err) {
+        console.warn('Silent seller fetch error:', err);
       }
     };
-
-    initData();
+    fetchSellers();
 
     const safetyTimer = setTimeout(() => {
-        setLoading(false);
-    }, 5000);
+      setLoading(false);
+    }, 1200);
 
     return () => {
-      unsubProd();
-      unsubBanner();
+      window.removeEventListener('product-saved', handleProductSaved);
+      try { unsubProd(); } catch (e) {}
+      try { unsubBanner(); } catch (e) {}
       clearTimeout(safetyTimer);
     };
   }, []);
@@ -555,6 +554,8 @@ export default function Storefront() {
         lastStatuses[orderId] = status;
       });
     };
+
+    if (isFirestoreQuotaExceeded()) return;
 
     let unsubWhatsapp = () => {};
     let unsubUsername = () => {};

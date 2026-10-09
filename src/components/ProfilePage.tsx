@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, setDoc } 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { Storage } from '../lib/storage';
+import { isFirestoreQuotaExceeded, setFirestoreQuotaExceeded } from '../lib/db-sync';
 import { ChevronLeft, User, Award, Camera, MapPin, Save, LogOut, Lock, Phone } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -25,36 +26,47 @@ export default function ProfilePage() {
     if (!phone) return;
 
     // Load profile
-    const userRef = doc(db, 'users', phone);
-    getDoc(userRef).then(docSnap => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setProfile(data);
-        setEditName(data.name || data.username || '');
-        setEditAddress(data.address || '');
-        // Sync local storage profile
-        Storage.setSmall('pbazar_user', data);
-      }
-    });
+    if (!isFirestoreQuotaExceeded()) {
+      const userRef = doc(db, 'users', phone);
+      getDoc(userRef).then(docSnap => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setProfile(data);
+          setEditName(data.name || data.username || '');
+          setEditAddress(data.address || '');
+          // Sync local storage profile
+          Storage.setSmall('pbazar_user', data);
+        }
+      }).catch(() => {});
+    }
 
     // Load orders with robust multi-condition matching (prefix matching, raw matching, formatted matching)
-    const qOrders = query(collection(db, 'orders'));
-    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-      const allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const userOrders = allOrders.filter((o: any) => {
-        const orderUsername = String(o.customer_username || '').trim();
-        const orderWhatsapp = String(o.whatsapp || '').trim();
-        const cleanPhone = phone.replace(/\D/g, '');
-        
-        return (
-          orderUsername === phone ||
-          orderWhatsapp === phone ||
-          orderWhatsapp.replace(/\D/g, '').endsWith(cleanPhone) ||
-          cleanPhone.endsWith(orderWhatsapp.replace(/\D/g, ''))
-        );
-      });
-      setOrders(userOrders);
-    });
+    let unsubOrders = () => {};
+    if (!isFirestoreQuotaExceeded()) {
+      try {
+        const qOrders = query(collection(db, 'orders'));
+        unsubOrders = onSnapshot(qOrders, (snapshot) => {
+          const allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const userOrders = allOrders.filter((o: any) => {
+            const orderUsername = String(o.customer_username || '').trim();
+            const orderWhatsapp = String(o.whatsapp || '').trim();
+            const cleanPhone = phone.replace(/\D/g, '');
+            
+            return (
+              orderUsername === phone ||
+              orderWhatsapp === phone ||
+              orderWhatsapp.replace(/\D/g, '').endsWith(cleanPhone) ||
+              cleanPhone.endsWith(orderWhatsapp.replace(/\D/g, ''))
+            );
+          });
+          setOrders(userOrders);
+        }, (err: any) => {
+          if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
+            setFirestoreQuotaExceeded(true);
+          }
+        });
+      } catch (e) {}
+    }
 
     return () => unsubOrders();
   }, [phone]);
