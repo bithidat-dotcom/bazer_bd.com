@@ -278,12 +278,13 @@ export default function Storefront() {
       setLoading(false);
     };
 
-    const API_BASE_URL = 'https://ais-dev-aezy5reak7ggvywam2hech-33482117147.asia-southeast1.run.app';
-
     const loadFromAPI = async () => {
       try {
-        const prodRes = await fetch(`${API_BASE_URL}/api/products`);
-        if (!prodRes.ok) throw new Error('API server returned error state');
+        let prodRes = await fetch('/api/products').catch(() => null);
+        if (!prodRes || !prodRes.ok) {
+          prodRes = await fetch(`${window.location.origin}/api/products`).catch(() => null);
+        }
+        if (!prodRes || !prodRes.ok) throw new Error('API server returned error state');
         const prodData = await prodRes.json();
         const loadedProds = prodData.products || [];
         if (loadedProds.length > 0) {
@@ -1107,7 +1108,15 @@ export default function Storefront() {
                 }}
                 className={`relative flex items-center justify-center rounded-xl overflow-hidden transition-all duration-300 w-11 h-11 md:w-16 md:h-16 shrink-0 ${isActive ? 'border-[3px] border-blue-600 scale-105 shadow-md shadow-blue-500/15 z-10' : 'border border-slate-200/40 hover:border-slate-300 opacity-95 hover:opacity-100 bg-white'}`}
               >
-                {cat.iconUrl ? (
+                {cat.name.toLowerCase() === 'all' ? (
+                  <div className={`w-full h-full flex items-center justify-center ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-800'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" className="w-5 h-5">
+                      <rect x="3" y="3" width="7" height="6" rx="1" ry="1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" fill="currentColor"></rect>
+                      <rect x="14" y="6" width="3" height="10" rx="1" ry="1" fill="currentColor" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></rect>
+                      <rect x="5" y="13" width="5" height="4" rx="1" ry="1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" fill="currentColor"></rect>
+                    </svg>
+                  </div>
+                ) : cat.iconUrl ? (
                   <img 
                     src={cat.iconUrl} 
                     alt={cat.name} 
@@ -1146,23 +1155,6 @@ export default function Storefront() {
                 >Price ↑</button>
             </div>
 
-            <div className="flex gap-2 shrink-0 overflow-x-auto scrollbar-hidden pb-1">
-                {[
-                    {label: "Under 500 ৳", min: 0, max: 500},
-                    {label: "500 - 1000 ৳", min: 500, max: 1000},
-                    {label: "1000 - 5000 ৳", min: 1000, max: 5000},
-                    {label: "Above 5000 ৳", min: 5000, max: 999999999}
-                ].map(price => (
-                    <button
-                      key={price.label}
-                      onClick={() => setPriceFilter(priceFilter?.label === price.label ? null : price as any)}
-                      className={`px-4 py-2 rounded-xl text-[10px] font-bold border-2 transition-all whitespace-nowrap ${priceFilter?.label === price.label ? 'border-blue-500 bg-blue-50 text-blue-600' : 'bg-white border-slate-105 text-slate-500 hover:border-slate-200'}`}
-                    >
-                        {price.label}
-                    </button>
-                ))}
-            </div>
-            
             {(priceFilter || sortBy !== 'newest') && (
                 <button 
                   onClick={() => {setPriceFilter(null); setSortBy('newest');}}

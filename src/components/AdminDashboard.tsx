@@ -572,6 +572,17 @@ export default function AdminDashboard() {
         console.warn("Supabase backup sync failed:", backupErr);
       }
 
+      // Sync to Host Server (/api/products)
+      try {
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: savedProductId, ...payload })
+        });
+      } catch (hostErr) {
+        console.warn("Host server sync failed:", hostErr);
+      }
+
       setIsProductModalOpen(false);
       setEditingProduct(null);
     } catch (err) {
@@ -590,6 +601,13 @@ export default function AdminDashboard() {
           await deleteDoc(doc(db2, 'products', id));
         } catch (db2Err) {
           console.warn("db2 sync failed during delete:", db2Err);
+        }
+
+        // Sync delete to Host Server
+        try {
+          await fetch(`/api/products/${id}`, { method: 'DELETE' });
+        } catch (hostErr) {
+          console.warn("Host server delete sync failed:", hostErr);
         }
       } catch (err) {
         console.error("Error deleting product: ", err);

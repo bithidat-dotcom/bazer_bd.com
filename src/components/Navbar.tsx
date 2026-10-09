@@ -130,10 +130,7 @@ export default function Navbar({
           className="flex text-sm sm:text-lg md:text-2xl font-bold font-display tracking-tight items-center gap-1 md:gap-2 shrink-0 group relative"
         >
           <img src="https://i.postimg.cc/KvqR53hq/download-(1).png" alt="pbazar Logo" className="w-6 h-6 md:w-10 md:h-10 object-contain rounded-full border border-slate-200 bg-white animate-pulse-subtle" />
-          <div className="flex flex-col -gap-1">
-            <span className="text-white leading-none">pbazar</span>
-            <span className="text-[7px] md:text-[8px] text-blue-200 font-black uppercase tracking-widest bg-blue-800/50 px-1.5 py-0.5 rounded-full border border-blue-400/30 w-fit">Paid License</span>
-          </div>
+          <span className="text-white text-base sm:text-xl md:text-2xl font-black">pbazar</span>
         </Link>
         
         <div className="flex flex-1 md:max-w-lg relative gap-1 md:gap-2 min-w-0">
@@ -216,9 +213,9 @@ export default function Navbar({
               className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
             >
               {user ? (
-                <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/20">
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-white/20 flex items-center justify-center">
                   {user.profile_image_url || user.profileImage ? (
-                    <img src={user.profile_image_url || user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <img src={user.profile_image_url || user.profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
                   ) : (
                     <User className="w-4 h-4 m-1.5" />
                   )}
@@ -260,7 +257,7 @@ export default function Navbar({
               >
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/30 bg-white/20 flex items-center justify-center shadow-sm">
                   {user.profile_image_url || user.profileImage ? (
-                    <img src={user.profile_image_url || user.profileImage} alt={user.username} className="w-full h-full object-cover" />
+                    <img src={user.profile_image_url || user.profileImage} alt={user.username} className="w-full h-full object-cover rounded-full" />
                   ) : (
                     <User className="w-4 h-4 text-white" />
                   )}

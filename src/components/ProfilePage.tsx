@@ -333,7 +333,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-2xl font-black text-slate-900">{profile?.name || profile?.username || 'Gourmet Lover'}</h2>
+            <h2 className="text-2xl font-black text-slate-900">{profile?.name || profile?.username || ''}</h2>
             <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{phone}</p>
           </div>
 

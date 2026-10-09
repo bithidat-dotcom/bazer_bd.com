@@ -21,23 +21,6 @@ const secondFirebaseConfig = {
 const secondApp = initializeApp(secondFirebaseConfig, "secondApp");
 
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
-export const db2 = getFirestore(secondApp); // Fast food specialty database
+export const db2 = getFirestore(secondApp, firebaseConfig.firestoreDatabaseId || undefined); // Fast food specialty database
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-
-export async function testConnection() {
-  try {
-    // Try to fetch a non-existent doc to verify connection
-    await getDocFromServer(doc(db, 'system_health', 'check'));
-    console.log("Primary Firebase Firestore connected successfully.");
-    
-    await getDocFromServer(doc(db2, 'system_health', 'check'));
-    console.log("Second Food Firebase Firestore connected successfully.");
-  } catch (error: any) {
-    console.warn("Firebase Check:", error.message || error);
-    if (error.code === 'not-found') {
-       console.log("Firestore reachability confirmed.");
-    }
-  }
-}
-testConnection();

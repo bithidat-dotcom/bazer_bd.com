@@ -28,9 +28,9 @@ export default function SuperSaleCard({ product, onBuy, onAddToCart, onClick, co
         <div className="flex items-center justify-center gap-2">
           <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white overflow-hidden bg-white shadow-sm shrink-0">
             <img 
-              src="https://t3.ftcdn.net/jpg/02/35/26/30/360_F_235263034_miJw2igmixo7ymCqhHZ7c8wp9kaujzfM.jpg" 
-              alt="Fire" 
-              className="w-full h-full object-cover animate-pulse scale-110"
+              src="https://i.postimg.cc/KvqR53hq/download-(1).png" 
+              alt="pbazar" 
+              className="w-full h-full object-cover scale-110"
             />
           </div>
           <span className="text-white font-black italic tracking-tighter text-xs sm:text-sm uppercase drop-shadow-sm">HOT DEAL</span>

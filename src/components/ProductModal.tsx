@@ -547,15 +547,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                 <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
                     Product Details
                 </span>
-                <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 shadow-3xs">
-                  <Star size={13} className="fill-amber-500 text-amber-500" />
-                  <span className="text-xs font-black text-amber-600">
-                    {dynamicAvgRating.toFixed(1)}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-bold ml-1">
-                    ({dynamicReviewCount} reviews)
-                  </span>
-                </div>
+
                 {(likesCount > 0 || isLiked) && (
                   <span className="text-[10px] sm:text-xs font-black text-rose-600 bg-rose-50 border border-rose-100/50 px-2.5 py-1 rounded-full flex items-center gap-1">
                     <Heart size={12} className="fill-rose-500 text-rose-500" />

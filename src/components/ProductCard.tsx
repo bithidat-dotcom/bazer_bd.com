@@ -1,11 +1,11 @@
-import { ShoppingCart, Star, Heart, Clock, Share2, CheckCircle2, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { ShoppingCart, Heart } from 'lucide-react';
+import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { formatPrice } from '../lib/utils';
 import { Product } from '../types';
 import LoadingImage from './LoadingImage';
-import { getProductLikesState, toggleProductLike, getProductReviews, getSellerInfoByName } from '../lib/db-sync';
+import { getProductLikesState, toggleProductLike, getSellerInfoByName } from '../lib/db-sync';
 
 interface ProductCardProps {
   product: Product; 
@@ -27,13 +27,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onRemoveFromCart,
   isInCart,
   onClick, 
-  couponConfig, 
-  isSearchVariant,
   isWholesale,
-  theme = 'default'
 }) => {
   const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState<number>(0);
   const [sellerData, setSellerData] = useState<{ logo?: string; whatsapp?: string; is_verified?: boolean } | null>(null);
   const [quantity, setQuantity] = useState(isWholesale ? 5 : 1);
 
@@ -49,7 +45,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       const state = await getProductLikesState(product.id);
       if (active) {
         setIsLiked(state.userLiked);
-        setLikesCount(state.totalLikes);
       }
     };
     fetchLikes();
@@ -84,13 +79,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const toggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Optimistic UI updates
     setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
-
     const nextState = await toggleProductLike(product.id);
     setIsLiked(nextState.userLiked);
-    setLikesCount(nextState.totalLikes);
   };
 
   const hasDiscount = product.discount && product.discount > 0;
@@ -98,242 +89,191 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ? product.price * (1 - (product.discount || 0) / 100) 
     : product.price;
 
-  // Let's get real rating dynamically calculated from server-side database reviews
-  const [avgRating, setAvgRating] = useState(product.rating || 4.8);
-  const [count, setCount] = useState(product.reviewCount || 12);
-
-  useEffect(() => {
-    if (!inView) return;
-    let active = true;
-    const handleReviewsUpdate = async () => {
-      const { isFirestoreQuotaExceeded } = await import('../lib/db-sync');
-      if (isFirestoreQuotaExceeded()) {
-          if (active) {
-            setAvgRating(product.rating || 4.8);
-            setCount(product.reviewCount || 12);
-          }
-          return;
-      }
-
-      const reviews = await getProductReviews(product.id);
-      if (!active) return;
-      if (reviews.length > 0) {
-        const sum = reviews.reduce((acc: number, r: any) => acc + r.rating, 0);
-        setAvgRating(sum / reviews.length);
-        setCount((product.reviewCount || 12) + reviews.filter((r: any) => !r.id.startsWith('mock-')).length);
-      } else {
-        setAvgRating(product.rating || 4.8);
-        setCount(product.reviewCount || 12);
-      }
-    };
-    handleReviewsUpdate();
-
-    const eventName = `reviews-updated-${product.id}`;
-    window.addEventListener(eventName, handleReviewsUpdate);
-    return () => {
-      active = false;
-      window.removeEventListener(eventName, handleReviewsUpdate);
-    };
-  }, [product.id, product.rating, product.reviewCount, inView]);
-
   const sellerLogo = product.seller_logo || sellerData?.logo;
 
   return (
     <div ref={ref} className="h-full">
       {inView ? (
-      <motion.div 
-      layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className={`group glass-card rounded-3xl flex flex-col relative overflow-hidden h-full shadow-md ${theme === 'warm' ? 'bg-white hover:shadow-2xl border-white/60 shadow-orange-500/10' : 'bg-white shadow-lg hover:shadow-2xl hover:border-blue-300 border-slate-100'} border transition-all duration-500 cursor-pointer hover:-translate-y-2 ${isWholesale ? 'p-1.5 sm:p-3' : 'p-3 sm:p-5'}`}
-      onClick={() => onClick && onClick(product)}
-    >
-        <div className={`relative w-full aspect-square rounded-xl ${theme === 'warm' ? 'bg-[#fff1eb]' : 'bg-white'} overflow-hidden ${isWholesale ? 'mb-1.5' : 'mb-3'}`}>
-          {product.is_super_sale && (
-            <div className="absolute top-2 left-2 z-30">
-              <div className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg shadow-blue-600/30 animate-pulse">
-                <Zap size={10} className="fill-current" />
-                <span>SUPER SALE</span>
-              </div>
+        <motion.article 
+          layout
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          data-purpose="product-card"
+          className="bg-white rounded-[32px] p-3.5 shadow-card transition-all duration-300 hover:shadow-2xl border border-black/[0.04] flex flex-col h-full cursor-pointer relative group"
+          onClick={() => onClick && onClick(product)}
+        >
+          {/* BEGIN: MediaSection */}
+          <div 
+            className="relative w-full aspect-square rounded-[24px] overflow-hidden select-none bg-neutral-100" 
+            data-purpose="product-image-container"
+          >
+            {/* Sneaker/Product Main Image */}
+            <div onContextMenu={(e) => e.preventDefault()} className="w-full h-full select-none">
+              <LoadingImage 
+                src={product.image} 
+                alt={product.name}
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+              />
             </div>
-          )}
-          {/* Action Buttons Layer */}
-          <div className={`absolute z-20 flex flex-col gap-2 transition-all ${isWholesale ? 'top-1.5 right-1.5' : 'top-2 right-2 sm:top-2.5 sm:right-2.5'}`}>
-            {/* Like/Favorite floating button */}
-            <button
-              onClick={toggleLike}
-              className={`${isWholesale ? 'px-1.5 h-6' : 'px-2 h-8 sm:px-2.5 sm:h-9'} rounded-full bg-white/90 backdrop-blur border border-slate-100 flex items-center justify-center gap-1.5 text-slate-500 hover:text-red-500 hover:scale-110 active:scale-95 shadow-md transition-all`}
-              title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
-            >
-              <Heart size={isWholesale ? 11 : 13} className={`transition-transform duration-300 ${!isWholesale && 'sm:size-3.5'} ${isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
-              {likesCount > 0 && <span className={`${isWholesale ? 'text-[8px]' : 'text-[10px] sm:text-[11px]'} font-bold text-slate-600 font-mono`}>{likesCount}</span>}
-            </button>
-          </div>
 
-          <div onContextMenu={(e) => e.preventDefault()} className="select-none h-full">
-            <LoadingImage 
-              src={product.image} 
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-            />
-          </div>
-          {/* Badges Container Removed */}
-        </div>
-        
-        <div className="px-1 flex flex-col flex-1">
-          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-            <h3 className={`font-bold line-clamp-1 ${theme === 'warm' ? 'text-[#251913] group-hover:text-pink-500' : 'text-slate-900 group-hover:text-blue-600'} transition-colors ${isWholesale ? 'text-[12px] sm:text-[14px]' : 'text-[14px] sm:text-base'}`}>
-              {product.name}
-            </h3>
-          </div>
-          <div className={`flex items-center gap-1.5 ${isWholesale ? 'mb-1' : 'mb-2'}`}>
-            <div className="flex items-center gap-0.5">
-              <Star size={isWholesale ? 10 : 12} className="fill-amber-500 text-amber-500" />
-              <span className={`font-black text-amber-600 ${isWholesale ? 'text-[10px] sm:text-[12px]' : 'text-[11px] sm:text-[13px]'}`}>
-                {avgRating.toFixed(1)}
+            {/* Top-Left: Status Badge */}
+            <div className="absolute top-3 left-3 z-10" data-purpose="badge-best-seller">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-medium text-white tracking-tight backdrop-blur-md bg-black/40 border border-white/25 shadow-sm">
+                {product.is_super_sale ? 'Super Sale' : hasDiscount ? `${product.discount}% OFF` : product.is_new ? 'New Arrival' : 'Best Seller'}
               </span>
             </div>
-            {count > 0 && (
-              <span className={`font-medium ${theme === 'warm' ? 'text-[#584237]/60' : 'text-slate-400'} ${isWholesale ? 'text-[9px] sm:text-[11px]' : 'text-[10px] sm:text-[12px]'}`}>
-                ({count})
-              </span>
-            )}
-          </div>
 
-          {isWholesale && (
-            <div className="mb-2 bg-blue-50 border border-blue-100 rounded-lg p-1.5 flex items-center justify-between">
-               <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Min 5</span>
-               <div className="flex items-center gap-2 bg-white px-1.5 py-0.5 rounded-md border border-blue-200">
+            {/* Top-Right: Brand Logo / Seller / Heart Badge */}
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5" data-purpose="brand-logo-badge">
+              {sellerLogo ? (
+                <div 
+                  className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md p-1 transition-transform hover:scale-105 overflow-hidden" 
+                  title={product.seller || 'Seller'}
+                >
+                  <img src={sellerLogo} alt={product.seller || 'Seller'} className="w-full h-full object-cover rounded-full" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md p-1.5 transition-transform hover:scale-105 overflow-hidden">
+                  <img src="https://i.postimg.cc/KvqR53hq/download-(1).png" alt="Pbazar" className="w-full h-full object-contain rounded-full" />
+                </div>
+              )}
+              <button
+                onClick={toggleLike}
+                type="button"
+                className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md p-1.5 transition-transform hover:scale-110 active:scale-95 text-neutral-600 hover:text-red-500"
+                title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
+              >
+                <Heart size={14} className={isLiked ? 'fill-red-500 text-red-500' : 'text-neutral-500'} />
+              </button>
+            </div>
+
+            {/* Bottom-Center: Carousel Indicator Dots */}
+            <nav aria-label="Image slide pagination" className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5 z-10 pointer-events-none" data-purpose="carousel-dots">
+              <span className="w-1.5 h-1.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 backdrop-blur-[2px]"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 backdrop-blur-[2px]"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 backdrop-blur-[2px]"></span>
+            </nav>
+          </div>
+          {/* END: MediaSection */}
+
+          {/* BEGIN: ContentSection */}
+          <div className="px-2 pt-3.5 pb-1 flex flex-col flex-1" data-purpose="product-details">
+            {/* Title & Subtitle Stack */}
+            <header className="space-y-0.5">
+              <h1 className="text-[16px] sm:text-[18px] leading-snug font-bold text-neutral-900 tracking-tight line-clamp-1 group-hover:text-neutral-700 transition-colors">
+                {product.name}
+              </h1>
+              <p className="text-[12px] font-medium text-neutral-400 capitalize">
+                {product.category || (product.seller ? `By ${product.seller}` : 'Pbazar Verified')}
+              </p>
+            </header>
+
+            {/* Wholesale counter if applicable */}
+            {isWholesale && (
+              <div className="mt-2.5 bg-neutral-100 rounded-xl p-2 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Min 5 Bundle</span>
+                <div className="flex items-center gap-2 bg-white px-2 py-0.5 rounded-lg border border-neutral-200">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.max(5, prev - 1));
                     }}
-                    className="w-4 h-4 rounded-sm bg-blue-100 text-blue-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
+                    className="w-5 h-5 rounded bg-neutral-100 text-neutral-800 flex items-center justify-center font-bold text-xs active:scale-90"
+                    type="button"
                   >
                     -
                   </button>
-                  <span className="text-[10px] font-black text-slate-900 min-w-[14px] text-center">{quantity}</span>
+                  <span className="text-xs font-bold text-neutral-900 min-w-[16px] text-center font-mono">{quantity}</span>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.min(100, prev + 1));
                     }}
-                    className="w-4 h-4 rounded-sm bg-blue-100 text-blue-600 flex items-center justify-center font-black active:scale-90 text-[10px]"
+                    className="w-5 h-5 rounded bg-neutral-100 text-neutral-800 flex items-center justify-center font-bold text-xs active:scale-90"
+                    type="button"
                   >
                     +
                   </button>
-               </div>
-            </div>
-          )}
-
-          <p className={`line-clamp-2 mb-2 sm:mb-4 h-8 sm:h-10 leading-relaxed ${theme === 'warm' ? 'text-[#584237]' : 'text-slate-500'} ${isWholesale ? 'text-[10px] sm:text-xs' : 'text-sm'} ${isSearchVariant ? 'block' : 'hidden md:block'}`}>
-            {product.description}
-          </p>
-        </div>
-
-      <div className={`px-1 flex flex-col mt-auto ${isWholesale ? 'gap-2' : 'gap-3 sm:gap-4'}`}>
-        <div className={`flex items-center justify-between border-t ${theme === 'warm' ? 'border-orange-500/10' : 'border-slate-100'} ${isWholesale ? 'pt-2' : 'pt-3 sm:pt-4'}`}>
-          <div className="flex flex-col">
-            {hasDiscount && product.price > 0 && (
-              <span className={`line-through leading-none mb-0.5 ${theme === 'warm' ? 'text-[#584237]/60' : 'text-slate-400'} ${isWholesale ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'}`}>
-                {formatPrice(product.price * (isWholesale ? quantity : 1))}
-              </span>
+                </div>
+              </div>
             )}
-            <span className={`font-black font-display tracking-tight ${theme === 'warm' ? 'text-[#251913]' : 'text-slate-900'} ${isWholesale ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'}`}>
-              {formatPrice(discountedPrice * (isWholesale ? quantity : 1))}
-            </span>
-            {isWholesale && <span className={`text-[7px] sm:text-[9px] font-bold uppercase tracking-widest mt-0.5 ${theme === 'warm' ? 'text-[#584237]/60' : 'text-slate-400'}`}>Total for {quantity}</span>}
-          </div>
-          
-          {product.seller && (
-             <div className={`flex items-center gap-1 rounded-lg border ${theme === 'warm' ? 'bg-white border-orange-500/10' : 'bg-slate-50 border-slate-100'} ${isWholesale ? 'px-1 py-0.5' : 'px-1.5 py-1 sm:px-3 sm:py-1.5 sm:rounded-xl'}`}>
-                {sellerLogo ? (
-                  <img onContextMenu={(e) => e.preventDefault()} src={sellerLogo} alt="" className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} rounded-full object-cover select-none`} referrerPolicy="no-referrer" />
-                ) : (
-                  <div className={`${isWholesale ? 'w-2.5 h-2.5' : 'w-3 h-3 sm:w-4 h-4'} ${theme === 'warm' ? 'bg-[#fff1eb]' : 'bg-slate-200'} rounded-full`} />
-                )}
-                <span className={`font-black uppercase tracking-widest truncate ${theme === 'warm' ? 'text-[#584237]' : 'text-slate-500'} ${isWholesale ? 'text-[6px] max-w-[30px]' : 'text-[7px] sm:text-[9px] max-w-[40px] sm:max-w-[60px]'}`}>{product.seller}</span>
-             </div>
-          )}
-        </div>
 
-        {/* Stock indicator */}
-        <div className="flex items-center justify-between text-[9px] sm:text-[11px]">
-          <span className="text-slate-400 font-bold uppercase tracking-widest text-[7px] sm:text-[9px]">Status</span>
-          <div className="font-black">
-            {product.stock !== undefined ? (
-              product.stock >= (isWholesale ? quantity : 1) ? (
-                <span className={`${
-                  product.stock <= (isWholesale ? 10 : 5) 
-                    ? 'text-rose-600 font-bold' 
-                    : 'text-emerald-600'
-                }`}>
-                  {product.stock} {product.stock <= 1 ? 'Unit' : 'Units'}
-                </span>
-              ) : (
-                <span className="text-rose-600 font-extrabold uppercase tracking-wide text-[9px] sm:text-[10px]">Insufficient Stock</span>
-              )
-            ) : (
-              <span className="text-slate-600">Active</span>
-            )}
-          </div>
-        </div>
-          
-          {product.stock !== undefined && product.stock < (isWholesale ? quantity : 1) ? (
-            <button 
-              disabled
-              className="w-full bg-slate-100 text-slate-400 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[10px] sm:text-[12px] font-bold cursor-not-allowed border border-slate-200 text-center uppercase tracking-widest"
-            >
-              Out of Stock
-            </button>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 pb-1">
-              {isInCart && !isWholesale ? (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveFromCart && onRemoveFromCart(product.id);
-                  }}
-                  className="flex items-center justify-center border-2 border-red-100 text-red-600 bg-red-50 hover:bg-red-100 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
-                >
-                  Remove
-                </button>
-              ) : (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isWholesale) {
-                      // Wholesale items go directly to buy or a special bundle cart
-                      onBuy(product, quantity);
-                    } else {
-                      onAddToCart && onAddToCart(product);
-                    }
-                  }}
-                  className="flex items-center justify-center gap-1 border-2 border-slate-200 text-slate-800 hover:bg-slate-50 px-1 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-bold shadow-sm"
-                >
-                  <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" />
-                  {isWholesale ? 'Bundle' : 'Add to Cart'}
-                </button>
-              )}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onBuy(product, isWholesale ? quantity : 1);
-                }}
-                className="flex items-center justify-center bg-red-600 text-white hover:bg-red-700 px-2 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[11px] font-black shadow-lg shadow-red-600/20 cursor-pointer uppercase tracking-wider"
+            {/* BEGIN: ActionFooter */}
+            <footer className="mt-auto pt-4 flex items-center justify-between gap-2" data-purpose="pricing-and-cta">
+              {/* Price Tag Indicator */}
+              <div 
+                className="bg-neutral-100/90 text-neutral-900 text-sm font-bold px-3.5 py-1.5 sm:py-2 rounded-full inline-flex items-center justify-center tracking-tight min-w-[70px] select-none" 
+                data-purpose="price-badge"
               >
-                Buy Now
-              </button>
-            </div>
-          )}
-        </div>
-      </motion.div>
+                <span>{formatPrice(discountedPrice * (isWholesale ? quantity : 1))}</span>
+                {hasDiscount && (
+                  <span className="ml-1 text-[10px] text-neutral-400 line-through">
+                    {formatPrice(product.price * (isWholesale ? quantity : 1))}
+                  </span>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5">
+                {product.stock !== undefined && product.stock < (isWholesale ? quantity : 1) ? (
+                  <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 py-1.5 bg-neutral-100 rounded-full select-none">
+                    Out of Stock
+                  </span>
+                ) : (
+                  <>
+                    {onAddToCart && !isWholesale && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isInCart) {
+                            onRemoveFromCart && onRemoveFromCart(product.id);
+                          } else {
+                            onAddToCart(product);
+                          }
+                        }}
+                        className={`p-2 rounded-full border transition-all active:scale-95 ${
+                          isInCart 
+                            ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
+                            : 'bg-neutral-100 text-neutral-700 border-neutral-200 hover:bg-neutral-200'
+                        }`}
+                        title={isInCart ? 'Remove from Cart' : 'Add to Cart'}
+                        type="button"
+                      >
+                        <ShoppingCart size={15} />
+                      </button>
+                    )}
+
+                    {/* Checkout / Purchase Button with Directional Arrow */}
+                    <button 
+                      className="group inline-flex items-center justify-center gap-2 bg-neutral-950 hover:bg-black text-white text-[12px] sm:text-[13px] font-semibold pl-3.5 sm:pl-4 pr-1.5 py-1.5 rounded-full shadow-sm hover:shadow active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 shrink-0 cursor-pointer" 
+                      data-purpose="buy-now-button" 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBuy(product, isWholesale ? quantity : 1);
+                      }}
+                    >
+                      <span>{isWholesale ? 'Bundle Buy' : 'Buy Now'}</span>
+                      <span aria-hidden="true" className="w-6 h-6 rounded-full bg-white text-neutral-950 flex items-center justify-center transition-transform duration-200 group-hover:rotate-45">
+                        <svg className="w-3.5 h-3.5 stroke-[0.5]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path clipRule="evenodd" d="M5.22 14.78a.75.75 0 0 0 1.06 0l7.22-7.22v5.69a.75.75 0 0 0 1.5 0v-7.5a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0 0 1.5h5.69l-7.22 7.22a.75.75 0 0 0 0 1.06Z" fillRule="evenodd"></path>
+                        </svg>
+                      </span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </footer>
+            {/* END: ActionFooter */}
+          </div>
+          {/* END: ContentSection */}
+        </motion.article>
       ) : (
-        <div className={`glass-card rounded-2xl w-full h-[280px] sm:h-[350px] bg-slate-50/50 border border-slate-100 animate-pulse ${isWholesale ? 'p-1 sm:p-2.5' : 'p-2 sm:p-4.5'}`}></div>
+        <div className="bg-white rounded-[32px] p-3.5 shadow-card border border-neutral-100 w-full h-[360px] animate-pulse"></div>
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, query } from "firebase/firestore";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import fs from "fs";
@@ -17,7 +17,7 @@ const configPath = path.join(process.cwd(), "firebase-applet-config.json");
 const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId || undefined);
 
 // Second Firebase Connection for Speed & Fast Specialty Food Catalog
 const secondFirebaseConfig = {
@@ -29,7 +29,7 @@ const secondFirebaseConfig = {
   appId: "1:295815579779:web:585000cb89c55959cc33b6"
 };
 const secondFirebaseApp = initializeApp(secondFirebaseConfig, "secondApp");
-const db2 = getFirestore(secondFirebaseApp);
+const db2 = getFirestore(secondFirebaseApp, firebaseConfig.firestoreDatabaseId || undefined);
 
 const JWT_SECRET = process.env.JWT_SECRET || "pbazar-partner-secret-key-2024";
 
@@ -83,6 +83,197 @@ async function startServer() {
       } catch (innerErr) {
         res.status(500).json({ error: "Failed to load foods from database" });
       }
+    }
+  });
+
+  const PRODUCTS_CACHE_FILE = path.join(process.cwd(), "products_cache.json");
+
+  function getLocalProducts(): any[] {
+    try {
+      if (fs.existsSync(PRODUCTS_CACHE_FILE)) {
+        return JSON.parse(fs.readFileSync(PRODUCTS_CACHE_FILE, "utf-8"));
+      }
+    } catch (e) {
+      console.warn("Failed reading products_cache.json:", e);
+    }
+    return [];
+  }
+
+  function saveLocalProducts(products: any[]) {
+    try {
+      fs.writeFileSync(PRODUCTS_CACHE_FILE, JSON.stringify(products, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("Failed writing products_cache.json:", e);
+    }
+  }
+
+  // Full Products Catalog API (Syncs & serves products across host server & main server)
+  app.get("/api/products", async (req, res) => {
+    try {
+      // First try fetching from primary database
+      const primarySnap = await getDocs(query(collection(db, "products")));
+      let productsList = primarySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // If empty or secondary has more items, fall back to second database
+      if (productsList.length === 0) {
+        const secondSnap = await getDocs(query(collection(db2, "products")));
+        productsList = secondSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      }
+
+      // If both databases return results, update local cache
+      if (productsList.length > 0) {
+        saveLocalProducts(productsList);
+      } else {
+        // Fall back to local host cache if both are empty
+        const cached = getLocalProducts();
+        if (cached.length > 0) {
+          productsList = cached;
+        }
+      }
+
+      res.json({ products: productsList });
+    } catch (error: any) {
+      console.error("Failed to fetch products in server API, falling back:", error);
+      try {
+        const secondSnap = await getDocs(query(collection(db2, "products")));
+        const productsList = secondSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (productsList.length > 0) {
+          saveLocalProducts(productsList);
+          return res.json({ products: productsList });
+        }
+      } catch (innerErr) {
+        // Ignore and use local cache
+      }
+      
+      const localFallback = getLocalProducts();
+      res.json({ products: localFallback });
+    }
+  });
+
+  // Create Product API (Saves synchronously in BOTH primary server, secondary host server, and local host cache)
+  app.post("/api/products", async (req, res) => {
+    try {
+      const productData = req.body;
+      const productId = productData.id || `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const payload = {
+        ...productData,
+        id: productId,
+        created_at: productData.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // 1. Save in Main Server Firestore
+      try {
+        await setDoc(doc(db, "products", productId), payload, { merge: true });
+      } catch (err) {
+        console.warn("Main DB product save error:", err);
+      }
+
+      // 2. Save in Second / Host Server Firestore
+      try {
+        await setDoc(doc(db2, "products", productId), payload, { merge: true });
+      } catch (err) {
+        console.warn("Second DB product save error:", err);
+      }
+
+      // 3. Save in Local Host File Cache
+      try {
+        const currentList = getLocalProducts();
+        const existingIdx = currentList.findIndex(p => p.id === productId);
+        if (existingIdx >= 0) {
+          currentList[existingIdx] = { ...currentList[existingIdx], ...payload };
+        } else {
+          currentList.unshift(payload);
+        }
+        saveLocalProducts(currentList);
+      } catch (cacheErr) {
+        console.warn("Local host cache save failed:", cacheErr);
+      }
+
+      res.status(201).json({ success: true, product: payload });
+    } catch (error: any) {
+      console.error("Product creation API error:", error);
+      res.status(500).json({ error: "Failed to save product across servers" });
+    }
+  });
+
+  // Update Product API (Updates synchronously in BOTH servers and host cache)
+  app.put("/api/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const payload = {
+        ...updateData,
+        updated_at: new Date().toISOString()
+      };
+
+      // 1. Update in Main DB
+      try {
+        await setDoc(doc(db, "products", id), payload, { merge: true });
+      } catch (err) {
+        console.warn("Main DB product update error:", err);
+      }
+
+      // 2. Update in Second DB
+      try {
+        await setDoc(doc(db2, "products", id), payload, { merge: true });
+      } catch (err) {
+        console.warn("Second DB product update error:", err);
+      }
+
+      // 3. Update in Local Host File Cache
+      try {
+        const currentList = getLocalProducts();
+        const existingIdx = currentList.findIndex(p => p.id === id);
+        if (existingIdx >= 0) {
+          currentList[existingIdx] = { ...currentList[existingIdx], ...payload };
+        } else {
+          currentList.unshift({ id, ...payload });
+        }
+        saveLocalProducts(currentList);
+      } catch (cacheErr) {
+        console.warn("Local host cache update failed:", cacheErr);
+      }
+
+      res.json({ success: true, product: { id, ...payload } });
+    } catch (error: any) {
+      console.error("Product update API error:", error);
+      res.status(500).json({ error: "Failed to update product across servers" });
+    }
+  });
+
+  // Delete Product API (Deletes synchronously from BOTH servers and host cache)
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // 1. Delete from Main DB
+      try {
+        await deleteDoc(doc(db, "products", id));
+      } catch (err) {
+        console.warn("Main DB delete error:", err);
+      }
+
+      // 2. Delete from Second DB
+      try {
+        await deleteDoc(doc(db2, "products", id));
+      } catch (err) {
+        console.warn("Second DB delete error:", err);
+      }
+
+      // 3. Delete from Local Host Cache
+      try {
+        const currentList = getLocalProducts();
+        const filtered = currentList.filter(p => p.id !== id);
+        saveLocalProducts(filtered);
+      } catch (cacheErr) {
+        console.warn("Local cache delete failed:", cacheErr);
+      }
+
+      res.json({ success: true, message: `Product ${id} deleted across servers` });
+    } catch (error: any) {
+      console.error("Product delete API error:", error);
+      res.status(500).json({ error: "Failed to delete product across servers" });
     }
   });
 

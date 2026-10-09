@@ -408,6 +408,16 @@ export default function SellerDashboard() {
         console.warn("Supabase backup sync failed:", backupErr);
       }
 
+      // Sync to Host Server (/api/products)
+      try {
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: savedProductId, ...payload })
+        });
+      } catch (hostErr) {
+        console.warn("Host server sync failed:", hostErr);
+      }
 
       setIsProductModalOpen(false);
       setEditingProduct(null);
