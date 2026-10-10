@@ -87,30 +87,14 @@ async function startServer() {
   });
 
   const PRODUCTS_CACHE_FILE = path.join(process.cwd(), "products_cache.json");
-  const DEFAULT_PRODUCTS_FILE = path.join(process.cwd(), "src", "data", "products.json");
-
-  let firestoreQuotaExceeded = false;
-  let firestoreQuotaRetryTime = 0;
 
   function getLocalProducts(): any[] {
     try {
       if (fs.existsSync(PRODUCTS_CACHE_FILE)) {
-        const raw = fs.readFileSync(PRODUCTS_CACHE_FILE, "utf-8");
-        const list = JSON.parse(raw);
-        if (Array.isArray(list) && list.length > 0) {
-          return list;
-        }
-      }
-      if (fs.existsSync(DEFAULT_PRODUCTS_FILE)) {
-        const raw = fs.readFileSync(DEFAULT_PRODUCTS_FILE, "utf-8");
-        const list = JSON.parse(raw);
-        if (Array.isArray(list) && list.length > 0) {
-          saveLocalProducts(list);
-          return list;
-        }
+        return JSON.parse(fs.readFileSync(PRODUCTS_CACHE_FILE, "utf-8"));
       }
     } catch (e) {
-      console.warn("Failed reading products cache:", e);
+      console.warn("Failed reading products_cache.json:", e);
     }
     return [];
   }
@@ -123,54 +107,50 @@ async function startServer() {
     }
   }
 
-  // Full Products Catalog API (Hosting Server as primary fast source of truth)
+  // Full Products Catalog API (Syncs & serves products across host server & main server)
   app.get("/api/products", async (req, res) => {
-    // 1. Get current products from hosting server cache
-    let productsList = getLocalProducts();
+    try {
+      // First try fetching from primary database
+      const primarySnap = await getDocs(query(collection(db, "products")));
+      let productsList = primarySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // 2. Check if Firestore quota is currently in backoff
-    const now = Date.now();
-    const canQueryFirestore = !firestoreQuotaExceeded || now > firestoreQuotaRetryTime;
-
-    if (canQueryFirestore) {
-      try {
-        const primarySnap = await getDocs(query(collection(db, "products")));
-        const remoteList = primarySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (remoteList.length > 0) {
-          // Merge remote with local to preserve newly created items
-          const mergedMap = new Map<string, any>();
-          remoteList.forEach(p => mergedMap.set(p.id, p));
-          productsList.forEach(p => {
-            if (!mergedMap.has(p.id)) {
-              mergedMap.set(p.id, p);
-            }
-          });
-          productsList = Array.from(mergedMap.values());
-          saveLocalProducts(productsList);
-        }
-      } catch (error: any) {
-        if (error.code === 'resource-exhausted' || error.message?.includes('Quota') || error.message?.includes('quota')) {
-          firestoreQuotaExceeded = true;
-          firestoreQuotaRetryTime = now + 15 * 60 * 1000; // Back off for 15 minutes
-        }
-        // Gracefully continue using local hosting cache without failing
+      // If empty or secondary has more items, fall back to second database
+      if (productsList.length === 0) {
+        const secondSnap = await getDocs(query(collection(db2, "products")));
+        productsList = secondSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       }
+
+      // If both databases return results, update local cache
+      if (productsList.length > 0) {
+        saveLocalProducts(productsList);
+      } else {
+        // Fall back to local host cache if both are empty
+        const cached = getLocalProducts();
+        if (cached.length > 0) {
+          productsList = cached;
+        }
+      }
+
+      res.json({ products: productsList });
+    } catch (error: any) {
+      console.error("Failed to fetch products in server API, falling back:", error);
+      try {
+        const secondSnap = await getDocs(query(collection(db2, "products")));
+        const productsList = secondSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (productsList.length > 0) {
+          saveLocalProducts(productsList);
+          return res.json({ products: productsList });
+        }
+      } catch (innerErr) {
+        // Ignore and use local cache
+      }
+      
+      const localFallback = getLocalProducts();
+      res.json({ products: localFallback });
     }
-
-    res.json({ products: productsList, source: "hosting-server" });
   });
 
-  // Banners API fallback from hosting server
-  app.get("/api/banners", async (req, res) => {
-    const defaultBanners = [
-      { id: 'banner_1', title: 'Top Deals', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff', created_at: new Date().toISOString() },
-      { id: 'office', title: 'Our Office', image: 'https://i.postimg.cc/vBv8bbQN/unnamed-8.jpg', created_at: new Date().toISOString() },
-      { id: 'seller', title: 'New Seller', image: 'https://i.postimg.cc/WbN1N7Z0/unnamed-15.jpg', created_at: new Date().toISOString() }
-    ];
-    res.json({ banners: defaultBanners });
-  });
-
-  // Create Product API (Saves synchronously in hosting server and best-effort in databases)
+  // Create Product API (Saves synchronously in BOTH primary server, secondary host server, and local host cache)
   app.post("/api/products", async (req, res) => {
     try {
       const productData = req.body;
@@ -182,7 +162,21 @@ async function startServer() {
         updated_at: new Date().toISOString()
       };
 
-      // 1. Immediately save to Local Hosting Server File Cache
+      // 1. Save in Main Server Firestore
+      try {
+        await setDoc(doc(db, "products", productId), payload, { merge: true });
+      } catch (err) {
+        console.warn("Main DB product save error:", err);
+      }
+
+      // 2. Save in Second / Host Server Firestore
+      try {
+        await setDoc(doc(db2, "products", productId), payload, { merge: true });
+      } catch (err) {
+        console.warn("Second DB product save error:", err);
+      }
+
+      // 3. Save in Local Host File Cache
       try {
         const currentList = getLocalProducts();
         const existingIdx = currentList.findIndex(p => p.id === productId);
@@ -196,81 +190,78 @@ async function startServer() {
         console.warn("Local host cache save failed:", cacheErr);
       }
 
-      // 2. Best-effort Save in Main Server Firestore
-      try {
-        await setDoc(doc(db, "products", productId), payload, { merge: true });
-      } catch (err: any) {
-        if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
-          firestoreQuotaExceeded = true;
-          firestoreQuotaRetryTime = Date.now() + 15 * 60 * 1000;
-        }
-      }
-
-      // 3. Best-effort Save in Second DB
-      try {
-        await setDoc(doc(db2, "products", productId), payload, { merge: true });
-      } catch (err) {
-        // Silently continue
-      }
-
       res.status(201).json({ success: true, product: payload });
     } catch (error: any) {
       console.error("Product creation API error:", error);
-      res.status(500).json({ error: "Failed to save product" });
+      res.status(500).json({ error: "Failed to save product across servers" });
     }
   });
 
-  // Update Product API (Updates in hosting server and best-effort in databases)
+  // Update Product API (Updates synchronously in BOTH servers and host cache)
   app.put("/api/products/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const updateData = req.body;
       const payload = {
         ...updateData,
-        id,
         updated_at: new Date().toISOString()
       };
 
-      // 1. Update in Hosting Server File Cache
+      // 1. Update in Main DB
+      try {
+        await setDoc(doc(db, "products", id), payload, { merge: true });
+      } catch (err) {
+        console.warn("Main DB product update error:", err);
+      }
+
+      // 2. Update in Second DB
+      try {
+        await setDoc(doc(db2, "products", id), payload, { merge: true });
+      } catch (err) {
+        console.warn("Second DB product update error:", err);
+      }
+
+      // 3. Update in Local Host File Cache
       try {
         const currentList = getLocalProducts();
         const existingIdx = currentList.findIndex(p => p.id === id);
         if (existingIdx >= 0) {
           currentList[existingIdx] = { ...currentList[existingIdx], ...payload };
         } else {
-          currentList.unshift(payload);
+          currentList.unshift({ id, ...payload });
         }
         saveLocalProducts(currentList);
       } catch (cacheErr) {
         console.warn("Local host cache update failed:", cacheErr);
       }
 
-      // 2. Best-effort update in Firestore databases
-      try {
-        await setDoc(doc(db, "products", id), payload, { merge: true });
-      } catch (err) {
-        // Silently ignore
-      }
-
-      try {
-        await setDoc(doc(db2, "products", id), payload, { merge: true });
-      } catch (err) {
-        // Silently ignore
-      }
-
-      res.json({ success: true, product: payload });
+      res.json({ success: true, product: { id, ...payload } });
     } catch (error: any) {
       console.error("Product update API error:", error);
-      res.status(500).json({ error: "Failed to update product" });
+      res.status(500).json({ error: "Failed to update product across servers" });
     }
   });
 
-  // Delete Product API (Deletes from hosting server and best-effort in databases)
+  // Delete Product API (Deletes synchronously from BOTH servers and host cache)
   app.delete("/api/products/:id", async (req, res) => {
     try {
       const { id } = req.params;
 
-      // 1. Delete from Local Hosting Cache
+      // 1. Delete from Main DB
+      try {
+        await deleteDoc(doc(db, "products", id));
+      } catch (err) {
+        console.warn("Main DB delete error:", err);
+      }
+
+      // 2. Delete from Second DB
+      try {
+        await deleteDoc(doc(db2, "products", id));
+      } catch (err) {
+        console.warn("Second DB delete error:", err);
+      }
+
+      // 3. Delete from Local Host Cache
       try {
         const currentList = getLocalProducts();
         const filtered = currentList.filter(p => p.id !== id);
@@ -279,23 +270,10 @@ async function startServer() {
         console.warn("Local cache delete failed:", cacheErr);
       }
 
-      // 2. Best-effort delete from Firestore
-      try {
-        await deleteDoc(doc(db, "products", id));
-      } catch (err) {
-        // Silently ignore
-      }
-
-      try {
-        await deleteDoc(doc(db2, "products", id));
-      } catch (err) {
-        // Silently ignore
-      }
-
-      res.json({ success: true, message: `Product ${id} deleted` });
+      res.json({ success: true, message: `Product ${id} deleted across servers` });
     } catch (error: any) {
       console.error("Product delete API error:", error);
-      res.status(500).json({ error: "Failed to delete product" });
+      res.status(500).json({ error: "Failed to delete product across servers" });
     }
   });
 

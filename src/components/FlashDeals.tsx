@@ -55,83 +55,61 @@ export default function FlashDeals() {
     let unsubProd = () => {};
     
     const loadData = async () => {
-      // 1. Try hosting server API first
-      try {
-        const res = await fetch('/api/products').catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          const prods = data.products || [];
-          if (prods.length > 0) {
-            const discounted = prods.filter((p: any) => Number(p.discount || 0) > 0 || p.is_super_sale);
-            const finalProducts = discounted.length > 0 ? discounted : prods;
-            setProducts(finalProducts);
-            setAllProducts(prods);
-            setFilteredProducts(finalProducts);
-            extractCategories(finalProducts);
-            const savedCart = await Storage.getLarge<any[]>('pbazar_cart');
-            if (savedCart) setCart(savedCart);
-            return;
-          }
-        }
-      } catch (e) {
-        // Continue to offline cache
-      }
-
-      // 2. Try offline cache
-      const cached = await Storage.getLarge<Product[]>('cached_products');
-      if (cached && cached.length > 0) {
-        const discounted = cached.filter(p => Number(p.discount || 0) > 0 || p.is_super_sale);
-        const finalProducts = discounted.length > 0 ? discounted : cached;
-        setProducts(finalProducts);
-        setAllProducts(cached);
-        setFilteredProducts(finalProducts);
-        extractCategories(finalProducts);
-        const savedCart = await Storage.getLarge<any[]>('pbazar_cart');
-        if (savedCart) setCart(savedCart);
-        return;
-      }
-
-      // 3. Fallback to Firestore only if quota allows
-      if (!isFirestoreQuotaExceeded()) {
-        try {
-          unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
-            const prodData = snapshot.docs.map(doc => {
-              const data = doc.data() || {};
-              return {
-                id: doc.id,
-                name: data.name || '',
-                description: data.description || '',
-                price: Number(data.price || 0),
-                image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
-                rating: Number(data.rating || 4.5),
-                discount: Number(data.discount || 0),
-                category: data.category || '',
-                stock: data.stock !== undefined ? Number(data.stock) : 20,
-                total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
-                created_at: data.created_at || new Date().toISOString(),
-                seller: data.seller || 'Store',
-                seller_id: data.seller_id || '',
-                seller_whatsapp: data.seller_whatsapp || '',
-                seller_logo: data.seller_logo || '',
-                is_super_sale: !!data.is_super_sale,
-                images: data.images || []
-              } as Product;
-            });
-            
-            const discounted = prodData.filter(p => Number(p.discount || 0) > 0 || p.is_super_sale);
-            setAllProducts(prodData);
-            const finalProducts = discounted.length > 0 ? discounted : prodData;
-            setProducts(finalProducts);
-            setFilteredProducts(finalProducts);
-            extractCategories(finalProducts);
-          }, (err: any) => {
-            if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
-              setFirestoreQuotaExceeded(true);
+      if (isFirestoreQuotaExceeded()) {
+          try {
+            const backup = await getBackupProducts();
+            if (backup) {
+              const discounted = backup.filter(p => Number(p.discount || 0) > 0 || p.is_super_sale);
+              // Fallback for quota exceeded mode
+              const finalProducts = discounted.length > 0 ? discounted : backup;
+              setProducts(finalProducts);
+              setAllProducts(backup);
+              setFilteredProducts(finalProducts);
+              extractCategories(finalProducts);
             }
-          });
-        } catch (err) {
-          console.warn(err);
-        }
+          } catch (e) {
+            console.error(e);
+          }
+      } else {
+          try {
+              unsubProd = onSnapshot(query(collection(db, 'products')), (snapshot) => {
+                const prodData = snapshot.docs.map(doc => {
+                  const data = doc.data() || {};
+                  return {
+                    id: doc.id,
+                    name: data.name || '',
+                    description: data.description || '',
+                    price: Number(data.price || 0),
+                    image: data.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
+                    rating: Number(data.rating || 4.5),
+                    discount: Number(data.discount || 0),
+                    category: data.category || '',
+                    stock: data.stock !== undefined ? Number(data.stock) : 20,
+                    total_stock: data.total_stock !== undefined ? Number(data.total_stock) : 30,
+                    created_at: data.created_at || new Date().toISOString(),
+                    seller: data.seller || 'Store',
+                    seller_id: data.seller_id || '',
+                    seller_whatsapp: data.seller_whatsapp || '',
+                    seller_logo: data.seller_logo || '',
+                    is_super_sale: !!data.is_super_sale,
+                    images: data.images || []
+                  } as Product;
+                });
+                
+                const discounted = prodData.filter(p => Number(p.discount || 0) > 0 || p.is_super_sale);
+                
+                setAllProducts(prodData);
+                
+                // Fallback: If no products have discount > 0, just show all products to avoid empty page
+                const finalProducts = discounted.length > 0 ? discounted : prodData;
+                
+                setProducts(finalProducts);
+                setFilteredProducts(finalProducts);
+                extractCategories(finalProducts);
+              });
+          } catch (err) {
+              console.warn(err);
+          }
       }
       
       const savedCart = await Storage.getLarge<any[]>('pbazar_cart');

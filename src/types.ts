@@ -37,7 +37,6 @@ export interface Product {
   discountTimelineHours?: number;
   flashSaleEnd?: string;
   seller?: string;
-  seller_id?: string;
   seller_whatsapp?: string;
   seller_logo?: string;
   is_new?: boolean;
