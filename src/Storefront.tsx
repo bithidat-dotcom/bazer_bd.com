@@ -325,10 +325,7 @@ export default function Storefront() {
             is_super_sale: !!p.is_super_sale,
             super_sale_at: p.super_sale_at || null,
             order_count: Number(p.order_count || 0)
-          } as Product)).filter((p: Product) => {
-            const cat = (p.category || '').toLowerCase();
-            return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
-          });
+          } as Product));
           
           normalized.sort((a: Product, b: Product) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
           setProducts(normalized);
@@ -380,9 +377,6 @@ export default function Storefront() {
                 super_sale_at: data.super_sale_at || null,
                 order_count: Number(data.order_count || 0)
               } as Product;
-            }).filter(p => {
-              const cat = (p.category || '').toLowerCase();
-              return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
             });
             prodData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
             setProducts(prodData);
