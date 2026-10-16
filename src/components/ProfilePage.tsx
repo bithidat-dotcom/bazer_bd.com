@@ -8,7 +8,21 @@ import { ChevronLeft, User, Award, Camera, MapPin, Save, LogOut, Lock, Phone } f
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const [phone, setPhone] = useState(localStorage.getItem('customer_phone') || '');
+
+  const getInitialPhone = () => {
+    try {
+      const raw = localStorage.getItem('pbazar_customer_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.user) {
+          return parsed.user.phone || parsed.user.whatsapp_number || parsed.user.id || '';
+        }
+      }
+    } catch (e) {}
+    return localStorage.getItem('customer_phone') || '';
+  };
+
+  const [phone, setPhone] = useState(getInitialPhone());
   const [password, setPassword] = useState('');
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -22,35 +36,49 @@ export default function ProfilePage() {
   const [regUsername, setRegUsername] = useState('');
 
   useEffect(() => {
+    // 1. Check local session first
+    try {
+      const raw = localStorage.getItem('pbazar_customer_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.user) {
+          setProfile(parsed.user);
+          setEditName(parsed.user.name || parsed.user.username || '');
+          setEditAddress(parsed.user.location || parsed.user.address || '');
+        }
+      }
+    } catch (e) {}
+
     if (!phone) return;
 
-    // Load profile
-    const userRef = doc(db, 'users', phone);
+    // Load profile from DB
+    const cleanPhone = phone.replace(/\D/g, '');
+    const userRef = doc(db, 'users', cleanPhone);
     getDoc(userRef).then(docSnap => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setProfile(data);
         setEditName(data.name || data.username || '');
-        setEditAddress(data.address || '');
+        setEditAddress(data.address || data.location || '');
         // Sync local storage profile
         Storage.setSmall('pbazar_user', data);
       }
-    });
+    }).catch(e => console.warn('User fetch error in ProfilePage:', e));
 
-    // Load orders with robust multi-condition matching (prefix matching, raw matching, formatted matching)
+    // Load orders with robust multi-condition matching
     const qOrders = query(collection(db, 'orders'));
     const unsubOrders = onSnapshot(qOrders, (snapshot) => {
       const allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const userOrders = allOrders.filter((o: any) => {
         const orderUsername = String(o.customer_username || '').trim();
         const orderWhatsapp = String(o.whatsapp || '').trim();
-        const cleanPhone = phone.replace(/\D/g, '');
+        const cleanP = cleanPhone;
         
         return (
           orderUsername === phone ||
           orderWhatsapp === phone ||
-          orderWhatsapp.replace(/\D/g, '').endsWith(cleanPhone) ||
-          cleanPhone.endsWith(orderWhatsapp.replace(/\D/g, ''))
+          orderWhatsapp.replace(/\D/g, '').endsWith(cleanP) ||
+          cleanP.endsWith(orderWhatsapp.replace(/\D/g, ''))
         );
       });
       setOrders(userOrders);
@@ -65,54 +93,42 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
-      const cleanPhone = phone.trim();
-      if (!cleanPhone) {
+      const cleanPhone = phone.trim().replace(/[^0-9]/g, '');
+      if (cleanPhone.length < 5) {
         setError("Please enter a valid phone number");
         setLoading(false);
         return;
       }
 
-      const userDocRef = doc(db, 'users', cleanPhone);
-      const userDoc = await getDoc(userDocRef);
+      // Login via /api/users/login endpoint
+      const payload = {
+        name: (regUsername || cleanPhone).trim(),
+        whatsapp_number: cleanPhone,
+        phone: cleanPhone,
+        location: '',
+        image: ''
+      };
 
-      if (isRegister) {
-        if (userDoc.exists() && userDoc.data()?.password) {
-          setError("User already registered with this number. Please Sign In.");
-          setLoading(false);
-          return;
-        }
-        const userData = {
-          whatsapp: cleanPhone,
-          password: password,
-          username: regUsername || cleanPhone,
-          name: regUsername || cleanPhone,
-          profile_image_url: '',
-          address: '',
-          points: 0,
-          createdAt: new Date().toISOString()
-        };
-        await setDoc(userDocRef, userData, { merge: true });
-        localStorage.setItem('customer_phone', cleanPhone);
-        Storage.setSmall('pbazar_user', userData);
-        setProfile(userData);
-        window.location.reload();
-      } else {
-        if (!userDoc.exists() || !userDoc.data()?.password) {
-          setError("User not found or password not set. Please Register.");
-          setLoading(false);
-          return;
-        }
-        const userData = userDoc.data();
-        if (userData?.password !== password) {
-          setError("Incorrect password");
-          setLoading(false);
-          return;
-        }
-        localStorage.setItem('customer_phone', cleanPhone);
-        Storage.setSmall('pbazar_user', userData);
-        setProfile(userData);
-        window.location.reload();
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to authenticate');
       }
+
+      const userData = data.user;
+      localStorage.setItem('customer_phone', cleanPhone);
+      localStorage.setItem('pbazar_customer_session', JSON.stringify({
+        user: userData,
+        session: data.session
+      }));
+      Storage.setSmall('pbazar_user', userData);
+      setProfile(userData);
+      window.location.reload();
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
@@ -122,21 +138,34 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     localStorage.removeItem('customer_phone');
+    localStorage.removeItem('pbazar_customer_session');
     Storage.removeSmall('pbazar_user');
     window.location.reload();
   };
 
   const handleSaveDetails = async () => {
     if (!phone) return;
-    const userRef = doc(db, 'users', phone);
+    const cleanPhone = phone.replace(/\D/g, '');
+    const userRef = doc(db, 'users', cleanPhone);
     try {
       await updateDoc(userRef, {
         name: editName,
-        address: editAddress
+        address: editAddress,
+        location: editAddress
       });
-      const updated = { ...profile, name: editName, address: editAddress };
+      const updated = { ...profile, name: editName, address: editAddress, location: editAddress };
       setProfile(updated);
       Storage.setSmall('pbazar_user', updated);
+      
+      try {
+        const raw = localStorage.getItem('pbazar_customer_session');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          parsed.user = { ...parsed.user, ...updated };
+          localStorage.setItem('pbazar_customer_session', JSON.stringify(parsed));
+        }
+      } catch (e) {}
+
       setIsEditing(false);
     } catch (error) {
       console.error("Update error:", error);
@@ -153,16 +182,28 @@ export default function ProfilePage() {
     reader.onloadend = async () => {
       const base64String = reader.result as string;
       try {
-        const userRef = doc(db, 'users', phone);
-        await updateDoc(userRef, { profile_image_url: base64String });
+        const userRef = doc(db, 'users', phone.replace(/\D/g, ''));
+        await updateDoc(userRef, { 
+          profile_image_url: base64String,
+          image: base64String 
+        });
         
-        const updated = { ...profile, profile_image_url: base64String };
+        const updated = { ...profile, profile_image_url: base64String, image: base64String };
         setProfile(updated);
         Storage.setSmall('pbazar_user', updated);
+
+        try {
+          const raw = localStorage.getItem('pbazar_customer_session');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed.user = { ...parsed.user, ...updated };
+            localStorage.setItem('pbazar_customer_session', JSON.stringify(parsed));
+          }
+        } catch (e) {}
       } catch (error) {
         console.error("Save image error:", error);
         // Fallback to local cache if Firestore write fails
-        const updated = { ...profile, profile_image_url: base64String };
+        const updated = { ...profile, profile_image_url: base64String, image: base64String };
         setProfile(updated);
         Storage.setSmall('pbazar_user', updated);
       } finally {
@@ -175,7 +216,9 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  if (!localStorage.getItem('customer_phone')) {
+  const hasActiveSession = !!phone || !!localStorage.getItem('customer_phone') || !!localStorage.getItem('pbazar_customer_session');
+
+  if (!hasActiveSession) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 font-sans">
         <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-6 sm:p-10 border border-slate-100">
@@ -473,6 +516,28 @@ export default function ProfilePage() {
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No orders yet</p>
             </div>
           )}
+          
+          {/* Direct Call & WhatsApp Support */}
+          <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-3 text-left">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Need Assistance with an Order?</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <a
+                href="tel:01716807465"
+                className="py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 active:scale-95 transition-all"
+              >
+                <Phone size={14} />
+                <span>Direct Call: 01716807465</span>
+              </a>
+              <a
+                href="https://wa.me/8801716807465"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+              >
+                <span>WhatsApp Support</span>
+              </a>
+            </div>
+          </div>
         </div>
       </main>
     </div>

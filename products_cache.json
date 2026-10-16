@@ -1,0 +1,25 @@
+[
+  {
+    "id": "nike-airforce1-premium",
+    "name": "Nike Airforce1 Premium",
+    "price": 111,
+    "discount": 10,
+    "category": "fashion",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuC09WX93liZ2pTMtfzhXxC0U4xweYK1Cs_Rp3yj4hbxIp0-3exYJgGed9vx7oR4n1fkYPuBlLZQNHymte8Sh8_vaVa5DdYKkkVPUNdkVyWilVw-n1E82S14iW7qDs8zCaDFjrZ6r7dnwzRnpt3BsZrLeCZtaJHNqsItA8iZF7G5nMFesim2JfQ24tFVZP9DswGMwxW0IscK1oZNV_jKCyLA05IpDbDPFF_9xOO5DSGLMQNxVUVoFSD-khNQx5QVn-QtwQ",
+    "images": [
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuC09WX93liZ2pTMtfzhXxC0U4xweYK1Cs_Rp3yj4hbxIp0-3exYJgGed9vx7oR4n1fkYPuBlLZQNHymte8Sh8_vaVa5DdYKkkVPUNdkVyWilVw-n1E82S14iW7qDs8zCaDFjrZ6r7dnwzRnpt3BsZrLeCZtaJHNqsItA8iZF7G5nMFesim2JfQ24tFVZP9DswGMwxW0IscK1oZNV_jKCyLA05IpDbDPFF_9xOO5DSGLMQNxVUVoFSD-khNQx5QVn-QtwQ"
+    ],
+    "description": "Step back into classic hoops style with durable leather, iconic Air cushioning, and modern street aesthetics. Premium build made for comfort and style.",
+    "rating": 4.9,
+    "stock": 35,
+    "total_stock": 50,
+    "seller": "Nike Official Store",
+    "seller_id": "nike_store",
+    "seller_whatsapp": "01700000000",
+    "seller_logo": "https://i.postimg.cc/KvqR53hq/download-(1).png",
+    "is_new": true,
+    "is_super_sale": true,
+    "order_count": 52,
+    "created_at": "2026-10-09T10:00:00.000Z"
+  }
+]

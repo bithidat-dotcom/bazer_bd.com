@@ -210,18 +210,25 @@ export default function Navbar({
                   if (onLoginClick) onLoginClick();
                 }
               }}
-              className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
+              className="md:hidden h-9 px-2 rounded-xl bg-white/10 border border-white/20 flex items-center gap-1.5 text-white active:scale-95 transition-all"
+              title={user ? (user.name || user.username) : "Customer Sign In"}
             >
               {user ? (
-                <div className="w-7 h-7 rounded-full overflow-hidden bg-white/20 flex items-center justify-center">
-                  {user.profile_image_url || user.profileImage ? (
-                    <img src={user.profile_image_url || user.profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    <User className="w-4 h-4 m-1.5" />
-                  )}
-                </div>
+                <>
+                  <div className="w-6 h-6 rounded-full overflow-hidden bg-white/20 flex items-center justify-center shrink-0 border border-white/40">
+                    {user.image || user.profile_image_url || user.profileImage ? (
+                      <img src={user.image || user.profile_image_url || user.profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <span className="text-[10px] font-black leading-none">{(user.name || user.username || 'C').charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold max-w-[65px] truncate text-white">{user.name || user.username}</span>
+                </>
               ) : (
-                <User size={18} />
+                <>
+                  <User size={15} />
+                  <span className="text-xs font-bold">Sign In</span>
+                </>
               )}
             </button>
 
@@ -253,52 +260,80 @@ export default function Navbar({
             <div className="relative">
               <button 
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-2 cursor-pointer hover:bg-white/10 p-1 pr-3 rounded-full transition-colors ml-2"
+                className="flex items-center gap-2.5 cursor-pointer hover:bg-white/10 p-1.5 pr-4 rounded-full transition-all ml-2 bg-white/5 border border-white/15"
               >
-                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/30 bg-white/20 flex items-center justify-center shadow-sm">
-                  {user.profile_image_url || user.profileImage ? (
-                    <img src={user.profile_image_url || user.profileImage} alt={user.username} className="w-full h-full object-cover rounded-full" />
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-white/50 bg-white/20 flex items-center justify-center shadow-sm shrink-0">
+                  {user.image || user.profile_image_url || user.profileImage ? (
+                    <img src={user.image || user.profile_image_url || user.profileImage} alt={user.name || user.username} className="w-full h-full object-cover rounded-full" />
                   ) : (
-                    <User className="w-4 h-4 text-white" />
+                    <span className="text-xs font-black text-white">{(user.name || user.username || 'C').charAt(0).toUpperCase()}</span>
                   )}
                 </div>
-                <span className="hidden sm:inline text-sm font-black text-white capitalize max-w-[80px] truncate">{user.username}</span>
+                <div className="text-left hidden sm:block">
+                  <p className="text-xs font-black text-white capitalize max-w-[100px] truncate leading-tight">
+                    {user.name || user.username}
+                  </p>
+                  <p className="text-[9px] font-bold text-blue-200 tracking-wider uppercase leading-none">
+                    My Account
+                  </p>
+                </div>
               </button>
 
               {isProfileMenuOpen && (
-                <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl shadow-black/10 border border-slate-100 p-2 z-[110] animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-4 py-3 border-b border-slate-50 mb-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Signed in as</p>
-                    <p className="text-xs font-black text-slate-900 mt-1 truncate">{user.email || user.username}</p>
+                <div className="absolute top-full right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl shadow-black/15 border border-slate-100 p-2.5 z-[110] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 bg-slate-50 rounded-xl mb-2 border border-slate-100">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Customer Account</p>
+                    <p className="text-sm font-black text-slate-900 mt-1 truncate">{user.name || user.username}</p>
+                    <p className="text-[11px] font-medium text-slate-500 mt-0.5">{user.whatsapp_number || user.phone || user.whatsapp || 'Verified Customer'}</p>
+                    {user.location && (
+                      <p className="text-[10px] text-slate-400 font-bold truncate mt-1">📍 {user.location}</p>
+                    )}
                   </div>
+
                   <button 
                     onClick={() => {
                         setIsProfileMenuOpen(false);
                         if (onEditProfileClick) onEditProfileClick();
                     }}
-                    className="w-full text-left px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-2"
+                    className="w-full text-left px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <User size={14} className="text-slate-400" />
-                    Edit Profile
+                    <User size={15} className="text-blue-500" />
+                    <span>My Account & Details</span>
                   </button>
-                  <div className="h-px bg-slate-50 my-1 mx-2" />
+
+                  <button 
+                    onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        if (onTrackOrderClick) onTrackOrderClick();
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <Package size={15} className="text-slate-400" />
+                    <span>My Orders</span>
+                  </button>
+
+                  <div className="h-px bg-slate-100 my-1.5 mx-2" />
+
                   <button 
                     onClick={() => {
                         setIsProfileMenuOpen(false);
                         if (onLogoutClick) onLogoutClick();
                     }}
-                    className="w-full text-left px-4 py-3 text-xs font-black text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center gap-2"
+                    className="w-full text-left px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <X size={14} />
-                    Sign Out
+                    <X size={15} />
+                    <span>Sign Out</span>
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            <button onClick={onLoginClick} className="px-4 py-2 bg-white text-[#1E5EF3] hover:bg-blue-50 rounded-full transition-all flex items-center gap-2 group font-black text-sm ml-2 shadow-sm active:scale-95 leading-none">
-              <User className="w-4 h-4" />
-              <span>Login</span>
+            <button 
+              onClick={onLoginClick} 
+              className="px-4 py-2.5 bg-white text-[#1E5EF3] hover:bg-blue-50 rounded-full transition-all flex items-center gap-2 group font-black text-xs sm:text-sm ml-2 shadow-sm active:scale-95 leading-none cursor-pointer"
+            >
+              <User className="w-4 h-4 text-blue-600" />
+              <span>Sign In</span>
             </button>
           )}
         </div>

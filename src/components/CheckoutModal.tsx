@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
 import { Product, CartItem } from '../types';
-import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle, Sparkles } from 'lucide-react';
+import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle, Sparkles, Phone, PhoneCall, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { formatWhatsappNumber } from '../lib/utils';
 
 import { UserProfile } from '../types';
@@ -29,18 +29,94 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
   const [showSuccess, setShowSuccess] = useState(false);
   const [cartSnapshot, setCartSnapshot] = useState<CartItem[]>([]);
   const [bkashTrxId, setBkashTrxId] = useState('');
+  const [orderBlockedError, setOrderBlockedError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
       setShowSuccess(false);
       setOrderId(null);
-      if (user) {
-        if (!customerName) setCustomerName(user.username || '');
-        if (!whatsapp) setWhatsapp(user.whatsapp || '');
-        if (!location) setLocation(user.location || '');
+      setOrderBlockedError(null);
+
+      // Check current user or session from localStorage
+      let activeUser: any = user;
+      if (!activeUser) {
+        try {
+          const raw = localStorage.getItem('pbazar_customer_session');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.user) activeUser = parsed.user;
+          }
+        } catch (e) {
+          console.warn('Session parse error', e);
+        }
+      }
+
+      if (activeUser) {
+        if (!customerName) setCustomerName(activeUser.name || activeUser.username || '');
+        if (!whatsapp) setWhatsapp(activeUser.whatsapp_number || activeUser.phone || activeUser.whatsapp || '');
+        if (!location) setLocation(activeUser.location || activeUser.address || '');
       }
     }
   }, [isOpen, user]);
+
+  // Render Order Suspended Alert Modal if account is blocked
+  if (orderBlockedError) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOrderBlockedError(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-center relative z-10 border border-rose-200"
+            >
+              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-rose-600/10">
+                <ShieldAlert size={36} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">Order Suspended</h3>
+              <p className="text-slate-600 text-xs sm:text-sm font-semibold mb-6 bg-rose-50 p-4 rounded-2xl border border-rose-100 text-rose-800 leading-relaxed">
+                {orderBlockedError}
+              </p>
+              
+              <div className="space-y-2.5">
+                {/* One-click Direct Call button as required */}
+                <a
+                  href="tel:01716807465"
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+                >
+                  <PhoneCall size={16} />
+                  <span>Direct Call Support (01716807465)</span>
+                </a>
+
+                {/* WhatsApp Link for instant communication */}
+                <a
+                  href="https://wa.me/8801716807465?text=Hello%20Pbazar%20Support,%20my%20account%20shows%20order%20suspended.%20Please%20assist%20me."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                >
+                  <MessageCircle size={16} />
+                  <span>Chat on WhatsApp</span>
+                </a>
+
+                <button
+                  onClick={() => {
+                    setOrderBlockedError(null);
+                    onClose();
+                  }}
+                  className="w-full py-3 text-slate-400 hover:text-slate-600 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close Checkout
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   if (showSuccess) {
      const displayItems = cartSnapshot.length > 0 ? cartSnapshot : cartItems;
@@ -58,40 +134,53 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="w-full h-[70vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 text-center relative z-10"
+              className="w-full h-[85vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl flex flex-col items-center justify-center p-6 sm:p-8 text-center relative z-10 overflow-y-auto"
             >
-              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
-                <CheckCircle size={40} />
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle size={36} />
               </div>
               <h3 className="text-2xl font-black text-slate-900 mb-1">Order Confirmed!</h3>
               {orderId && (
-                <p className="text-orange-600 font-black text-xs uppercase tracking-widest mb-4 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                <p className="text-orange-600 font-black text-xs uppercase tracking-widest mb-3 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
                   Order ID: {orderId}
                 </p>
               )}
-              <p className="text-slate-500 text-sm mb-8">Your order has been recorded in our system successfully.</p>
+              <p className="text-slate-500 text-xs mb-6">Your order has been recorded in our system successfully.</p>
               
-              {waLink && (
-                <div className="w-full space-y-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Next Step:</p>
+              <div className="w-full space-y-2.5">
+                {/* One-click Direct Call Support Button as required */}
+                <a
+                  href="tel:01716807465"
+                  className="w-full py-3.5 bg-blue-600 text-white rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all active:scale-95"
+                >
+                  <PhoneCall size={16} />
+                  <span>Direct Call Support (01716807465)</span>
+                </a>
+
+                {/* WhatsApp Link for Instant Communication */}
+                <a
+                  href={`https://wa.me/8801716807465?text=${encodeURIComponent(messageText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-emerald-600 text-white rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 transition-all active:scale-95"
+                >
+                  <MessageCircle size={16} />
+                  <span>Instant WhatsApp Support</span>
+                </a>
+
+                {waLink && (
                   <button 
                     onClick={() => window.open(waLink, '_blank')}
-                    className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
+                    className="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95 cursor-pointer"
                   >
-                    <img 
-                      src="https://img.magnific.com/premium-vector/whatsapp-app-round-icon-popular-messenger-social-media-logo_277909-873.jpg?semt=ais_hybrid&w=740&q=80" 
-                      className="w-6 h-6 object-contain rounded-full shadow-md" 
-                      alt="WhatsApp"
-                    />
-                    Confirm with Seller
+                    <span>Confirm with Seller: {firstItem?.product.seller || 'Verified Seller'}</span>
                   </button>
-                  <p className="text-[9px] text-slate-400 font-bold">Connecting to Admin: {firstItem?.product.seller || 'Verified Seller'}</p>
-                </div>
-              )}
+                )}
+              </div>
 
               <button 
                 onClick={onClose}
-                className="mt-6 text-slate-400 font-bold text-xs hover:text-slate-600"
+                className="mt-5 text-slate-400 font-bold text-xs hover:text-slate-600 cursor-pointer"
               >
                 Close and Keep Looking
               </button>
@@ -210,8 +299,14 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
           window.open(`https://wa.me/${sellerW.replace(/\D/g, '')}?text=${message}`, '_blank');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Final confirm error:', error);
+      if (error?.is_order_blocked || error?.message?.includes('Suspended') || error?.message?.includes('suspended') || error?.message?.includes('blocked')) {
+        setOrderBlockedError(error.message || "Order Suspended: Your account is currently suspended from placing orders by Admin policy. Please contact customer support.");
+        setIsConfirming(false);
+      } else {
+        alert(error?.message || "Order submission failed. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

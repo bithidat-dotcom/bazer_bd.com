@@ -74,12 +74,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           data-purpose="product-card"
-          className="bg-white rounded-[22px] sm:rounded-[32px] p-2 sm:p-3.5 shadow-card transition-all duration-300 hover:shadow-2xl border border-black/[0.04] flex flex-col h-full cursor-pointer relative group overflow-hidden"
+          className="bg-white rounded-[32px] p-3.5 shadow-card transition-all duration-300 hover:shadow-2xl border border-black/[0.04] flex flex-col h-full cursor-pointer relative group"
           onClick={() => onClick && onClick(product)}
         >
           {/* BEGIN: MediaSection */}
           <div 
-            className="relative w-full aspect-square rounded-[16px] sm:rounded-[24px] overflow-hidden select-none bg-neutral-100" 
+            className="relative w-full aspect-square rounded-[24px] overflow-hidden select-none bg-neutral-100" 
             data-purpose="product-image-container"
           >
             {/* Sneaker/Product Main Image */}
@@ -92,30 +92,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             {/* Top-Left: Status Badge */}
-            <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10" data-purpose="badge-best-seller">
-              <span className="inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-medium text-white tracking-tight backdrop-blur-md bg-black/40 border border-white/25 shadow-sm">
+            <div className="absolute top-3 left-3 z-10" data-purpose="badge-best-seller">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-medium text-white tracking-tight backdrop-blur-md bg-black/40 border border-white/25 shadow-sm">
                 {hasDiscount ? `${product.discount}% OFF` : product.is_new ? 'New Arrival' : 'Best Seller'}
               </span>
             </div>
 
             {/* Top-Right: Brand Logo / Seller Badge */}
-            <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10" data-purpose="brand-logo-badge">
+            <div className="absolute top-3 right-3 z-10" data-purpose="brand-logo-badge">
               {sellerLogo ? (
                 <div 
-                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white flex items-center justify-center shadow-md p-0.5 sm:p-1 transition-transform hover:scale-105 active:scale-95 overflow-hidden" 
+                  className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md p-1 transition-transform hover:scale-105 active:scale-95 overflow-hidden" 
                   title={product.seller || 'Seller'}
                 >
                   <img src={sellerLogo} alt={product.seller || 'Seller'} className="w-full h-full object-cover rounded-full" />
                 </div>
               ) : (
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white flex items-center justify-center shadow-md p-1 sm:p-1.5 transition-transform hover:scale-105 active:scale-95 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md p-1.5 transition-transform hover:scale-105 active:scale-95 overflow-hidden">
                   <img src="https://i.postimg.cc/KvqR53hq/download-(1).png" alt="Pbazar" className="w-full h-full object-contain rounded-full" />
                 </div>
               )}
             </div>
 
             {/* Bottom-Center: Carousel Indicator Dots */}
-            <nav aria-label="Image slide pagination" className="absolute bottom-2 sm:bottom-3 inset-x-0 flex items-center justify-center gap-1 sm:gap-1.5 z-10 pointer-events-none" data-purpose="carousel-dots">
+            <nav aria-label="Image slide pagination" className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5 z-10 pointer-events-none" data-purpose="carousel-dots">
               <span className="w-1.5 h-1.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"></span>
               <span className="w-1.5 h-1.5 rounded-full bg-white/50 backdrop-blur-[2px]"></span>
               <span className="w-1.5 h-1.5 rounded-full bg-white/50 backdrop-blur-[2px]"></span>
@@ -125,39 +125,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* END: MediaSection */}
 
           {/* BEGIN: ContentSection */}
-          <div className="px-1 sm:px-2 pt-2 sm:pt-3.5 pb-0.5 flex flex-col flex-1 min-w-0" data-purpose="product-details">
+          <div className="px-2 pt-3.5 pb-1 flex flex-col flex-1" data-purpose="product-details">
             {/* Title & Subtitle Stack */}
             <header className="space-y-0.5">
-              <h1 className="text-[14px] sm:text-[18px] leading-snug font-bold text-neutral-900 tracking-tight line-clamp-1 group-hover:text-neutral-700 transition-colors">
+              <h1 className="text-[16px] sm:text-[18px] leading-snug font-bold text-neutral-900 tracking-tight line-clamp-1 group-hover:text-neutral-700 transition-colors">
                 {product.name}
               </h1>
-              <p className="text-[11px] sm:text-[12px] font-medium text-neutral-400 capitalize truncate">
+              <p className="text-[12px] font-medium text-neutral-400 capitalize">
                 {product.category || (product.seller ? `By ${product.seller}` : 'Pbazar Verified')}
               </p>
             </header>
 
             {/* Wholesale counter if applicable */}
             {isWholesale && (
-              <div className="mt-2 bg-neutral-100 rounded-xl p-1.5 sm:p-2 flex items-center justify-between">
-                <span className="text-[9px] sm:text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Min 5</span>
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-1.5 py-0.5 rounded-lg border border-neutral-200">
+              <div className="mt-2.5 bg-neutral-100 rounded-xl p-2 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Min 5 Bundle</span>
+                <div className="flex items-center gap-2 bg-white px-2 py-0.5 rounded-lg border border-neutral-200">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.max(5, prev - 1));
                     }}
-                    className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-neutral-100 text-neutral-800 flex items-center justify-center font-bold text-xs active:scale-90"
+                    className="w-5 h-5 rounded bg-neutral-100 text-neutral-800 flex items-center justify-center font-bold text-xs active:scale-90"
                     type="button"
                   >
                     -
                   </button>
-                  <span className="text-[11px] sm:text-xs font-bold text-neutral-900 min-w-[14px] text-center font-mono">{quantity}</span>
+                  <span className="text-xs font-bold text-neutral-900 min-w-[16px] text-center font-mono">{quantity}</span>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setQuantity(prev => Math.min(100, prev + 1));
                     }}
-                    className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-neutral-100 text-neutral-800 flex items-center justify-center font-bold text-xs active:scale-90"
+                    className="w-5 h-5 rounded bg-neutral-100 text-neutral-800 flex items-center justify-center font-bold text-xs active:scale-90"
                     type="button"
                   >
                     +
@@ -167,20 +167,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
 
             {/* BEGIN: ActionFooter */}
-            <footer className="mt-auto pt-2.5 sm:pt-3.5 flex items-center justify-between gap-1.5 sm:gap-2 min-w-0" data-purpose="pricing-and-cta">
+            <footer className="mt-auto pt-3 flex items-center justify-between gap-1.5" data-purpose="pricing-and-cta">
               {/* Bold Price Number Text */}
               <div 
-                className="flex items-center select-none min-w-0" 
+                className="flex items-center select-none shrink-0" 
                 data-purpose="price-display"
               >
-                <span className="text-[13px] xs:text-[14px] sm:text-[17px] font-black text-neutral-900 tracking-tight font-mono truncate">
+                <span className="text-[15px] sm:text-[17px] font-black text-neutral-900 tracking-tight font-mono">
                   {formatPrice(discountedPrice * (isWholesale ? quantity : 1))}
                 </span>
               </div>
 
-              {/* Action: Buy Button Only */}
+              {/* Action: Buy Button Only (Compact & Mobile-friendly) */}
               <button 
-                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 bg-neutral-950 hover:bg-black text-white text-[10px] sm:text-[12px] font-semibold pl-2 sm:pl-3.5 pr-1 sm:pr-1.5 py-1 sm:py-1.5 rounded-full shadow-sm hover:shadow active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 shrink-0 cursor-pointer" 
+                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 bg-neutral-950 hover:bg-black text-white text-[11px] sm:text-[12px] font-semibold pl-2.5 sm:pl-3 pr-1 py-1 sm:py-1.5 rounded-full shadow-sm hover:shadow active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 shrink-0 cursor-pointer" 
                 data-purpose="buy-now-button" 
                 type="button"
                 onClick={(e) => {
@@ -188,9 +188,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   onBuy(product, isWholesale ? quantity : 1);
                 }}
               >
-                <span className="whitespace-nowrap">{isWholesale ? 'Bundle Buy' : 'Buy Now'}</span>
-                <span aria-hidden="true" className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5 rounded-full bg-white text-neutral-950 flex items-center justify-center transition-transform duration-200 group-hover:rotate-45 shrink-0">
-                  <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[0.5]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <span>{isWholesale ? 'Bundle Buy' : 'Buy Now'}</span>
+                <span aria-hidden="true" className="w-5 h-5 rounded-full bg-white text-neutral-950 flex items-center justify-center transition-transform duration-200 group-hover:rotate-45 shrink-0">
+                  <svg className="w-3 h-3 stroke-[0.5]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path clipRule="evenodd" d="M5.22 14.78a.75.75 0 0 0 1.06 0l7.22-7.22v5.69a.75.75 0 0 0 1.5 0v-7.5a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0 0 1.5h5.69l-7.22 7.22a.75.75 0 0 0 0 1.06Z" fillRule="evenodd"></path>
                   </svg>
                 </span>
@@ -201,7 +201,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* END: ContentSection */}
         </motion.article>
       ) : (
-        <div className="bg-white rounded-[22px] sm:rounded-[32px] p-2 sm:p-3.5 shadow-card border border-neutral-100 w-full h-[320px] sm:h-[360px] animate-pulse"></div>
+        <div className="bg-white rounded-[32px] p-3.5 shadow-card border border-neutral-100 w-full h-[360px] animate-pulse"></div>
       )}
     </div>
   );
