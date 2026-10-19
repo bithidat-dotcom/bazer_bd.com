@@ -159,34 +159,18 @@ export default function Storefront() {
   }, []);
 
   useEffect(() => {
-    // 1. Check pbazar_customer_session
-    try {
-      const rawSession = localStorage.getItem('pbazar_customer_session');
-      if (rawSession) {
-        const parsed = JSON.parse(rawSession);
-        if (parsed?.user) {
-          setUser(parsed.user);
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn("Error reading customer session:", e);
-    }
-
-    const savedUser = Storage.getSmall<any>('pbazar_user');
-    if (savedUser) setUser(savedUser);
+      const savedUser = Storage.getSmall<any>('pbazar_user');
+      if (savedUser) setUser(savedUser);
   }, []);
   
   const handleAuthSuccess = (userData: any) => {
-    setUser(userData);
-    Storage.setSmall('pbazar_user', userData);
+      setUser(userData);
+      Storage.setSmall('pbazar_user', userData);
   };
   
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('pbazar_customer_session');
-    localStorage.removeItem('customer_phone');
-    Storage.removeSmall('pbazar_user');
+      setUser(null);
+      Storage.removeSmall('pbazar_user');
   };
 
   useEffect(() => {
@@ -325,7 +309,10 @@ export default function Storefront() {
             is_super_sale: !!p.is_super_sale,
             super_sale_at: p.super_sale_at || null,
             order_count: Number(p.order_count || 0)
-          } as Product));
+          } as Product)).filter((p: Product) => {
+            const cat = (p.category || '').toLowerCase();
+            return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
+          });
           
           normalized.sort((a: Product, b: Product) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
           setProducts(normalized);
@@ -377,6 +364,9 @@ export default function Storefront() {
                 super_sale_at: data.super_sale_at || null,
                 order_count: Number(data.order_count || 0)
               } as Product;
+            }).filter(p => {
+              const cat = (p.category || '').toLowerCase();
+              return !cat.includes('food') && !cat.includes('drink') && !cat.includes('cafe') && !cat.includes('snack') && !cat.includes('dessert');
             });
             prodData.sort((a,b) => parseFirestoreDateMs(b.created_at) - parseFirestoreDateMs(a.created_at));
             setProducts(prodData);
@@ -760,15 +750,13 @@ export default function Storefront() {
     const finalPrice = Math.max(0, totalPrice - coupon_discount);
 
     const formattedWhatsapp = formatWhatsappNumber(whatsapp);
-    const customerId = user ? (user.customer_id || user.id || user.phone || user.whatsapp_number || user.whatsapp) : formattedWhatsapp;
 
-    console.log("Submitting Order via /api/orders:", {
+    console.log("Submitting Order Data:", {
       product_id: combinedProductIds,
       product_name: combinedProductNames,
       price: finalPrice,
       original_price: totalPrice,
       coupon_discount,
-      customer_id: customerId,
       customer_name,
       whatsapp: formattedWhatsapp,
       location,
@@ -778,7 +766,7 @@ export default function Storefront() {
     });
     
     try {
-      const orderPayload = {
+      const docRef = await addDoc(collection(db, "orders"), {
         product_id: combinedProductIds,
         product_name: combinedProductNames,
         quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
@@ -787,14 +775,12 @@ export default function Storefront() {
         seller_id: cart.map(item => item.product.seller_id).filter(Boolean).join(', '),
         original_price: totalPrice,
         coupon_discount,
-        customer_id: customerId,
         customer_name,
-        customer_username: user ? (user.username || user.name || user.whatsapp) : null,
+        customer_username: user ? user.whatsapp : null,
         customer_uid: null,
-        customer_image: user ? (user.image || user.profile_image_url || user.profileImage || null) : null,
+        customer_image: user ? (user.profile_image_url || user.profileImage || null) : null,
         whatsapp: formattedWhatsapp,
-        whatsapp_number: formattedWhatsapp,
-        phone: formattedWhatsapp,
+        whatsapp_number: formattedWhatsapp, // For Admin Table View Sync
         location,
         area,
         post_code: postCode,
@@ -803,43 +789,21 @@ export default function Storefront() {
         seller_ids: Array.from(new Set(cart.map(item => item.product.seller_id).filter(Boolean))),
         items: cart.map(item => {
           const hasDiscount = item.product.discount && item.product.discount > 0;
-          const unitPrice = hasDiscount 
+          const finalPrice = hasDiscount 
             ? item.product.price * (1 - (item.product.discount || 0) / 100) 
             : item.product.price;
           return {
             product_id: item.product.id,
             name: item.product.name,
             image: item.product.image || '',
-            price: unitPrice,
+            price: finalPrice,
             quantity: item.quantity,
             seller: item.product.seller || '',
             seller_id: item.product.seller_id || '',
             seller_whatsapp: item.product.seller_whatsapp || ''
           };
         })
-      };
-
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
       });
-
-      const resData = await res.json();
-
-      // Check for 403 Order Suspension as strictly required
-      if (res.status === 403 || resData.is_order_blocked) {
-        const errorMsg = resData.error || "Order Suspended: Your account is currently suspended from placing orders by Admin policy. Please contact customer support.";
-        const suspensionError = new Error(errorMsg);
-        (suspensionError as any).is_order_blocked = true;
-        throw suspensionError;
-      }
-
-      if (!res.ok || !resData.success) {
-        throw new Error(resData.error || 'Failed to process order with backend');
-      }
-
-      const generatedOrderId = resData.orderId;
 
       // Trigger notification for admin and sellers
       try {
@@ -847,7 +811,7 @@ export default function Storefront() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            orderId: generatedOrderId,
+            orderId: docRef.id,
             customerName: customer_name,
             whatsapp: formattedWhatsapp,
             location: `${location}, ${area}${postCode ? ` (${postCode})` : ''}`,
@@ -869,9 +833,35 @@ export default function Storefront() {
       // Track coordinates for immediate client status notifications
       Storage.setSmall('customer_whatsapp', formattedWhatsapp);
       const savedIds = Storage.getSmall<string[]>('tracked_order_ids') || [];
-      if (!savedIds.includes(generatedOrderId)) {
-        savedIds.push(generatedOrderId);
+      if (!savedIds.includes(docRef.id)) {
+        savedIds.push(docRef.id);
         Storage.setSmall('tracked_order_ids', savedIds);
+      }
+
+      // Decrement real stock and increment order count for auto-promotion
+      for (const item of cart) {
+        if (item.product.id) {
+          try {
+            const productRef = doc(db, "products", item.product.id);
+            const currentCount = (item.product.order_count || 0) + item.quantity;
+            
+            const updateData: any = {
+              stock: increment(-item.quantity),
+              order_count: increment(item.quantity)
+            };
+
+            // Auto-promote to Super Sale if orders > 3
+            if (currentCount >= 3 && !item.product.is_super_sale) {
+              updateData.is_super_sale = true;
+              updateData.super_sale_at = new Date().toISOString();
+            }
+
+            await updateDoc(productRef, updateData);
+            console.log(`Updated product ${item.product.name}: stock -${item.quantity}, orders +${item.quantity}`);
+          } catch (stockErr) {
+            console.error("Failed to update product data", stockErr);
+          }
+        }
       }
 
       console.log("Order Successful");
@@ -880,9 +870,12 @@ export default function Storefront() {
       
       // Auto-hide success message
       setTimeout(() => setSuccessMessage(""), 6000);
-      return generatedOrderId;
+      return docRef.id;
     } catch (err: any) {
-      console.error("ORDER SUBMISSION FAILED:", err);
+      console.error("INSERT FAILED:", err);
+      if (!err.message?.includes('alert')) {
+        window.alert(`❌ Submission Failed: ${err.message || 'Unknown error'}`);
+      }
       throw err;
     }
   }

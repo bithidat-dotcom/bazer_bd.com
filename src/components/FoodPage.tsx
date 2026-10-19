@@ -7,7 +7,6 @@ import {
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db, db2 } from '../lib/firebase';
 import { Product } from '../types';
-import { isFirestoreQuotaExceeded } from '../lib/db-sync';
 
 export default function FoodPage() {
   const navigate = useNavigate();
@@ -18,47 +17,26 @@ export default function FoodPage() {
 
   useEffect(() => {
     setLoading(true);
-    let unsubProducts = () => {};
+    
+    // Query with limit for performance
+    const qProducts2 = query(collection(db2, 'products'), orderBy('created_at', 'desc'));
+    
+    const unsubProducts = onSnapshot(qProducts2, (snapshot) => {
+      const prodData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
+      
+      // Filter ONLY for 'food' category
+      const foodsList = prodData.filter((p: any) => 
+        p.category?.toLowerCase().trim() === 'food'
+      );
+      
+      setProducts(foodsList);
+      setFilteredProducts(foodsList);
+      setLoading(false);
+    }, (err) => {
+      console.error("Firestore loading issue:", err);
+      setLoading(false);
+    });
 
-    const loadFoods = async () => {
-      try {
-        const res = await fetch('/api/foods').catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          if (data.foods && Array.isArray(data.foods) && data.foods.length > 0) {
-            setProducts(data.foods);
-            setFilteredProducts(data.foods);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (e) {}
-
-      // If not quota exceeded, try live db2
-      if (!isFirestoreQuotaExceeded()) {
-        try {
-          const qProducts2 = query(collection(db2, 'products'), orderBy('created_at', 'desc'));
-          unsubProducts = onSnapshot(qProducts2, (snapshot) => {
-            const prodData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
-            const foodsList = prodData.filter((p: any) => 
-              p.category?.toLowerCase().trim() === 'food'
-            );
-            setProducts(foodsList);
-            setFilteredProducts(foodsList);
-            setLoading(false);
-          }, (err) => {
-            console.warn("Firestore foods query switched to offline:", err.message);
-            setLoading(false);
-          });
-        } catch (e) {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-      }
-    };
-
-    loadFoods();
     return () => unsubProducts();
   }, []);
 

@@ -43,7 +43,6 @@ export interface Product {
   is_super_sale?: boolean;
   super_sale_at?: string;
   order_count?: number;
-  seller_id?: string;
 }
 
 export interface CartItem {
@@ -71,29 +70,11 @@ export interface Banner {
 }
 
 export interface UserProfile {
-  id?: string;
-  customer_id?: string;
-  name?: string;
   username: string;
-  email?: string;
+  email: string;
   uid?: string;
   profileImage?: string;
   profile_image_url?: string;
-  image?: string;
   whatsapp?: string;
-  whatsapp_number?: string;
-  phone?: string;
   location?: string;
-  address?: string;
-  is_order_blocked?: boolean;
-  points?: number;
-  created_at?: string;
-}
-
-export interface CustomerSession {
-  token: string;
-  customer_id: string;
-  created_at: string;
-  expires_at?: string;
-  user?: UserProfile;
 }

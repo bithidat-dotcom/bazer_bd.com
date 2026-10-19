@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Storage } from '../lib/storage';
-import { ChevronLeft, ShoppingBag, MapPin, Phone, User, CheckCircle2, AlertCircle, Sparkles, CreditCard, Minus, Plus, Trash2, PhoneCall, MessageCircle, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, ShoppingBag, MapPin, Phone, User, CheckCircle2, AlertCircle, Sparkles, CreditCard, Minus, Plus, Trash2 } from 'lucide-react';
 import { CartItem } from '../types';
 import { formatWhatsappNumber } from '../lib/utils';
 
@@ -16,8 +16,6 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [isOrderBlocked, setIsOrderBlocked] = useState(false);
-  const [orderBlockedMessage, setOrderBlockedMessage] = useState('');
   
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -31,40 +29,16 @@ export default function CheckoutPage() {
       const savedCart = await Storage.getAny<CartItem[]>('pbazar_cart');
       if (savedCart && Array.isArray(savedCart)) setCart(savedCart);
       
-      // Auto pre-fill from customer session
-      try {
-        const rawSession = localStorage.getItem('pbazar_customer_session');
-        if (rawSession) {
-          const parsed = JSON.parse(rawSession);
-          if (parsed?.user) {
-            setProfile(parsed.user);
-            if (parsed.user.name) setCustomerName(parsed.user.name);
-            if (parsed.user.whatsapp_number || parsed.user.phone) {
-              setWhatsapp(parsed.user.whatsapp_number || parsed.user.phone);
-            }
-            if (parsed.user.location || parsed.user.address) {
-              setAddress(parsed.user.location || parsed.user.address);
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Session parse in CheckoutPage:', e);
-      }
-
       if (phone) {
-        if (!whatsapp) setWhatsapp(phone);
-        try {
-          const userRef = doc(db, 'users', phone.replace(/\D/g, ''));
-          const snap = await getDoc(userRef);
-          if (snap.exists()) {
-            const data = snap.data();
-            setProfile(data);
-            setPoints(data.points || 0);
-            if (!customerName) setCustomerName(data.name || data.username || '');
-            if (!address) setAddress(data.address || data.location || '');
-          }
-        } catch (dbErr) {
-          console.warn('User doc fetch error in CheckoutPage:', dbErr);
+        setWhatsapp(phone);
+        const userRef = doc(db, 'users', phone);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          setProfile(data);
+          setPoints(data.points || 0);
+          setCustomerName(data.name || data.username || '');
+          setAddress(data.address || '');
         }
       }
     };
@@ -113,7 +87,6 @@ export default function CheckoutPage() {
 
     setLoading(true);
     setError('');
-    setIsOrderBlocked(false);
 
     try {
       const combinedProductNames = cart
@@ -122,21 +95,17 @@ export default function CheckoutPage() {
         
       const combinedProductIds = cart.map(item => item.product.id).join(', ');
       const formattedWhatsapp = formatWhatsappNumber(whatsapp);
-      const customerId = profile?.customer_id || profile?.id || phone || formattedWhatsapp;
 
-      const orderPayload = {
+      const orderData = {
         product_id: combinedProductIds,
         product_name: combinedProductNames,
         quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
         price: total,
         original_price: subtotal,
         coupon_discount: discount,
-        customer_id: customerId,
         customer_name: customerName,
-        customer_username: profile?.username || phone || formattedWhatsapp,
+        customer_username: phone,
         whatsapp: formattedWhatsapp,
-        whatsapp_number: formattedWhatsapp,
-        phone: formattedWhatsapp,
         location: address,
         bkash_trx_id: bkashTrxId,
         status: 'pending',
@@ -156,37 +125,28 @@ export default function CheckoutPage() {
         })
       };
 
-      // Send to backend orders endpoint with order-blocking check
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
+      const docRef = await addDoc(collection(db, "orders"), orderData);
+
+      // Loyalty Update: -5 points if coupon used, +1 point per product if not
+      const userRef = doc(db, 'users', phone);
+      const pointsChange = useCoupon ? -5 : cart.reduce((acc, item) => acc + item.quantity, 0);
+      await updateDoc(userRef, { 
+        points: increment(pointsChange),
+        name: customerName,
+        address: address
       });
-
-      const resData = await res.json();
-
-      // Check if 403 suspension returned
-      if (res.status === 403 || resData.is_order_blocked) {
-        setIsOrderBlocked(true);
-        setOrderBlockedMessage(
-          resData.error || "Order Suspended: Your account is currently suspended from placing orders by Admin policy. Please contact customer support."
-        );
-        setLoading(false);
-        return;
-      }
-
-      if (!res.ok || !resData.success) {
-        throw new Error(resData.error || 'Failed to place order');
-      }
 
       // Clear cart
       await Storage.removeLarge('pbazar_cart');
-      Storage.removeSmall('pbazar_cart');
       setCart([]);
       setSuccess(true);
       
+      setTimeout(() => {
+        navigate('/');
+      }, 3000);
+
     } catch (err: any) {
-      setError(err.message || 'Failed to submit order');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -195,41 +155,12 @@ export default function CheckoutPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-        <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-5 text-emerald-500 shadow-xl shadow-emerald-500/10">
-          <CheckCircle2 size={56} />
+        <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 text-emerald-500 shadow-xl shadow-emerald-500/10">
+          <CheckCircle2 size={64} />
         </div>
-        <h1 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Confirmed!</h1>
-        <p className="text-slate-500 text-sm font-medium mb-6 max-w-sm">
-          Thank you for shopping with pbazar! Our team is reviewing and dispatching your items.
-        </p>
-
-        {/* Direct Call & WhatsApp Support for instant communication */}
-        <div className="w-full max-w-xs space-y-3 mb-6">
-          <a
-            href="tel:01716807465"
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-blue-600/20 transition-all active:scale-95"
-          >
-            <PhoneCall size={16} />
-            <span>Direct Call Support (01716807465)</span>
-          </a>
-
-          <a
-            href="https://wa.me/8801716807465?text=Hello%20Pbazar,%20I%20just%20placed%20an%20order.%20Please%20confirm."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/20 transition-all active:scale-95"
-          >
-            <MessageCircle size={16} />
-            <span>WhatsApp Support</span>
-          </a>
-        </div>
-
-        <button 
-          onClick={() => navigate('/')} 
-          className="px-8 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-black uppercase tracking-widest text-xs transition-colors cursor-pointer"
-        >
-          Back to Home
-        </button>
+        <h1 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Success!</h1>
+        <p className="text-slate-500 font-medium mb-8">Thank you for your purchase. Redirecting you home...</p>
+        <button onClick={() => navigate('/')} className="px-10 py-4 bg-slate-900 text-white rounded-full font-black uppercase tracking-widest text-xs">Back to Home</button>
       </div>
     );
   }
@@ -474,39 +405,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {isOrderBlocked && (
-          <div className="p-6 rounded-[2rem] bg-rose-50 border-2 border-rose-200 text-center space-y-4 animate-in fade-in zoom-in duration-300 shadow-xl shadow-rose-600/10">
-            <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
-              <ShieldAlert size={28} />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-rose-900 uppercase tracking-tight">Order Suspended</h3>
-              <p className="text-xs font-bold text-rose-700 mt-1 max-w-md mx-auto leading-relaxed">
-                {orderBlockedMessage || "Order Suspended: Your account is currently suspended from placing orders by Admin policy. Please contact customer support."}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <a
-                href="tel:01716807465"
-                className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
-              >
-                <PhoneCall size={14} />
-                <span>Direct Call (01716807465)</span>
-              </a>
-              <a
-                href="https://wa.me/8801716807465?text=Hello%20Pbazar,%20my%20account%20shows%20order%20suspended.%20Please%20help."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
-              >
-                <MessageCircle size={14} />
-                <span>Chat on WhatsApp</span>
-              </a>
-            </div>
-          </div>
-        )}
-
-        {error && !isOrderBlocked && (
+        {error && (
           <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-tight text-center flex items-center justify-center gap-2">
             <AlertCircle size={14} />
             {error}

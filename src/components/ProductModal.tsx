@@ -280,23 +280,24 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
     setLikesCount(nextState.totalLikes);
   };
 
-  // Handle Sharing with required preview image: https://i.postimg.cc/Ssy30svM/unnamed-(4).jpg
+  // Handle Sharing
   const handleShare = (platform: 'whatsapp' | 'facebook' | 'copy' | 'instagram') => {
     const shareUrl = `${window.location.origin}?p=${product.id}`;
-    const previewImageUrl = 'https://i.postimg.cc/Ssy30svM/unnamed-(4).jpg';
-    const shareText = `Check out ${product.name} on pbazar for only ${formatPrice(discountedPrice)}!\n\nPreview: ${previewImageUrl}\n\n`;
-
+    const shareText = `Check out this ${product.name} on pbazar for only ${formatPrice(discountedPrice)}! %0A`;
+    
     if (platform === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(shareText + shareUrl)}`, '_blank');
+      window.open(`https://wa.me/?text=${shareText}${shareUrl}`, '_blank');
     } else if (platform === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&picture=${encodeURIComponent(previewImageUrl)}`, '_blank');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank');
     } else if (platform === 'copy') {
       navigator.clipboard.writeText(shareUrl);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } else if (platform === 'instagram') {
+      // Instagram doesn't have a direct share URL for external content via web
+      // We'll just copy the link for the user
       navigator.clipboard.writeText(shareUrl);
-      window.alert("Instagram link copied! You can now paste it into your Instagram messages or story with the preview image.");
+      window.alert("Instagram doesn't support direct web sharing. The link has been copied to your clipboard—you can now paste it in your Instagram messages or story!");
     }
   };
 
@@ -580,26 +581,10 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart, on
                           initial={{ opacity: 0, y: 10, scale: 0.9 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                          className="absolute right-0 top-full mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2.5 min-w-[240px]"
+                          className="absolute right-0 top-full mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 min-w-[200px]"
                         >
-                          <div className="p-2 border-b border-slate-50 mb-2">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Share on Social</p>
-                          </div>
-
-                          {/* Link Preview Image Display */}
-                          <div className="p-2 mb-2 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
-                            <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden mb-1.5 border border-slate-200/60 shadow-inner">
-                              <img 
-                                src="https://i.postimg.cc/Fsr1GrcM/Creating-company-banner-with-logo-2K-20261014150058.jpg" 
-                                alt="Link Preview" 
-                                className="w-full h-full object-cover" 
-                              />
-                              <span className="absolute bottom-1 right-1 bg-black/70 backdrop-blur-xs text-white text-[8px] font-black px-1.5 py-0.5 rounded">
-                                Social Preview
-                              </span>
-                            </div>
-                            <p className="text-[10px] font-black text-slate-800 truncate leading-tight">{product.name}</p>
-                            <p className="text-[8px] font-bold text-blue-600 mt-0.5">pbazar • Premium Deals</p>
+                          <div className="p-3 border-b border-slate-50 mb-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Share on pbazar</p>
                           </div>
                           <div className="grid grid-cols-1 gap-1">
                             <button 

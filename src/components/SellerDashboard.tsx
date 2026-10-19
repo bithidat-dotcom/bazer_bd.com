@@ -213,37 +213,7 @@ export default function SellerDashboard() {
       where('seller', '==', seller.display_name)
     );
 
-    const loadHostingSellerProducts = async () => {
-      try {
-        const res = await fetch('/api/products').catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          const allProducts = data.products || [];
-          const filtered = allProducts.filter((p: any) => 
-            (p.seller || '').toLowerCase() === seller.display_name.toLowerCase() ||
-            (p.seller_id || '').toLowerCase() === seller.username.toLowerCase()
-          );
-          setProducts(filtered);
-          setLoading(false);
-          return;
-        }
-      } catch (e) {}
-      const cached = await Storage.getLarge<any[]>('cached_products');
-      if (cached) {
-        const filtered = cached.filter((p: any) => 
-          (p.seller || '').toLowerCase() === seller.display_name.toLowerCase() ||
-          (p.seller_id || '').toLowerCase() === seller.username.toLowerCase()
-        );
-        setProducts(filtered);
-        setLoading(false);
-      }
-    };
-
-    if (isFirestoreQuotaExceeded()) {
-      loadHostingSellerProducts();
-    }
-
-    const unsubProd = isFirestoreQuotaExceeded() ? () => {} : onSnapshot(collection(db, 'products'), (snapshot) => {
+    const unsubProd = onSnapshot(collection(db, 'products'), (snapshot) => {
       const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       // Filter strictly by the current seller's display_name or username representation to enforce secure segmentation
       const filtered = allProducts.filter((p: any) => 
@@ -253,11 +223,11 @@ export default function SellerDashboard() {
       setProducts(filtered);
       setLoading(false);
     }, (err: any) => {
-      console.warn("Products listen switched to host mode", err.message);
+      console.error("Products listen error", err);
       if (err.code === 'resource-exhausted' || err.message?.includes('quota')) {
         setFirestoreQuotaExceeded(true);
       }
-      loadHostingSellerProducts();
+      setLoading(false);
     });
 
     // Sub to all reviews so we can aggregate reviews matching current seller's products
@@ -398,80 +368,62 @@ export default function SellerDashboard() {
       seller_logo: seller.logo,
     };
 
-    const fullProductData = {
-      id: editingProduct?.id || ('prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
-      ...payload
-    };
-
     try {
+      let savedProductId = '';
       if (editingProduct) {
+        // Confirm ownership before edit just in case
         if (editingProduct.seller_id?.toLowerCase() !== seller.username.toLowerCase() && editingProduct.seller?.toLowerCase() !== seller.display_name.toLowerCase()) {
           alert("Error: You only possess authorization to edit products owned by your profile!");
           return;
         }
+        await updateDoc(doc(db, 'products', editingProduct.id), payload);
+        savedProductId = editingProduct.id;
+        
+        // Sync to Second Speedy Database
+        try {
+          await setDoc(doc(db2, 'products', savedProductId), payload, { merge: true });
+        } catch (db2Err) {
+          console.warn("db2 sync failed during update:", db2Err);
+        }
+        
+        showAlert(`"${payload.name}" updated successfully!`, 'success');
+      } else {
+        const docRef = await addDoc(collection(db, 'products'), payload);
+        savedProductId = docRef.id;
+        
+        // Sync to Second Speedy Database using the same identical ID
+        try {
+          await setDoc(doc(db2, 'products', savedProductId), payload);
+        } catch (db2Err) {
+          console.warn("db2 sync failed during add:", db2Err);
+        }
+        
+        showAlert(`"${payload.name}" submitted & registered to catalog!`, 'success');
       }
 
-      // 1. Immediately Save to Hosting Server API (/api/products)
+      // Sync to Supabase Backup
+      try {
+        await syncProductToSupabase({ id: savedProductId, ...payload });
+      } catch (backupErr) {
+        console.warn("Supabase backup sync failed:", backupErr);
+      }
+
+      // Sync to Host Server (/api/products)
       try {
         await fetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(fullProductData)
+          body: JSON.stringify({ id: savedProductId, ...payload })
         });
       } catch (hostErr) {
-        console.warn("Host server sync warning:", hostErr);
+        console.warn("Host server sync failed:", hostErr);
       }
 
-      // 2. Immediately persist to client host storage & broadcast event
-      try {
-        const cached = (await Storage.getLarge<any[]>('cached_products')) || [];
-        const existingIdx = cached.findIndex(p => p.id === fullProductData.id);
-        let updatedList: any[];
-        if (existingIdx >= 0) {
-          updatedList = [...cached];
-          updatedList[existingIdx] = fullProductData;
-        } else {
-          updatedList = [fullProductData, ...cached];
-        }
-        await Storage.setLarge('cached_products', updatedList);
-        window.dispatchEvent(new CustomEvent('product-saved', { detail: fullProductData }));
-      } catch (cacheErr) {
-        console.warn("Local storage cache sync failed:", cacheErr);
-      }
-
-      // 3. Sync to Primary Firestore Database (if reachable)
-      try {
-        if (editingProduct) {
-          await updateDoc(doc(db, 'products', fullProductData.id), payload);
-        } else {
-          await setDoc(doc(db, 'products', fullProductData.id), payload);
-        }
-      } catch (dbErr: any) {
-        console.warn("Primary DB save bypassed or quota limited:", dbErr.message);
-      }
-
-      // 4. Sync to Second Fast Database
-      try {
-        await setDoc(doc(db2, 'products', fullProductData.id), payload, { merge: true });
-      } catch (db2Err: any) {
-        console.warn("db2 sync notice:", db2Err.message);
-      }
-
-      // 5. Sync to Supabase Backup
-      try {
-        await syncProductToSupabase(fullProductData);
-      } catch (backupErr) {
-        console.warn("Supabase backup sync warning:", backupErr);
-      }
-
-      showAlert(`"${payload.name}" saved and synced to host server!`, 'success');
       setIsProductModalOpen(false);
       setEditingProduct(null);
     } catch (err: any) {
       console.error("Save product failed:", err);
-      showAlert(`"${payload.name}" saved!`, 'success');
-      setIsProductModalOpen(false);
-      setEditingProduct(null);
+      alert("Save failed: " + err.message);
     }
   };
 

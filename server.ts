@@ -4,7 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, addDoc, updateDoc, increment } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, query } from "firebase/firestore";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import fs from "fs";
@@ -68,112 +68,35 @@ async function startServer() {
       
       res.json({ foods });
     } catch (error: any) {
-      const localProducts = getLocalProducts();
-      const nonFoodCategories = [
-        "electronics", "fashion", "clothing", "shoes", "bags", "phones", "laptops", "gadgets", "home", "furniture", "books", "beauty", "cosmetics", "accessories", "jewelry", "watches", "sports", "fitness", "automotive", "toys"
-      ];
-      const foods = localProducts.filter((p: any) => 
-        p.category && !nonFoodCategories.includes(p.category.toLowerCase().trim())
-      );
-      res.json({ foods });
+      console.error("Failed to fetch foods in server API:", error);
+      // Failover fallback to primary DB on query errors
+      try {
+        const primarySnap = await getDocs(query(collection(db, "products")));
+        const productsList = primarySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const nonFoodCategories = [
+          "electronics", "fashion", "clothing", "shoes", "bags", "phones", "laptops", "gadgets", "home", "furniture", "books", "beauty", "cosmetics", "accessories", "jewelry", "watches", "sports", "fitness", "automotive", "toys"
+        ];
+        const foods = productsList.filter((p: any) => 
+          p.category && !nonFoodCategories.includes(p.category.toLowerCase().trim())
+        );
+        res.json({ foods });
+      } catch (innerErr) {
+        res.status(500).json({ error: "Failed to load foods from database" });
+      }
     }
   });
 
   const PRODUCTS_CACHE_FILE = path.join(process.cwd(), "products_cache.json");
-  const USERS_CACHE_FILE = path.join(process.cwd(), "users_cache.json");
-  const ORDERS_CACHE_FILE = path.join(process.cwd(), "orders_cache.json");
 
   function getLocalProducts(): any[] {
     try {
       if (fs.existsSync(PRODUCTS_CACHE_FILE)) {
-        const data = JSON.parse(fs.readFileSync(PRODUCTS_CACHE_FILE, "utf-8"));
-        if (Array.isArray(data) && data.length > 0) return data;
+        return JSON.parse(fs.readFileSync(PRODUCTS_CACHE_FILE, "utf-8"));
       }
     } catch (e) {
       console.warn("Failed reading products_cache.json:", e);
     }
-    return [
-      {
-        "id": "prod_fallback_1",
-        "name": "Premium Wireless Bluetooth Headphones",
-        "description": "High fidelity audio with active noise cancellation and 40-hour battery life.",
-        "price": 4500,
-        "discount": 15,
-        "category": "Electronics",
-        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
-        "stock": 25,
-        "rating": 4.9,
-        "seller": "Pbazar Official",
-        "seller_id": "pbazar_official",
-        "seller_whatsapp": "01716807465",
-        "is_super_sale": true,
-        "created_at": "2026-10-01T00:00:00.000Z"
-      },
-      {
-        "id": "prod_fallback_2",
-        "name": "Designer Cotton Summer T-Shirt",
-        "description": "Ultra-soft breathable 100% organic cotton for daily casual wear.",
-        "price": 1200,
-        "discount": 20,
-        "category": "fashion",
-        "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518",
-        "stock": 50,
-        "rating": 4.7,
-        "seller": "Style Hub",
-        "seller_id": "style_hub",
-        "seller_whatsapp": "01711223344",
-        "is_super_sale": false,
-        "created_at": "2026-10-02T00:00:00.000Z"
-      },
-      {
-        "id": "prod_fallback_3",
-        "name": "Organic Green Tea Extract",
-        "description": "Pure antioxidant-rich herbal green tea leaves for natural energy.",
-        "price": 450,
-        "discount": 10,
-        "category": "glosery",
-        "image": "https://images.unsplash.com/photo-1576092768241-dec231879fc3",
-        "stock": 100,
-        "rating": 4.8,
-        "seller": "Organic Mart",
-        "seller_id": "organic_mart",
-        "seller_whatsapp": "01711223355",
-        "is_super_sale": true,
-        "created_at": "2026-10-03T00:00:00.000Z"
-      },
-      {
-        "id": "prod_fallback_4",
-        "name": "Smart Fitness & Health Watch",
-        "description": "Heart rate monitor, sleep tracker, and waterproof design with sleek OLED display.",
-        "price": 3200,
-        "discount": 25,
-        "category": "Electronics",
-        "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30",
-        "stock": 30,
-        "rating": 4.9,
-        "seller": "GadgetWorld",
-        "seller_id": "gadget_world",
-        "seller_whatsapp": "01711223366",
-        "is_super_sale": true,
-        "created_at": "2026-10-04T00:00:00.000Z"
-      },
-      {
-        "id": "prod_fallback_5",
-        "name": "Genuine Leather Executive Backpack",
-        "description": "Spacious compartments with padded laptop sleeve and durable waterproof leather.",
-        "price": 2800,
-        "discount": 0,
-        "category": "fashion",
-        "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62",
-        "stock": 15,
-        "rating": 4.6,
-        "seller": "LeatherCraft",
-        "seller_id": "leather_craft",
-        "seller_whatsapp": "01711223377",
-        "is_super_sale": false,
-        "created_at": "2026-10-05T00:00:00.000Z"
-      }
-    ];
+    return [];
   }
 
   function saveLocalProducts(products: any[]) {
@@ -181,44 +104,6 @@ async function startServer() {
       fs.writeFileSync(PRODUCTS_CACHE_FILE, JSON.stringify(products, null, 2), "utf-8");
     } catch (e) {
       console.warn("Failed writing products_cache.json:", e);
-    }
-  }
-
-  function getLocalUsers(): Record<string, any> {
-    try {
-      if (fs.existsSync(USERS_CACHE_FILE)) {
-        return JSON.parse(fs.readFileSync(USERS_CACHE_FILE, "utf-8"));
-      }
-    } catch (e) {
-      console.warn("Failed reading users_cache.json:", e);
-    }
-    return {};
-  }
-
-  function saveLocalUsers(users: Record<string, any>) {
-    try {
-      fs.writeFileSync(USERS_CACHE_FILE, JSON.stringify(users, null, 2), "utf-8");
-    } catch (e) {
-      console.warn("Failed writing users_cache.json:", e);
-    }
-  }
-
-  function getLocalOrders(): any[] {
-    try {
-      if (fs.existsSync(ORDERS_CACHE_FILE)) {
-        return JSON.parse(fs.readFileSync(ORDERS_CACHE_FILE, "utf-8"));
-      }
-    } catch (e) {
-      console.warn("Failed reading orders_cache.json:", e);
-    }
-    return [];
-  }
-
-  function saveLocalOrders(orders: any[]) {
-    try {
-      fs.writeFileSync(ORDERS_CACHE_FILE, JSON.stringify(orders, null, 2), "utf-8");
-    } catch (e) {
-      console.warn("Failed writing orders_cache.json:", e);
     }
   }
 
@@ -248,6 +133,18 @@ async function startServer() {
 
       res.json({ products: productsList });
     } catch (error: any) {
+      console.error("Failed to fetch products in server API, falling back:", error);
+      try {
+        const secondSnap = await getDocs(query(collection(db2, "products")));
+        const productsList = secondSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (productsList.length > 0) {
+          saveLocalProducts(productsList);
+          return res.json({ products: productsList });
+        }
+      } catch (innerErr) {
+        // Ignore and use local cache
+      }
+      
       const localFallback = getLocalProducts();
       res.json({ products: localFallback });
     }
@@ -519,359 +416,6 @@ async function startServer() {
     } catch (error: any) {
       console.error("User save error:", error);
       res.status(500).json({ error: "Failed to save profile details" });
-    }
-  });
-
-  // Customer Login / Registration Endpoint
-  // Complies with requirements:
-  // POST /api/users/login with body: { name, whatsapp_number, phone, location, image }
-  app.post("/api/users/login", async (req, res) => {
-    try {
-      const { name, whatsapp_number, phone, location, image } = req.body;
-
-      if (!name || (!whatsapp_number && !phone)) {
-        return res.status(400).json({ error: "Customer name and phone/WhatsApp number are required" });
-      }
-
-      const rawPhone = (whatsapp_number || phone || "").toString().trim();
-      const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
-
-      if (cleanPhone.length < 5) {
-        return res.status(400).json({ error: "Please enter a valid phone or WhatsApp number" });
-      }
-
-      // Default avatar fallback if empty
-      const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanPhone)}`;
-      const profileImage = image && image.trim().length > 0 ? image.trim() : defaultAvatar;
-
-      const localUsers = getLocalUsers();
-      let existing: any = localUsers[cleanPhone] || {};
-
-      // Attempt to read from Firestore (with quota fallback)
-      try {
-        const userDocRef = doc(db, "users", cleanPhone);
-        const userSnap = await getDoc(userDocRef);
-        if (userSnap.exists()) {
-          existing = { ...existing, ...userSnap.data() };
-        }
-      } catch (dbErr) {
-        console.warn("Firestore user read notice (fallback to local cache):", dbErr);
-      }
-
-      const userData = {
-        ...existing,
-        id: cleanPhone,
-        customer_id: cleanPhone,
-        name: name.trim(),
-        username: name.trim(),
-        whatsapp_number: rawPhone,
-        phone: rawPhone,
-        whatsapp: rawPhone,
-        location: location ? location.trim() : (existing.location || existing.address || ""),
-        address: location ? location.trim() : (existing.address || existing.location || ""),
-        image: profileImage || existing.image || existing.profile_image_url || defaultAvatar,
-        profile_image_url: profileImage || existing.profile_image_url || existing.image || defaultAvatar,
-        is_order_blocked: existing.is_order_blocked === true,
-        points: existing.points || 0,
-        created_at: existing.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        last_login_at: new Date().toISOString()
-      };
-
-      // 1. Save in local cache
-      localUsers[cleanPhone] = userData;
-      saveLocalUsers(localUsers);
-
-      // 2. Save in Firestore if available
-      try {
-        await setDoc(doc(db, "users", cleanPhone), userData, { merge: true });
-        await setDoc(doc(db, "register_people", cleanPhone), {
-          uid: cleanPhone,
-          username: userData.name,
-          whatsapp: rawPhone,
-          location: userData.location,
-          profileImage: userData.image,
-          updated_at: new Date().toISOString()
-        }, { merge: true });
-      } catch (dbSaveErr) {
-        console.warn("Firestore user save notice (stored in server cache):", dbSaveErr);
-      }
-
-      const sessionToken = jwt.sign(
-        { customer_id: cleanPhone, name: userData.name, phone: rawPhone },
-        JWT_SECRET,
-        { expiresIn: "30d" }
-      );
-
-      const session = {
-        token: sessionToken,
-        customer_id: cleanPhone,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      };
-
-      res.status(200).json({
-        success: true,
-        user: userData,
-        session
-      });
-    } catch (error: any) {
-      console.error("Customer login error:", error);
-      res.status(500).json({ error: error.message || "Failed to authenticate customer" });
-    }
-  });
-
-  // Get Customer Profile & Status
-  app.get("/api/users/profile/:id", async (req, res) => {
-    try {
-      const cleanPhone = req.params.id.replace(/[^0-9]/g, "");
-      const localUsers = getLocalUsers();
-      let userData = localUsers[cleanPhone];
-
-      if (!userData) {
-        try {
-          const userDocRef = doc(db, "users", cleanPhone);
-          const userSnap = await getDoc(userDocRef);
-          if (userSnap.exists()) {
-            userData = { id: cleanPhone, customer_id: cleanPhone, ...userSnap.data() };
-            localUsers[cleanPhone] = userData;
-            saveLocalUsers(localUsers);
-          }
-        } catch (dbErr) {
-          console.warn("Firestore fetch error:", dbErr);
-        }
-      }
-
-      if (!userData) {
-        return res.status(404).json({ error: "Customer not found" });
-      }
-
-      res.json({
-        success: true,
-        user: userData
-      });
-    } catch (error: any) {
-      console.error("Fetch customer profile error:", error);
-      res.status(500).json({ error: "Failed to retrieve profile" });
-    }
-  });
-
-  // Update Customer Profile
-  app.put("/api/users/profile/:id", async (req, res) => {
-    try {
-      const cleanPhone = req.params.id.replace(/[^0-9]/g, "");
-      const { name, location, address, image, profile_image_url } = req.body;
-
-      const localUsers = getLocalUsers();
-      const existing = localUsers[cleanPhone] || {};
-
-      const updatedData = {
-        ...existing,
-        id: cleanPhone,
-        customer_id: cleanPhone,
-        name: name !== undefined ? name.trim() : existing.name,
-        username: name !== undefined ? name.trim() : existing.username,
-        location: location !== undefined ? location.trim() : (address !== undefined ? address.trim() : existing.location),
-        address: address !== undefined ? address.trim() : (location !== undefined ? location.trim() : existing.address),
-        image: image || profile_image_url || existing.image || existing.profile_image_url,
-        profile_image_url: profile_image_url || image || existing.profile_image_url || existing.image,
-        updated_at: new Date().toISOString()
-      };
-
-      localUsers[cleanPhone] = updatedData;
-      saveLocalUsers(localUsers);
-
-      try {
-        const userDocRef = doc(db, "users", cleanPhone);
-        await setDoc(userDocRef, updatedData, { merge: true });
-      } catch (dbErr) {
-        console.warn("Firestore profile update notice:", dbErr);
-      }
-
-      res.json({
-        success: true,
-        user: updatedData
-      });
-    } catch (error: any) {
-      console.error("Update customer profile error:", error);
-      res.status(500).json({ error: "Failed to update profile" });
-    }
-  });
-
-  // Toggle Order-Blocked status (Admin control)
-  app.post("/api/users/:id/toggle-block", async (req, res) => {
-    try {
-      const cleanPhone = req.params.id.replace(/[^0-9]/g, "");
-      const localUsers = getLocalUsers();
-      const existing = localUsers[cleanPhone] || {};
-
-      const currentStatus = existing.is_order_blocked === true;
-      const newStatus = !currentStatus;
-
-      localUsers[cleanPhone] = {
-        ...existing,
-        id: cleanPhone,
-        customer_id: cleanPhone,
-        is_order_blocked: newStatus,
-        updated_at: new Date().toISOString()
-      };
-      saveLocalUsers(localUsers);
-
-      try {
-        const userDocRef = doc(db, "users", cleanPhone);
-        await updateDoc(userDocRef, {
-          is_order_blocked: newStatus,
-          updated_at: new Date().toISOString()
-        });
-      } catch (dbErr) {
-        console.warn("Firestore toggle block notice:", dbErr);
-      }
-
-      res.json({
-        success: true,
-        is_order_blocked: newStatus,
-        message: newStatus ? "Customer order placement blocked" : "Customer order placement unblocked"
-      });
-    } catch (error: any) {
-      console.error("Toggle block error:", error);
-      res.status(500).json({ error: "Failed to update block status" });
-    }
-  });
-
-  // Central Orders Endpoint with strict Order-Blocking Check
-  // Complies with requirements:
-  // - Checks customer's whatsapp_number / phone / customer_id
-  // - If is_order_blocked: returns 403 with { error: "...", is_order_blocked: true }
-  app.post("/api/orders", async (req, res) => {
-    try {
-      const orderPayload = req.body;
-      const {
-        customer_id,
-        whatsapp_number,
-        phone,
-        whatsapp,
-        customer_name,
-        location,
-        area,
-        post_code,
-        price,
-        original_price,
-        coupon_discount,
-        bkash_trx_id,
-        items,
-        product_name,
-        product_id
-      } = orderPayload;
-
-      // Identify customer phone numbers to verify suspension status
-      const candidatePhones = [
-        customer_id,
-        whatsapp_number,
-        phone,
-        whatsapp
-      ].filter(Boolean);
-
-      let isBlocked = false;
-      const localUsers = getLocalUsers();
-
-      for (const rawNumber of candidatePhones) {
-        const cleanNumber = String(rawNumber).replace(/[^0-9]/g, "");
-        if (!cleanNumber) continue;
-
-        // 1. Check local cache
-        const localRecord = localUsers[cleanNumber] || localUsers[String(rawNumber)];
-        if (localRecord && (localRecord.is_order_blocked === true || localRecord.is_blocked === true || localRecord.status === "blocked")) {
-          isBlocked = true;
-          break;
-        }
-
-        // 2. Check Firestore
-        try {
-          const userDoc = await getDoc(doc(db, "users", cleanNumber));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            if (data.is_order_blocked === true || data.is_blocked === true || data.status === "blocked") {
-              isBlocked = true;
-              break;
-            }
-          }
-        } catch (checkErr) {
-          console.warn("User block check notice:", checkErr);
-        }
-      }
-
-      // If user is suspended, reject with HTTP 403 as specifically required
-      if (isBlocked) {
-        return res.status(403).json({
-          error: "Order Suspended: Your account is currently suspended from placing orders by Admin policy. Please contact customer support.",
-          is_order_blocked: true
-        });
-      }
-
-      // Format customer phone
-      const primaryPhone = whatsapp_number || phone || whatsapp || customer_id || "";
-      const formattedWhatsapp = primaryPhone;
-
-      const orderData = {
-        ...orderPayload,
-        customer_name: customer_name || "Customer",
-        customer_username: customer_id || primaryPhone,
-        customer_id: customer_id || primaryPhone,
-        whatsapp: formattedWhatsapp,
-        whatsapp_number: formattedWhatsapp,
-        location: location || "",
-        area: area || "",
-        post_code: post_code || "",
-        price: Number(price) || 0,
-        original_price: Number(original_price) || Number(price) || 0,
-        coupon_discount: Number(coupon_discount) || 0,
-        bkash_trx_id: bkash_trx_id || "",
-        status: "pending",
-        created_at: orderPayload.created_at || new Date().toISOString()
-      };
-
-      let orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-      try {
-        const docRef = await addDoc(collection(db, "orders"), orderData);
-        orderId = docRef.id;
-      } catch (dbErr) {
-        console.warn("Firestore order write notice (stored in server cache):", dbErr);
-      }
-
-      // Record in local orders cache
-      const localOrders = getLocalOrders();
-      localOrders.unshift({ id: orderId, ...orderData });
-      saveLocalOrders(localOrders);
-
-      // Decrement product inventory and record sales count
-      if (Array.isArray(items) && items.length > 0) {
-        for (const item of items) {
-          const pId = item.product_id || item.product?.id;
-          const qty = Number(item.quantity || 1);
-          if (pId) {
-            try {
-              const productRef = doc(db, "products", pId);
-              await updateDoc(productRef, {
-                stock: increment(-qty),
-                order_count: increment(qty)
-              });
-            } catch (stockErr) {
-              console.warn("Stock update notice for:", pId);
-            }
-          }
-        }
-      }
-
-      res.status(201).json({
-        success: true,
-        orderId,
-        order: { id: orderId, ...orderData },
-        message: "Order placed successfully"
-      });
-    } catch (error: any) {
-      console.error("Order creation error:", error);
-      res.status(500).json({ error: "Failed to place order" });
     }
   });
 
