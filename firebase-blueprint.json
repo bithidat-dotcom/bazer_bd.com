@@ -36,12 +36,16 @@
         "product_id": { "type": "string" },
         "product_name": { "type": "string" },
         "price": { "type": "number" },
+        "original_price": { "type": "number" },
+        "coupon_discount": { "type": "number" },
+        "quantity": { "type": "number" },
         "customer_name": { "type": "string" },
         "customer_username": { "type": "string" },
         "customer_uid": { "type": "string" },
         "customer_image": { "type": "string" },
         "whatsapp": { "type": "string" },
         "location": { "type": "string" },
+        "bkash_trx_id": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "packing", "shipping", "delivery", "completed", "cancelled", "cancelled_admin"] },
         "created_at": { "type": "string" }
       },
@@ -69,14 +73,18 @@
       "type": "object",
       "properties": {
         "username": { "type": "string" },
+        "name": { "type": "string" },
         "email": { "type": "string" },
         "whatsapp": { "type": "string" },
         "location": { "type": "string" },
+        "address": { "type": "string" },
         "uid": { "type": "string" },
         "profileImage": { "type": "string" },
+        "profile_image_url": { "type": "string" },
+        "points": { "type": "number" },
+        "password": { "type": "string" },
         "created_at": { "type": "string" }
-      },
-      "required": ["uid"]
+      }
     },
     "Banner": {
       "title": "Banner",

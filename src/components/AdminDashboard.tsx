@@ -4,7 +4,7 @@ import { db, db2 } from '../lib/firebase';
 import { syncProductToSupabase, syncBannerToSupabase, checkSupabaseStatus } from '../lib/supabase';
 import { setFirestoreQuotaExceeded, isFirestoreQuotaExceeded } from '../lib/db-sync';
 import { Storage } from '../lib/storage';
-import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv } from 'lucide-react';
+import { Trash2, Edit, CheckCircle, XCircle, Users, ShoppingBag, TrendingUp, Utensils, Shirt, Cpu, Bot, Laptop, Dumbbell, ShoppingCart, Scissors, LayoutGrid, Plus, Search, Tag, Clock, User2, Phone, Facebook, Instagram, Sparkles, Tv, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 export default function AdminDashboard() {
@@ -615,6 +615,24 @@ export default function AdminDashboard() {
       }
     }
   };
+
+  const handleToggleUserBlock = async (userId: string, currentBlocked: boolean) => {
+    try {
+      const newBlocked = !currentBlocked;
+      await updateDoc(doc(db, 'users', userId), {
+        is_order_blocked: newBlocked
+      });
+      // Also notify backend endpoint
+      try {
+        await fetch(`/api/users/${userId}/toggle-block`, { method: 'POST' });
+      } catch (apiErr) {
+        console.warn("Backend toggle error:", apiErr);
+      }
+    } catch (err: any) {
+      console.error("Error toggling user block:", err);
+      alert(`Failed to update customer status: ${err.message || 'Error'}`);
+    }
+  };
   
   const openAddSellerModal = () => {
     setEditingSeller(null);
@@ -1010,10 +1028,21 @@ export default function AdminDashboard() {
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-black text-slate-900 truncate text-xl leading-tight">@{user.username || 'Anonymous'}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-black text-slate-900 truncate text-xl leading-tight">@{user.username || user.name || 'Customer'}</p>
+                        {user.is_order_blocked ? (
+                          <span className="bg-rose-50 text-rose-600 border border-rose-200 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                            <ShieldAlert size={10} /> Suspended
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                            <ShieldCheck size={10} /> Active
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1.5 bg-slate-50 w-fit px-2 py-0.5 rounded-full">
-                        ID: {user.uid?.slice(-6).toUpperCase() || 'EXTERNAL'}
+                        ID: {user.uid?.slice(-6).toUpperCase() || user.id?.slice(-6).toUpperCase() || 'EXTERNAL'}
                       </p>
                     </div>
                   </div>
@@ -1072,10 +1101,30 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
                       Member Since {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Recently'}
                     </p>
+                    <button
+                      onClick={() => handleToggleUserBlock(user.id, !!user.is_order_blocked)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                        user.is_order_blocked
+                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      }`}
+                    >
+                      {user.is_order_blocked ? (
+                        <>
+                          <ShieldCheck size={14} />
+                          <span>Unblock Orders</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert size={14} />
+                          <span>Suspend Orders</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               );

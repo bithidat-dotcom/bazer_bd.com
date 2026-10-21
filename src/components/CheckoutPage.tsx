@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, setDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Storage } from '../lib/storage';
 import { ChevronLeft, ShoppingBag, MapPin, Phone, User, CheckCircle2, AlertCircle, Sparkles, CreditCard, Minus, Plus, Trash2 } from 'lucide-react';
@@ -78,9 +78,12 @@ export default function CheckoutPage() {
   const discount = useCoupon && isCouponEligible ? subtotal : 0;
   const total = Math.max(0, subtotal - discount);
 
+  const [successOrderId, setSuccessOrderId] = useState<string>('');
+  const [lastOrderedSellerWhatsapp, setLastOrderedSellerWhatsapp] = useState<string>('');
+
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
-    if (!customerName || !whatsapp || !address || !bkashTrxId) {
+    if (!customerName.trim() || !whatsapp.trim() || !address.trim() || !bkashTrxId.trim()) {
       setError("Please fill in all buyer details and enter bKash Transaction ID (৳170 Advance to 01337892800).");
       return;
     }
@@ -95,6 +98,7 @@ export default function CheckoutPage() {
         
       const combinedProductIds = cart.map(item => item.product.id).join(', ');
       const formattedWhatsapp = formatWhatsappNumber(whatsapp);
+      const effectivePhone = (phone || formattedWhatsapp || '').trim();
 
       const orderData = {
         product_id: combinedProductIds,
@@ -103,11 +107,11 @@ export default function CheckoutPage() {
         price: total,
         original_price: subtotal,
         coupon_discount: discount,
-        customer_name: customerName,
-        customer_username: phone,
+        customer_name: customerName.trim(),
+        customer_username: effectivePhone,
         whatsapp: formattedWhatsapp,
-        location: address,
-        bkash_trx_id: bkashTrxId,
+        location: address.trim(),
+        bkash_trx_id: bkashTrxId.trim(),
         status: 'pending',
         created_at: new Date().toISOString(),
         items: cart.map(item => {
@@ -127,40 +131,144 @@ export default function CheckoutPage() {
 
       const docRef = await addDoc(collection(db, "orders"), orderData);
 
-      // Loyalty Update: -5 points if coupon used, +1 point per product if not
-      const userRef = doc(db, 'users', phone);
-      const pointsChange = useCoupon ? -5 : cart.reduce((acc, item) => acc + item.quantity, 0);
-      await updateDoc(userRef, { 
-        points: increment(pointsChange),
-        name: customerName,
-        address: address
-      });
+      // Decrement real stock and increment order count
+      for (const item of cart) {
+        if (item.product.id) {
+          try {
+            const productRef = doc(db, "products", item.product.id);
+            const currentCount = (item.product.order_count || 0) + item.quantity;
+            
+            const updateData: any = {
+              stock: increment(-item.quantity),
+              order_count: increment(item.quantity)
+            };
+
+            // Auto-promote to Super Sale if orders > 3
+            if (currentCount >= 3 && !item.product.is_super_sale) {
+              updateData.is_super_sale = true;
+              updateData.super_sale_at = new Date().toISOString();
+            }
+
+            await updateDoc(productRef, updateData);
+          } catch (stockErr) {
+            console.error("Failed to update product stock:", stockErr);
+          }
+        }
+      }
+
+      // Loyalty Update: -5 points if coupon used, +1 point per item purchased if not
+      if (effectivePhone) {
+        try {
+          const userRef = doc(db, 'users', effectivePhone);
+          const pointsEarned = cart.reduce((acc, item) => acc + item.quantity, 0);
+          const pointsChange = useCoupon ? -5 : pointsEarned;
+          
+          await setDoc(userRef, { 
+            points: increment(pointsChange),
+            name: customerName.trim(),
+            address: address.trim(),
+            whatsapp: effectivePhone
+          }, { merge: true });
+
+          // Ensure customer_phone is recorded in localStorage for profile persistence
+          if (!localStorage.getItem('customer_phone')) {
+            localStorage.setItem('customer_phone', effectivePhone);
+          }
+        } catch (loyaltyErr) {
+          console.error("Failed to update loyalty points:", loyaltyErr);
+        }
+      }
+
+      // Track order id for realtime notification
+      Storage.setSmall('customer_whatsapp', formattedWhatsapp);
+      const savedIds = Storage.getSmall<string[]>('tracked_order_ids') || [];
+      if (!savedIds.includes(docRef.id)) {
+        savedIds.push(docRef.id);
+        Storage.setSmall('tracked_order_ids', savedIds);
+      }
+
+      const firstSellerWhatsapp = cart.find(i => i.product.seller_whatsapp)?.product.seller_whatsapp || '';
+      setLastOrderedSellerWhatsapp(firstSellerWhatsapp);
 
       // Clear cart
       await Storage.removeLarge('pbazar_cart');
+      Storage.setSmall('pbazar_cart', []);
       setCart([]);
+      setSuccessOrderId(docRef.id);
       setSuccess(true);
-      
-      setTimeout(() => {
-        navigate('/');
-      }, 3000);
 
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Failed to process order. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   if (success) {
+    const waLink = lastOrderedSellerWhatsapp 
+      ? `https://wa.me/${lastOrderedSellerWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I just placed an order on Pbazar (ID: #${successOrderId.substring(0, 8).toUpperCase()}). Total: ৳${total}. My TrxID is ${bkashTrxId}. Please confirm!`)}`
+      : 'https://wa.me/8801716807465';
+
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-        <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 text-emerald-500 shadow-xl shadow-emerald-500/10">
-          <CheckCircle2 size={64} />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in duration-300">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-8 space-y-6">
+          <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto text-emerald-500 shadow-xl shadow-emerald-500/10">
+            <CheckCircle2 size={48} />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+              Payment Submitted
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Order Placed!</h1>
+            <p className="text-slate-500 font-medium text-xs sm:text-sm">
+              Your order has been recorded. Order ID: <span className="font-mono font-bold text-slate-800">#{successOrderId.substring(0, 8).toUpperCase()}</span>
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Total Paid</span>
+              <span className="font-black text-slate-900">{total} ৳</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">bKash TrxID</span>
+              <span className="font-mono font-bold text-pink-600">{bkashTrxId}</span>
+            </div>
+            {useCoupon && (
+              <div className="flex justify-between text-emerald-600">
+                <span className="font-bold uppercase tracking-wider text-[10px]">Loyalty Coupon</span>
+                <span className="font-bold">Applied (-350 ৳)</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 block"
+            >
+              <Phone size={16} />
+              Confirm with Seller on WhatsApp
+            </a>
+
+            <button 
+              onClick={() => navigate('/profile')} 
+              className="w-full py-3.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-black uppercase tracking-wider text-xs transition-all active:scale-95"
+            >
+              View Order in Profile
+            </button>
+
+            <button 
+              onClick={() => navigate('/')} 
+              className="w-full py-3 text-slate-400 hover:text-slate-600 font-bold uppercase tracking-widest text-[10px] transition-colors"
+            >
+              Back to Home Storefront
+            </button>
+          </div>
         </div>
-        <h1 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Success!</h1>
-        <p className="text-slate-500 font-medium mb-8">Thank you for your purchase. Redirecting you home...</p>
-        <button onClick={() => navigate('/')} className="px-10 py-4 bg-slate-900 text-white rounded-full font-black uppercase tracking-widest text-xs">Back to Home</button>
       </div>
     );
   }

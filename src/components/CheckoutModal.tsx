@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Product, CartItem } from '../types';
 import { X, MessageCircle, MapPin, User, Send, Minus, Plus, Trash2, ShoppingBag, CheckCircle, Sparkles } from 'lucide-react';
 import { formatWhatsappNumber } from '../lib/utils';
@@ -18,6 +19,7 @@ interface CheckoutModalProps {
 }
 
 export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, onUpdateQuantity, onRemoveItem, user, couponConfig }: CheckoutModalProps) {
+  const navigate = useNavigate();
   const [customerName, setCustomerName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [location, setLocation] = useState('');
@@ -252,6 +254,17 @@ export default function CheckoutModal({ cartItems, isOpen, onClose, onSubmit, on
               ) : (
                 <p className="text-white font-black mt-1 opacity-90">Total: {totalPrice.toFixed(0)} ৳</p>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate('/checkout');
+                }}
+                className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-2.5 bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-400/20 w-fit transition-colors cursor-pointer"
+              >
+                <Sparkles size={12} />
+                Open Full Screen Checkout & Loyalty Rewards
+              </button>
             </div>
 
             {/* Content Swapper */}

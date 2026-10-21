@@ -901,20 +901,23 @@ export default function Storefront() {
   const handleBuyNow = (product: Product, quantity: number = 1) => {
     setCart(prevCart => {
       const existing = prevCart.find(item => item.product.id === product.id);
+      let updated;
       if (existing) {
-        return prevCart.map(item => 
+        updated = prevCart.map(item => 
           item.product.id === product.id 
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
+      } else {
+        updated = [...prevCart, { product, quantity }];
       }
-      return [...prevCart, { product, quantity }];
+      Storage.setLarge('pbazar_cart', updated);
+      Storage.setSmall('pbazar_cart', updated);
+      return updated;
     });
     
-    setIsModalOpen(true);
+    navigate('/checkout');
   };
-
-
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart(prevCart => {
@@ -934,7 +937,7 @@ export default function Storefront() {
   };
 
   const handleOpenCart = () => {
-    setIsModalOpen(true);
+    navigate('/checkout');
   };
 
   const cartItemCount = (Array.isArray(cart)) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
@@ -952,12 +955,9 @@ export default function Storefront() {
         cartCount={cartItemCount} 
         onCartClick={handleOpenCart} 
         onTrackOrderClick={() => setIsTrackingOpen(true)}
-        onLoginClick={() => setIsAuthOpen(true)}
+        onLoginClick={() => navigate('/profile')}
         onLogoutClick={handleLogout}
-        onEditProfileClick={() => {
-          if (user) navigate('/profile');
-          else setIsAuthOpen(true);
-        }}
+        onEditProfileClick={() => navigate('/profile')}
         onLogoClick={handleLogoClick}
         user={user ? { ...user, username: user.username || user.whatsapp || 'User', email: user.email || user.whatsapp || '', profileImage: user.profile_image_url || user.profileImage } : null}
         categories={dynamicCategories.map(c => c.name)}
@@ -1508,8 +1508,7 @@ export default function Storefront() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onProfileClick={() => {
-          if (user) navigate('/profile');
-          else setIsAuthOpen(true);
+          navigate('/profile');
         }}
         onOrdersClick={() => setIsTrackingOpen(true)}
         onCartClick={handleOpenCart}

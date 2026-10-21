@@ -24,9 +24,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!phone) return;
 
-    // Load profile
+    // Load profile in real-time
     const userRef = doc(db, 'users', phone);
-    getDoc(userRef).then(docSnap => {
+    const unsubUser = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setProfile(data);
@@ -56,7 +56,10 @@ export default function ProfilePage() {
       setOrders(userOrders);
     });
 
-    return () => unsubOrders();
+    return () => {
+      unsubUser();
+      unsubOrders();
+    };
   }, [phone]);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
