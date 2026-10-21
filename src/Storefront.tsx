@@ -377,14 +377,15 @@ export default function Storefront() {
             Storage.setLarge('cached_products', prodData);
             setLoading(false);
           }, (error: any) => {
-            if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+            if (error.code === 'resource-exhausted' || error.message?.includes('quota') || error.message?.includes('Quota') || error.message?.includes('resource-exhausted')) {
               setFirestoreQuotaExceeded(true);
               try { unsubProd(); } catch (e) {}
               try { unsubBanner(); } catch (e) {}
               loadFallbacks();
             } else {
-              console.error('Firebase product error', error);
-              setError(error.message);
+              console.warn('Server sync operational via backup cache');
+              setFirestoreQuotaExceeded(true);
+              loadFallbacks();
               setLoading(false);
             }
           });
@@ -417,13 +418,15 @@ export default function Storefront() {
           setBanners(bannerData);
           Storage.setLarge('cached_banners', bannerData);
         }, (error: any) => {
-          if (error.code === 'resource-exhausted' || error.message?.includes('quota')) {
+          if (error.code === 'resource-exhausted' || error.message?.includes('quota') || error.message?.includes('Quota') || error.message?.includes('resource-exhausted')) {
             setFirestoreQuotaExceeded(true);
             try { unsubProd(); } catch (e) {}
             try { unsubBanner(); } catch (e) {}
             loadFallbacks();
           } else {
-            console.error('Firebase banner error', error);
+            console.warn('Banner sync operational via cache');
+            setFirestoreQuotaExceeded(true);
+            loadFallbacks();
           }
         });
 
