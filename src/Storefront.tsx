@@ -241,40 +241,37 @@ export default function Storefront() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     setError(null);
+    
+    // 1. Instant optimistic load from cache for 0ms loading time UX
+    const cachedProducts = Storage.getLarge<Product[]>('cached_products');
+    if (cachedProducts && Array.isArray(cachedProducts) && cachedProducts.length > 0) {
+      setProducts(cachedProducts);
+      setSuperSaleProducts(cachedProducts.filter(p => p.is_super_sale));
+      setRecommendedProducts(cachedProducts.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     
     let unsubProd = () => {};
     let unsubBanner = () => {};
 
     const loadFallbacks = async () => {
-      setLoading(true);
-      // 1. Try Supabase first (Live backup)
       try {
         const backupProducts = await getBackupProducts();
         if (backupProducts && backupProducts.length > 0) {
           setProducts(backupProducts);
-          // Update recommended & super sale from backup
           setSuperSaleProducts(backupProducts.filter(p => p.is_super_sale));
           setRecommendedProducts(backupProducts.filter(p => (p.rating || 0) >= 4.8 || (p.order_count || 0) >= 5).slice(0, 8));
-          setLoading(false);
         }
-        
         const backupBanners = await getBackupBanners();
         if (backupBanners && backupBanners.length > 0) {
           setBanners(backupBanners);
         }
       } catch (err) {
-        console.warn("Supabase live backup fetch failed, falling back to local storage:", err);
+        console.warn("Backup fetch failed:", err);
       }
-
-      // 2. Fallback to Local Storage (Offline cache)
-      const savedProducts = await Storage.getLarge<Product[]>('cached_products');
-      const savedBanners = await Storage.getLarge<Banner[]>('cached_banners');
-      const savedSellers = await Storage.getLarge<Seller[]>('cached_sellers');
-      if (savedProducts && products.length === 0) setProducts(savedProducts);
-      if (savedBanners && banners.length === 0) setBanners(savedBanners);
-      if (savedSellers) setSellers(savedSellers);
       setLoading(false);
     };
 
@@ -287,7 +284,7 @@ export default function Storefront() {
         if (!prodRes || !prodRes.ok) throw new Error('API server returned error state');
         const prodData = await prodRes.json();
         const loadedProds = prodData.products || [];
-        if (loadedProds.length > 0) {
+        if (Array.isArray(loadedProds)) {
           const normalized = loadedProds.map((p: any) => ({
             id: p.id || String(Math.random()),
             name: p.name || '',
